@@ -154,8 +154,12 @@ export default defineStack({
             object('fund_accounts', '资金账户', 'forge_fund_account', 'landmark'),
           ]),
           group('purchase_finance', '采购财务', [
+            page('purchase_payment', '付款管理', 'page_purchase_payment', 'send-horizontal'),
             object('purchase_invoices', '采购发票', 'forge_purchase_invoice', 'receipt'),
             object('accounts_payable', '应付账款', 'forge_accounts_payable', 'hand-coins'),
+            object('payment_tasks', '付款任务', 'forge_payment_task', 'send-horizontal'),
+            object('cash_payments', '付款流水', 'forge_cash_payment', 'badge-minus'),
+            object('payment_writeoffs', '付款核销', 'forge_payment_writeoff', 'badge-check'),
           ]),
         ],
       },
