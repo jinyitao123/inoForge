@@ -101,6 +101,15 @@ export default defineStack({
       {
         id: 'manufacturing', label: '制造与装配', icon: 'factory',
         navigation: [
+          group('assembly_operations', '组装业务管理', [
+            page('assembly_orders', '组装单', 'page_production_assembly_workspace', 'factory'),
+            page('assembly_shortages', '缺料待办', 'page_production_shortage_workspace', 'triangle-alert'),
+            page('production_issues', '领料单', 'page_production_material_workspace', 'package-minus'),
+            page('production_supplies', '补料单', 'page_production_supply_workspace', 'package-plus'),
+            page('production_returns', '退料单', 'page_production_return_workspace', 'undo-2'),
+            object('production_inbounds', '生产入库', 'forge_production_inbound', 'package-check'),
+            object('production_logs', '生产业务日志', 'forge_production_approval_log', 'history'),
+          ]),
           group('material_stock', '物料与库存', [
             object('opening_inbounds', '期初入库', 'forge_opening_inbound', 'package-plus'),
             object('inventory_balances', '库存余额', 'forge_inventory_balance', 'boxes'),
