@@ -29,6 +29,8 @@ export default defineStack({
             object('sales_orders', '销售订单', 'forge_sales_order', 'clipboard-list'),
             object('sales_shipments', '销售发货单', 'forge_sales_shipment', 'package-check'),
             object('sales_outbounds', '销售出库单', 'forge_sales_outbound', 'truck'),
+            object('sales_invoices', '销售发票', 'forge_sales_invoice', 'receipt-text'),
+            object('accounts_receivable', '应收账款', 'forge_accounts_receivable', 'wallet-cards'),
           ]),
           group('customer_records', '客户档案', [
             object('customers', '客户', 'forge_customer', 'building-2'),
