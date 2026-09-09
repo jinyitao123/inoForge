@@ -109,12 +109,26 @@ export const PurchaseReceiptLine = master('forge_purchase_receipt_line', '到货
   remarks: remarks(),
 }, ['receipt_id', 'item_code', 'name', 'model', 'unit_name', 'quantity', 'warehouse_id', 'taxed_amount', 'status']);
 
+export const PendingInspection = master('forge_pending_inspection', '待检验库存', 'clipboard-clock', {
+  name: text('待检记录名称', true), code: code('待检单号'), receipt_id: reference('forge_purchase_receipt', '到货登记', true),
+  receipt_line_id: reference('forge_purchase_receipt_line', '到货登记明细', true), order_id: reference('forge_purchase_order', '采购订单', true),
+  order_line_id: reference('forge_purchase_order_line', '采购订单明细', true), supplier_id: reference('forge_supplier', '供应商'),
+  customer_id: reference('forge_customer', '客户'), warehouse_id: reference('forge_warehouse', '到货仓库', true),
+  sku_id: reference('forge_material_sku', '物料规格', true), item_code: text('物料编码'), model: text('型号'),
+  specification: text('规格'), unit_name: text('单位'), arrival_quantity: positiveQuantity('到货数量'),
+  batch_number: text('批次号'), external_sn: text('外部 SN'), arrived_on: Field.date({ label: '到货日期', ...required }),
+  inspection_id: reference('forge_purchase_inspection', '关联检验单'),
+  status: { ...select('待检状态', [['pending', '待检验'], ['inspection_created', '检验中'], ['inspected', '已检验'], ['exempt', '免检']], 'pending'), readonly: true },
+  responsible_id: owner(true), remarks: remarks(),
+}, ['code', 'item_code', 'name', 'model', 'arrival_quantity', 'unit_name', 'batch_number', 'supplier_id', 'order_id', 'status']);
+
 export const PurchaseInspection = master('forge_purchase_inspection', '采购检验单', 'clipboard-check', {
   name: text('检验单名称', true), code: code('检验单号'), receipt_id: reference('forge_purchase_receipt', '到货登记', true),
-  receipt_line_id: reference('forge_purchase_receipt_line', '到货登记明细'),
+  receipt_line_id: reference('forge_purchase_receipt_line', '到货登记明细'), pending_inspection_id: reference('forge_pending_inspection', '待检记录'),
   order_id: reference('forge_purchase_order', '采购订单', true), order_line_id: reference('forge_purchase_order_line', '采购订单明细', true),
   supplier_id: reference('forge_supplier', '供应商', true), warehouse_id: reference('forge_warehouse', '到货仓库', true),
-  sku_id: reference('forge_material_sku', '物料规格', true), inspection_method: select('检验方式', [['full', '全检']], 'full'),
+  sku_id: reference('forge_material_sku', '物料规格', true), item_code: text('物料编码'), model: text('型号'), specification: text('规格'), unit_name: text('单位'),
+  batch_number: text('批次号'), inspection_method: select('检验方式', [['full', '全检'], ['sampling', '抽检']], 'full'),
   total_quantity: positiveQuantity('总数量'), accepted_quantity: nonNegativeQuantity('合格数量', true),
   rejected_quantity: nonNegativeQuantity('不合格数量', true), inspected_on: Field.date({ label: '检验日期' }),
   result: { ...select('检验结果', [['pending', '待判定'], ['passed', '合格'], ['partial', '部分合格'], ['rejected', '不合格']], 'pending'), readonly: true },

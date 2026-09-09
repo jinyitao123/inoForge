@@ -67,6 +67,7 @@ await test('saves one four-line draft without consuming arrival quantity', async
     untaxed: 14442.48, taxed: 16320, carrier: '顺达物流', logistics: 'SD20260910001' });
   const lines = await find('forge_purchase_receipt_line', { receipt_id: ids.receipt }); ids.receiptLines = lines.map(line => line.id);
   assert.equal(lines.length, 4); assert.ok(lines.every(line => line.status === 'draft' && line.warehouse_id === ids.warehouse));
+  assert.equal((await find('forge_pending_inspection', { receipt_id: ids.receipt })).length, 0, 'draft must not create pending-inspection inventory');
   assert.equal(lines.find(line => line.item_code === 'RM-PSU-24V10A').batch_number, 'BATCH-PSU-20260910-001');
   assert.deepEqual({ notice: (await read('forge_purchase_arrival_notice', ids.notice)).arrived_quantity, order: (await read('forge_purchase_order', ids.order)).arrived_quantity }, { notice: 0, order: 0 });
 });
@@ -76,6 +77,9 @@ await test('submits the draft to pending inspection and rolls up every line exac
   assert.equal(response.status, 200, JSON.stringify(response.value)); assert.equal(resultOf(response).status, 'pending_inspection');
   const receipt = await read('forge_purchase_receipt', ids.receipt); assert.equal(receipt.status, 'pending_inspection'); assert.equal(receipt.submitted_by, api.userId);
   const savedLines = await find('forge_purchase_receipt_line', { receipt_id: ids.receipt }); assert.ok(savedLines.every(line => line.status === 'pending_inspection'));
+  const pending = await find('forge_pending_inspection', { receipt_id: ids.receipt }); ids.pendingInspections = pending.map(item => item.id);
+  assert.equal(pending.length, 4); assert.ok(pending.every(item => item.status === 'pending' && item.warehouse_id === ids.warehouse));
+  assert.deepEqual(new Set(pending.map(item => item.receipt_line_id)), new Set(ids.receiptLines));
   const savedNotice = await read('forge_purchase_arrival_notice', ids.notice), savedOrder = await read('forge_purchase_order', ids.order);
   assert.deepEqual({ noticeStatus: savedNotice.status, noticeArrived: savedNotice.arrived_quantity, orderStatus: savedOrder.status, orderArrived: savedOrder.arrived_quantity },
     { noticeStatus: 'arrived', noticeArrived: 5, orderStatus: 'arrived', orderArrived: 5 });
