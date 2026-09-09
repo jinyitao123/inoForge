@@ -70,6 +70,9 @@ export default defineStack({
           ]),
           group('warehouse_records', '仓库资料', [
             object('warehouses', '仓库', 'forge_warehouse', 'warehouse'),
+            object('opening_inbounds', '期初入库', 'forge_opening_inbound', 'package-plus'),
+            object('inventory_balances', '库存余额', 'forge_inventory_balance', 'boxes'),
+            object('inventory_ledgers', '库存流水', 'forge_inventory_ledger', 'book-open'),
           ]),
           group('material_settings', '基础配置', [
             object('material_categories', '物料分类', 'forge_material_category'),
