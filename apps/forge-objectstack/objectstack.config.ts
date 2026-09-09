@@ -75,6 +75,10 @@ export default defineStack({
       {
         id: 'procurement_readiness', label: '采购与物料齐套', icon: 'shopping-cart',
         navigation: [
+          group('material_readiness', '物料齐套', [
+            object('shortage_analyses', '缺料分析', 'forge_bom_shortage_analysis', 'chart-no-axes-column-increasing'),
+            object('shortage_lines', '缺料明细', 'forge_bom_shortage_line', 'list'),
+          ]),
           group('procurement_flow', '采购执行', [
             object('purchase_orders', '采购订单', 'forge_purchase_order', 'shopping-cart'),
             object('purchase_arrival_notices', '到货通知', 'forge_purchase_arrival_notice', 'package-search'),
