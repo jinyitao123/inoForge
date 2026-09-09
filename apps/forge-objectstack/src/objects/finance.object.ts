@@ -11,11 +11,11 @@ const receivableStatus = () => Field.select([
   { value: 'unpaid', label: '未收款' }, { value: 'partially_collected', label: '部分收款' },
   { value: 'settled', label: '已结清' }, { value: 'overdue', label: '已逾期' },
 ], { label: '应收状态', defaultValue: 'unpaid' });
-const paymentMethod = () => Field.select([
+const paymentMethod = (label = '收款方式') => Field.select([
   { value: 'bank_transfer', label: '银行转账' }, { value: 'alipay', label: '支付宝' },
   { value: 'wechat_pay', label: '微信支付' }, { value: 'cash', label: '现金' },
   { value: 'cheque', label: '支票' }, { value: 'other', label: '其他' },
-], { label: '收款方式', defaultValue: 'bank_transfer' });
+], { label, defaultValue: 'bank_transfer' });
 
 // RM-056, RM-144 and RM-145 currently establish the sales-request / finance-ledger split.
 // This first executable slice represents the issued finance-side document directly.
@@ -182,3 +182,44 @@ export const AccountsPayable = master('forge_accounts_payable', '应付账款', 
   offset_amount: { ...amount('已冲抵金额'), readonly: true }, outstanding_amount: { ...amount('应付余额'), readonly: true },
   status: { ...payableStatus(), readonly: true }, responsible_id: owner(true), remarks: remarks(),
 }, ['code', 'source_type', 'supplier_id', 'inbound_id', 'invoice_id', 'order_id', 'recognized_on', 'due_on', 'original_amount', 'outstanding_amount', 'status', 'responsible_id']);
+
+// RM-021 and RM-136 separate the business payment request, physical outgoing payment and finance write-off.
+export const PaymentTask = master('forge_payment_task', '付款任务', 'send-horizontal', {
+  name: text('付款任务名称', true), code: code('付款任务编号'), source_type: Field.select([
+    { value: 'purchase_payable', label: '采购应付' }, { value: 'expense', label: '费用报销' },
+    { value: 'subcontract', label: '委外应付' }, { value: 'transport', label: '运输应付' },
+  ], { label: '来源', ...required }),
+  payable_id: reference('forge_accounts_payable', '应付账款', true), inbound_id: reference('forge_purchase_inbound', '采购入库单'),
+  invoice_id: reference('forge_purchase_invoice', '进项发票'), order_id: reference('forge_purchase_order', '采购订单'),
+  supplier_id: reference('forge_supplier', '供应商/往来单位', true), requested_amount: amount('申请付款金额'),
+  payable_amount: { ...amount('应付款金额'), readonly: true }, paid_amount: { ...amount('已付款金额'), readonly: true },
+  remaining_amount: { ...amount('待付款金额'), readonly: true }, payment_method: paymentMethod('付款方式'),
+  recipient_name: text('收款户名', true), recipient_account: text('收款账号', true), recipient_bank: text('开户银行'),
+  planned_on: Field.date({ label: '计划付款日', ...required }), applicant_id: Field.user({ label: '申请人', ...required }),
+  approver_id: Field.user({ label: '审批人', readonly: true }), approved_at: Field.datetime({ label: '审批时间', readonly: true }),
+  approval_comment: Field.textarea({ label: '审批意见', readonly: true }), status: { ...Field.select([
+    { value: 'pending_review', label: '待审批' }, { value: 'approved', label: '已审批' },
+    { value: 'rejected', label: '已驳回' }, { value: 'partially_paid', label: '部分付款' }, { value: 'paid', label: '已付清' },
+  ], { label: '付款审批状态', defaultValue: 'pending_review' }), readonly: true },
+  responsible_id: owner(true), remarks: remarks(),
+}, ['code', 'source_type', 'order_id', 'supplier_id', 'requested_amount', 'payable_amount', 'paid_amount', 'remaining_amount', 'planned_on', 'status']);
+
+export const CashPayment = master('forge_cash_payment', '付款流水', 'badge-minus', {
+  name: text('付款流水名称', true), code: code('付款流水号'), task_id: reference('forge_payment_task', '付款任务', true),
+  payable_id: reference('forge_accounts_payable', '应付账款', true), supplier_id: reference('forge_supplier', '供应商/往来单位', true),
+  account_id: reference('forge_fund_account', '付款账户', true), paid_on: Field.date({ label: '付款日期', ...required }),
+  payment_method: paymentMethod('付款方式'), amount: amount('付款金额'), allocated_amount: { ...amount('已核销金额'), readonly: true },
+  unallocated_amount: { ...amount('未核销金额'), readonly: true }, status: { ...Field.select([
+    { value: 'pending_writeoff', label: '待核销' }, { value: 'allocated', label: '已核销' },
+  ], { label: '核销状态', defaultValue: 'pending_writeoff' }), readonly: true },
+  bank_reference: text('银行流水号'), responsible_id: owner(true), remarks: remarks(),
+}, ['code', 'task_id', 'supplier_id', 'paid_on', 'payment_method', 'account_id', 'amount', 'allocated_amount', 'unallocated_amount', 'status']);
+
+export const PaymentWriteoff = master('forge_payment_writeoff', '付款核销', 'badge-check', {
+  name: text('核销名称', true), code: code('核销编号'), payment_id: reference('forge_cash_payment', '付款流水', true),
+  task_id: reference('forge_payment_task', '付款任务', true), payable_id: reference('forge_accounts_payable', '应付账款', true),
+  supplier_id: reference('forge_supplier', '供应商/往来单位', true), amount: amount('核销金额'),
+  status: { ...Field.select([{ value: 'pending_review', label: '待审核' }, { value: 'approved', label: '已核销' }], { label: '核销状态', defaultValue: 'pending_review' }), readonly: true },
+  reviewer_id: Field.user({ label: '核销人', readonly: true }), reviewed_at: Field.datetime({ label: '核销时间', readonly: true }),
+  review_comment: Field.textarea({ label: '核销意见', readonly: true }), responsible_id: owner(true), remarks: remarks(),
+}, ['code', 'payment_id', 'task_id', 'payable_id', 'supplier_id', 'amount', 'status']);

@@ -11,3 +11,4 @@ export * from './production-transform.action.js';
 export * from './delivery.action.js';
 export * from './timesheet.action.js';
 export * from './expense.action.js';
+export * from './payment.action.js';
