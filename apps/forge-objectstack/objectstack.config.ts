@@ -47,6 +47,10 @@ export default defineStack({
       {
         id: 'procurement_supply', label: '采购与供应', icon: 'shopping-cart',
         navigation: [
+          group('purchase_transactions', '采购业务', [
+            object('purchase_orders', '采购订单', 'forge_purchase_order', 'shopping-cart'),
+            object('purchase_arrival_notices', '到货通知', 'forge_purchase_arrival_notice', 'package-search'),
+          ]),
           group('supplier_records', '供应商档案', [
             object('suppliers', '供应商', 'forge_supplier', 'truck'),
             object('supplier_banks', '银行账户', 'forge_supplier_bank_account', 'landmark'),

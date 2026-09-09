@@ -19,7 +19,9 @@
     "acceptance:sales-conversion": "node tests/sales-conversion.integration.mjs",
     "acceptance:sales-shipment": "node tests/sales-shipment.integration.mjs",
     "acceptance:sales-outbound": "node tests/sales-outbound.integration.mjs",
-    "acceptance:sales-restart": "node tests/sales-restart-readback.mjs"
+    "acceptance:sales-restart": "node tests/sales-restart-readback.mjs",
+    "acceptance:procurement": "node tests/procurement-chain.integration.mjs",
+    "acceptance:procurement-restart": "node tests/procurement-restart-readback.mjs"
   },
   "dependencies": {
     "@objectstack/spec": "17.3.0",
