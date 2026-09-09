@@ -86,7 +86,8 @@ export default defineStack({
             object('purchase_arrival_notice_lines', '到货通知明细', 'forge_purchase_arrival_notice_line', 'list'),
             page('purchase_receipts', '到货登记', 'page_purchase_arrival_workspace', 'package-check'),
             object('purchase_receipt_lines', '到货登记明细', 'forge_purchase_receipt_line', 'list'),
-            object('purchase_inspections', '采购检验', 'forge_purchase_inspection', 'clipboard-check'),
+            page('pending_inspections', '待检验库存', 'page_pending_inspection_workspace', 'clipboard-clock'),
+            page('purchase_inspections', '检验单', 'page_purchase_inspection_workspace', 'clipboard-check'),
             object('purchase_inbounds', '采购入库', 'forge_purchase_inbound', 'package-plus'),
           ]),
           group('supplier_records', '供应商', [
