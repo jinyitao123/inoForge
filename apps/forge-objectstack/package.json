@@ -62,6 +62,9 @@
     ,"acceptance:production-assembly": "node tests/production-assembly.integration.mjs"
     ,"acceptance:production-assembly-restart": "node tests/production-assembly-restart-readback.mjs"
     ,"acceptance:production-assembly-ui-readback": "node tests/production-assembly-ui-readback.mjs"
+    ,"acceptance:production-transform": "node tests/production-transform.integration.mjs"
+    ,"acceptance:production-transform-restart": "node tests/production-transform-restart-readback.mjs"
+    ,"acceptance:production-transform-ui-readback": "node tests/production-transform-ui-readback.mjs"
   },
   "dependencies": {
     "@objectstack/spec": "17.3.0",

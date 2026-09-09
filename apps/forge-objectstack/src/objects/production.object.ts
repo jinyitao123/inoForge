@@ -80,3 +80,52 @@ export const ProductionApprovalLog = master('forge_production_approval_log', '�
   from_status: text('原状态'), to_status: text('新状态'), comment: Field.textarea({ label: '说明' }),
   occurred_at: Field.datetime({ label: '发生时间', ...required }), operator_id: Field.user({ label: '操作人', ...required }),
 }, ['occurred_at', 'source_object', 'source_id', 'action', 'from_status', 'to_status', 'operator_id']);
+
+// RM-070: a disassembly consumes finished inventory and explicitly splits every
+// theoretical BOM quantity between recovered stock and scrap.
+export const DisassemblyOrder = master('forge_disassembly_order', '拆解单', 'unplug', {
+  name: text('拆解单名称', true), code: code('拆解单号'), product_id: reference('forge_material', '成品', true),
+  product_sku_id: reference('forge_material_sku', '成品规格', true), bom_id: reference('forge_bom', 'BOM', true),
+  bom_version: text('BOM版本', true), warehouse_id: reference('forge_warehouse', '出入库仓库', true),
+  quantity: { ...quantity('拆解数量', 1), ...required }, reason: text('拆解原因', true), line_count: { ...quantity('物料种数'), readonly: true },
+  released_cost: { ...amount('释放成品成本'), readonly: true }, recovered_value: { ...amount('回收价值'), readonly: true },
+  scrap_loss: { ...amount('报废损失'), readonly: true }, status: select('拆解状态', [
+    ['pending_approval', '审批中'], ['stocked', '已入库'], ['rejected', '已驳回'],
+  ], 'pending_approval', true), handled_on: Field.date({ label: '拆解日期', ...required }),
+  confirmed_at: Field.datetime({ label: '确认时间', readonly: true }), responsible_id: owner(true), remarks: remarks(),
+}, ['code', 'product_id', 'bom_version', 'quantity', 'line_count', 'released_cost', 'recovered_value', 'scrap_loss', 'handled_on', 'status']);
+
+export const DisassemblyLine = master('forge_disassembly_line', '拆解明细', 'list', {
+  name: text('物料名称', true), disassembly_id: reference('forge_disassembly_order', '拆解单', true),
+  bom_node_id: reference('forge_bom_node', 'BOM节点', true), sku_id: reference('forge_material_sku', '物料规格', true),
+  material_id: reference('forge_material', '物料', true), item_code: text('物料编码', true), specification: text('规格'),
+  theoretical_quantity: quantity('理论拆出数量'), recovered_quantity: quantity('回收数量'), scrapped_quantity: quantity('报废数量'),
+  unit_cost: { ...amount('回收单位成本'), readonly: true }, recovered_amount: { ...amount('回收金额'), readonly: true },
+  status: select('明细状态', [['pending_approval', '审批中'], ['stocked', '已入库']], 'pending_approval', true), remarks: remarks(),
+}, ['disassembly_id', 'item_code', 'name', 'theoretical_quantity', 'recovered_quantity', 'scrapped_quantity', 'unit_cost', 'recovered_amount', 'status']);
+
+// RM-071: rework keeps the finished unit in inventory while issuing a new part
+// and either recovering or scrapping the replaced BOM component.
+export const ReplacementOrder = master('forge_replacement_order', '换件单', 'replace', {
+  name: text('换件单名称', true), code: code('换件单号'), product_id: reference('forge_material', '成品', true),
+  product_sku_id: reference('forge_material_sku', '成品规格', true), bom_id: reference('forge_bom', '改制成品BOM', true),
+  bom_version: text('BOM版本', true), warehouse_id: reference('forge_warehouse', '出入库仓库', true),
+  quantity: { ...quantity('改制数量', 1), ...required }, reason: text('改制原因', true), line_count: { ...quantity('换件处数'), readonly: true },
+  product_before_on_hand: { ...quantity('整机变动前库存'), readonly: true }, product_after_on_hand: { ...quantity('整机变动后库存'), readonly: true },
+  new_part_cost: { ...amount('新件成本'), readonly: true }, old_part_value: { ...amount('旧件回收价值'), readonly: true },
+  cost_change: Field.currency({ label: '成本变化', precision: 18, scale: 4, defaultValue: 0, readonly: true }),
+  status: select('换件状态', [['pending_approval', '审批中'], ['stocked', '已入库'], ['rejected', '已驳回']], 'pending_approval', true),
+  handled_on: Field.date({ label: '换件日期', ...required }), confirmed_at: Field.datetime({ label: '确认时间', readonly: true }),
+  responsible_id: owner(true), remarks: remarks(),
+}, ['code', 'product_id', 'bom_version', 'quantity', 'line_count', 'new_part_cost', 'old_part_value', 'cost_change', 'handled_on', 'status']);
+
+export const ReplacementLine = master('forge_replacement_line', '换件明细', 'list', {
+  name: text('换件说明', true), replacement_id: reference('forge_replacement_order', '换件单', true),
+  old_bom_node_id: reference('forge_bom_node', '原BOM节点', true), old_sku_id: reference('forge_material_sku', '旧件规格', true),
+  old_item_code: text('旧件编码', true), old_quantity: quantity('旧件数量'), old_destination: select('旧件去向', [['recover', '回收入库'], ['scrap', '报废']]),
+  old_unit_cost: { ...amount('旧件单位成本'), readonly: true }, old_recovered_amount: { ...amount('旧件回收金额'), readonly: true },
+  new_sku_id: reference('forge_material_sku', '新件规格', true), new_item_code: text('新件编码', true), new_quantity: quantity('新件数量'),
+  new_unit_cost: { ...amount('新件单位成本'), readonly: true }, new_amount: { ...amount('新件金额'), readonly: true },
+  cost_change: Field.currency({ label: '成本变化', precision: 18, scale: 4, defaultValue: 0, readonly: true }),
+  status: select('明细状态', [['pending_approval', '审批中'], ['stocked', '已入库']], 'pending_approval', true), remarks: remarks(),
+}, ['replacement_id', 'old_item_code', 'old_quantity', 'old_destination', 'new_item_code', 'new_quantity', 'new_amount', 'old_recovered_amount', 'cost_change', 'status']);
