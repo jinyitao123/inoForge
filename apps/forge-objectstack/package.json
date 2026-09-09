@@ -47,7 +47,10 @@
     "acceptance:bom-shortage-restart": "node tests/bom-shortage-restart-readback.mjs",
     "acceptance:bom-shortage-purchase": "node tests/bom-shortage-purchase.integration.mjs",
     "acceptance:bom-shortage-purchase-ui-readback": "node tests/bom-shortage-purchase-ui-readback.mjs",
-    "acceptance:bom-shortage-purchase-restart": "node tests/bom-shortage-purchase-restart-readback.mjs"
+    "acceptance:bom-shortage-purchase-restart": "node tests/bom-shortage-purchase-restart-readback.mjs",
+    "acceptance:multiline-arrival": "node tests/multiline-arrival.integration.mjs",
+    "acceptance:multiline-arrival-ui-readback": "node tests/multiline-arrival-ui-readback.mjs",
+    "acceptance:multiline-arrival-restart": "node tests/multiline-arrival-restart-readback.mjs"
   },
   "dependencies": {
     "@objectstack/spec": "17.3.0",

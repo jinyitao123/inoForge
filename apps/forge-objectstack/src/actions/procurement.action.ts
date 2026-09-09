@@ -34,16 +34,17 @@ if(!lines.length) throw new Error('该缺料快照没有可采购的缺口项');
 const code=String(ctx.input.code||'').trim(), expected=ctx.input.expected_arrival_on, paymentTerm=String(ctx.input.payment_term||'').trim();
 if(!code||!expected||!paymentTerm||!ctx.input.payment_method) throw new Error('采购订单号、供应商、付款条件、付款方式和期望到货日期不能为空');
 const round4=value=>Math.round((Number(value)+Number.EPSILON)*10000)/10000;
+const round2=value=>Math.round((Number(value)+Number.EPSILON)*100)/100;
 let totalQuantity=0,totalAmount=0; const prepared=[];
 for(const line of lines){
   const sku=await ctx.api.object('forge_material_sku').findOne({where:{id:line.sku_id}}); if(!sku||sku.enabled===false) throw new Error('缺料明细包含不可用物料规格');
-  const quantity=Number(line.shortage_quantity||0), taxed=round4(Number(sku.cost_price||0)), subtotal=round4(quantity*taxed);
-  totalQuantity+=quantity; totalAmount+=subtotal; prepared.push({line,sku,quantity,taxed,subtotal});
+  const quantity=Number(line.shortage_quantity||0), taxRate=Number(bom.tax_rate||13), untaxed=round2(Number(line.untaxed_unit_price||0)), taxed=round4(untaxed*(1+taxRate/100)), subtotal=round2(quantity*taxed);
+  totalQuantity+=quantity; totalAmount+=subtotal; prepared.push({line,sku,quantity,taxRate,untaxed,taxed,subtotal});
 }
 const now=new Date().toISOString(), today=new Date(Date.now()+8*60*60*1000).toISOString().slice(0,10); totalQuantity=round4(totalQuantity); totalAmount=round4(totalAmount);
 const created=await ctx.api.object('forge_purchase_order').insert({name:supplier.name+' - 采购订单',code,supplier_id:supplier.id,source_type:'bom_shortage',bom_id:bom.id,shortage_analysis_id:analysisId,project_id:analysis.project_id||bom.project_id||null,warehouse_id:ctx.input.warehouse_id||null,expected_arrival_on:expected,order_on:today,payment_term:paymentTerm,payment_method:ctx.input.payment_method,currency:'cny',exchange_rate:1,payable_trigger:'inbound',settlement_on:ctx.input.settlement_on||null,arrival_address:ctx.input.arrival_address||null,responsible_id:actor,line_count:prepared.length,total_quantity:totalQuantity,total_amount:totalAmount,arrived_quantity:0,inbound_quantity:0,status:'pending_approval',submitted_at:now,submitted_by:actor,remarks:ctx.input.remarks||('由BOM '+bom.code+' 缺料分析生成')});
 const orderId=typeof created==='string'?created:created&&(created.id||(created.record&&created.record.id)); if(!orderId) throw new Error('采购订单创建后未返回记录ID');
-for(const item of prepared) await ctx.api.object('forge_purchase_order_line').insert({name:item.line.name,order_id:orderId,sku_id:item.line.sku_id,item_code:item.line.item_code,model:item.line.model,specification:item.line.specification,unit_name:item.line.unit_name,quantity:item.quantity,arrived_quantity:0,inspected_quantity:0,accepted_quantity:0,inbound_quantity:0,taxed_unit_price:item.taxed,untaxed_unit_price:item.line.untaxed_unit_price,tax_rate:bom.tax_rate||13,taxed_subtotal:item.subtotal,source_bom_id:bom.id,source_analysis_line_id:item.line.id,expected_arrival_on:expected});
+for(const item of prepared) await ctx.api.object('forge_purchase_order_line').insert({name:item.line.name,order_id:orderId,sku_id:item.line.sku_id,item_code:item.line.item_code,model:item.line.model,specification:item.line.specification,unit_name:item.line.unit_name,quantity:item.quantity,arrived_quantity:0,inspected_quantity:0,accepted_quantity:0,inbound_quantity:0,taxed_unit_price:item.taxed,untaxed_unit_price:item.untaxed,tax_rate:item.taxRate,taxed_subtotal:item.subtotal,source_bom_id:bom.id,source_analysis_line_id:item.line.id,expected_arrival_on:expected});
 await ctx.api.object('forge_purchase_order_approval_log').insert({name:code+' 提交审核',order_id:orderId,action:'submitted',from_status:'draft',to_status:'pending_approval',comment:ctx.input.remarks||'提交审核',occurred_at:now,operator_id:actor});
 return {id:orderId,status:'pending_approval',line_count:prepared.length,total_quantity:totalQuantity,total_amount:totalAmount,bom_id:bom.id,shortage_analysis_id:analysisId};
 ` },
@@ -100,52 +101,71 @@ return { id, status: 'approved', arrival_notice_count: 1, arrival_notice_id: not
 
 export const PurchaseArrivalRegister = defineAction({
   name: 'purchase_arrival_register', label: '登记到货', objectName: 'forge_purchase_arrival_notice', icon: 'package-check',
-  locations: [...locations], order: 20, visible: 'false', refreshAfter: true,
-  description: '登记本次实际到货数量，并生成一张待检验单。', successMessage: '到货已登记，物料进入待检验',
+  locations: [...locations], order: 20, visible: `record.status == 'pending_arrival' || record.status == 'partially_arrived'`, refreshAfter: true,
+  description: '按到货通知的多条物料明细保存草稿或提交待检。', successMessage: '到货登记已保存',
   params: [
-    { field: 'code', objectOverride: 'forge_purchase_receipt', required: true },
     { field: 'arrived_on', objectOverride: 'forge_purchase_receipt', required: true },
-    { field: 'quantity', objectOverride: 'forge_purchase_receipt', required: true },
-    { field: 'batch_number', objectOverride: 'forge_purchase_receipt' },
+    { name: 'mode', label: '办理方式', type: 'select', required: true, options: [{ value: 'draft', label: '保存草稿' }, { value: 'submit', label: '提交待检' }] },
+    { field: 'contact_name', objectOverride: 'forge_purchase_receipt' },
+    { field: 'contact_phone', objectOverride: 'forge_purchase_receipt' },
+    { field: 'carrier', objectOverride: 'forge_purchase_receipt' },
+    { field: 'logistics_number', objectOverride: 'forge_purchase_receipt' },
+    { field: 'customer_id', objectOverride: 'forge_purchase_receipt' },
+    { name: 'lines_json', label: '到货物料明细', type: 'textarea', required: true },
     { field: 'remarks', objectOverride: 'forge_purchase_receipt' },
   ],
-  onSuccess: { navigate: '/_console/apps/forge/forge_purchase_receipt/record/${result.id}' },
+  onSuccess: { navigate: '/_console/apps/forge/page/page_purchase_arrival_workspace?id=${result.id}' },
   body: { language: 'js', capabilities: ['api.read', 'api.write'], source: `
 const id = ctx.recordId || (ctx.record && ctx.record.id); const notice = ctx.record;
 if (ctx.recordLoadDenied === true || !id || !notice) throw new Error('当前到货通知不存在或不可访问');
-const noticeLines = await ctx.api.object('forge_purchase_arrival_notice_line').find({ where: { notice_id: id } });
-if (noticeLines.length) throw new Error('订单级多物料到货登记尚未开放，请等待下一采购阶段');
 if (!['pending_arrival', 'partially_arrived'].includes(notice.status)) throw new Error('到货通知状态已变化，请刷新后重试');
-const quantity = Number(ctx.input.quantity || 0), planned = Number(notice.planned_quantity || 0), arrived = Number(notice.arrived_quantity || 0);
-if (!(quantity > 0)) throw new Error('本次到货数量必须大于0');
-if (arrived + quantity > planned) throw new Error('本次到货数量超过通知剩余数量');
-const line = await ctx.api.object('forge_purchase_order_line').findOne({ where: { id: notice.order_line_id } });
 const order = await ctx.api.object('forge_purchase_order').findOne({ where: { id: notice.order_id } });
-if (!line || !order) throw new Error('到货通知关联的采购订单或明细不存在');
-const round4 = value => Math.round((value + Number.EPSILON) * 10000) / 10000;
-const unitCost = Number(line.taxed_unit_price || 0), amount = round4(quantity * unitCost);
-const created = await ctx.api.object('forge_purchase_receipt').insert({
-  name: notice.name + ' 到货 ' + ctx.input.code, code: ctx.input.code, notice_id: id, order_id: notice.order_id,
-  order_line_id: notice.order_line_id, supplier_id: notice.supplier_id, warehouse_id: notice.warehouse_id,
-  sku_id: notice.sku_id, item_code: notice.item_code || line.item_code || null, arrived_on: ctx.input.arrived_on,
-  quantity, batch_number: ctx.input.batch_number || null, taxed_unit_price: unitCost, taxed_amount: amount,
-  status: 'pending_inspection', responsible_id: notice.responsible_id, remarks: ctx.input.remarks || ('由到货通知 ' + notice.code + ' 登记'),
-});
-const receiptId = typeof created === 'string' ? created : created && (created.id || (created.record && created.record.id));
-if (!receiptId) throw new Error('到货登记创建后未返回记录ID');
-const inspection = await ctx.api.object('forge_purchase_inspection').insert({
-  name: ctx.input.code + ' ' + line.name + ' 来料检验', code: ctx.input.code + '-IQC', receipt_id: receiptId,
-  order_id: notice.order_id, order_line_id: notice.order_line_id, supplier_id: notice.supplier_id, warehouse_id: notice.warehouse_id,
-  sku_id: notice.sku_id, inspection_method: 'full', total_quantity: quantity, accepted_quantity: 0, rejected_quantity: 0,
-  result: 'pending', status: 'pending', inspector_id: notice.responsible_id, remarks: '由到货登记自动生成；检验规则待 RISEMAP 同输入复核。',
-});
-const inspectionId = typeof inspection === 'string' ? inspection : inspection && (inspection.id || (inspection.record && inspection.record.id));
-const nextArrived = round4(arrived + quantity), lineArrived = round4(Number(line.arrived_quantity || 0) + quantity), orderArrived = round4(Number(order.arrived_quantity || 0) + quantity);
-await ctx.api.object('forge_purchase_arrival_notice').update({ id, arrived_quantity: nextArrived, status: nextArrived >= planned ? 'arrived' : 'partially_arrived' });
-await ctx.api.object('forge_purchase_order_line').update({ id: line.id, arrived_quantity: lineArrived });
-await ctx.api.object('forge_purchase_order').update({ id: order.id, arrived_quantity: orderArrived, status: 'partially_arrived' });
-return { id: receiptId, inspection_id: inspectionId, quantity, notice_status: nextArrived >= planned ? 'arrived' : 'partially_arrived' };
+if (!order || order.supplier_id !== notice.supplier_id) throw new Error('到货通知关联的采购订单不存在或供应商不一致');
+const actor=ctx.session&&ctx.session.userId; if(!actor) throw new Error('无法识别当前操作人');
+const mode=ctx.input.mode; if(!['draft','submit'].includes(mode)) throw new Error('办理方式必须为保存草稿或提交待检');
+let inputs; try{inputs=typeof ctx.input.lines_json==='string'?JSON.parse(ctx.input.lines_json):ctx.input.lines_json;}catch{throw new Error('到货物料明细格式错误');}
+if(!Array.isArray(inputs)||!inputs.length) throw new Error('至少需要一条到货物料明细');
+const noticeLines=await ctx.api.object('forge_purchase_arrival_notice_line').find({where:{notice_id:id}}), byId=Object.fromEntries(noticeLines.map(line=>[line.id,line]));
+const seen=new Set(), prepared=[]; const round4=value=>Math.round((Number(value)+Number.EPSILON)*10000)/10000;
+let totalQuantity=0,untaxedAmount=0,taxedAmount=0;
+for(const input of inputs){
+  const noticeLine=byId[input.notice_line_id]; if(!noticeLine||seen.has(noticeLine.id)) throw new Error('到货明细包含无效或重复的通知物料'); seen.add(noticeLine.id);
+  const quantity=Number(input.quantity||0), remaining=round4(Number(noticeLine.planned_quantity||0)-Number(noticeLine.arrived_quantity||0));
+  if(!Number.isFinite(quantity)||quantity<0) throw new Error('到货数量不能为负数'); if(quantity===0) continue;
+  if(quantity>remaining) throw new Error((noticeLine.item_code||noticeLine.name)+' 到货数量超过剩余可到数量');
+  if(!input.warehouse_id) throw new Error((noticeLine.item_code||noticeLine.name)+' 必须选择到货仓库');
+  const warehouse=await ctx.api.object('forge_warehouse').findOne({where:{id:input.warehouse_id}}); if(!warehouse) throw new Error('到货仓库不存在或不可用');
+  const orderLine=await ctx.api.object('forge_purchase_order_line').findOne({where:{id:noticeLine.order_line_id}}); if(!orderLine||orderLine.order_id!==order.id) throw new Error('通知物料关联的采购订单明细不存在');
+  const round2=value=>Math.round((Number(value)+Number.EPSILON)*100)/100,taxedUnit=Number(orderLine.taxed_unit_price||0),untaxedUnit=Number(orderLine.untaxed_unit_price||0),lineTaxed=round2(quantity*taxedUnit),lineUntaxed=round2(quantity*untaxedUnit);
+  totalQuantity=round4(totalQuantity+quantity);taxedAmount=round4(taxedAmount+lineTaxed);untaxedAmount=round4(untaxedAmount+lineUntaxed);
+  prepared.push({input,noticeLine,orderLine,quantity,warehouseId:warehouse.id,taxedUnit,untaxedUnit,lineTaxed,lineUntaxed});
+}
+if(!prepared.length) throw new Error('至少一条物料的到货数量必须大于0');
+const year=String(ctx.input.arrived_on||'').slice(0,4)||new Date(Date.now()+8*60*60*1000).toISOString().slice(0,4), existing=await ctx.api.object('forge_purchase_receipt').find({where:{}}), code='ARR-'+year+'-'+String(existing.length+1).padStart(4,'0');
+const warehouseIds=[...new Set(prepared.map(item=>item.warehouseId))], now=new Date().toISOString(), status=mode==='submit'?'pending_inspection':'draft';
+const created=await ctx.api.object('forge_purchase_receipt').insert({name:code+' 采购到货登记',code,notice_id:id,order_id:order.id,supplier_id:notice.supplier_id,customer_id:ctx.input.customer_id||null,warehouse_id:warehouseIds.length===1?warehouseIds[0]:null,arrival_type:'purchase',arrived_on:ctx.input.arrived_on,contact_name:ctx.input.contact_name||null,contact_phone:ctx.input.contact_phone||null,carrier:ctx.input.carrier||null,logistics_number:ctx.input.logistics_number||null,line_count:prepared.length,total_quantity:totalQuantity,untaxed_amount:untaxedAmount,taxed_amount:taxedAmount,status,submitted_at:mode==='submit'?now:null,submitted_by:mode==='submit'?actor:null,responsible_id:actor,remarks:ctx.input.remarks||('由到货通知 '+notice.code+' 登记')});
+const receiptId=typeof created==='string'?created:created&&(created.id||(created.record&&created.record.id)); if(!receiptId) throw new Error('到货登记创建后未返回记录ID');
+for(const item of prepared) await ctx.api.object('forge_purchase_receipt_line').insert({name:item.noticeLine.name,receipt_id:receiptId,notice_id:id,notice_line_id:item.noticeLine.id,order_id:order.id,order_line_id:item.orderLine.id,sku_id:item.noticeLine.sku_id,item_code:item.noticeLine.item_code,model:item.noticeLine.model,specification:item.noticeLine.specification,unit_name:item.noticeLine.unit_name,quantity:item.quantity,warehouse_id:item.warehouseId,warehouse_location:item.input.warehouse_location||null,external_sn:item.input.external_sn||null,batch_number:item.input.batch_number||null,taxed_unit_price:item.taxedUnit,untaxed_unit_price:item.untaxedUnit,tax_rate:item.orderLine.tax_rate||13,untaxed_amount:item.lineUntaxed,taxed_amount:item.lineTaxed,status,remarks:item.input.remarks||null});
+if(mode==='submit'){
+  for(const item of prepared){const next=round4(Number(item.noticeLine.arrived_quantity||0)+item.quantity), lineStatus=next>=Number(item.noticeLine.planned_quantity||0)?'arrived':'partially_arrived';await ctx.api.object('forge_purchase_arrival_notice_line').update({id:item.noticeLine.id,arrived_quantity:next,status:lineStatus});await ctx.api.object('forge_purchase_order_line').update({id:item.orderLine.id,arrived_quantity:round4(Number(item.orderLine.arrived_quantity||0)+item.quantity)});}
+  const noticeNext=round4(Number(notice.arrived_quantity||0)+totalQuantity),noticeStatus=noticeNext>=Number(notice.planned_quantity||0)?'arrived':'partially_arrived',orderNext=round4(Number(order.arrived_quantity||0)+totalQuantity),orderStatus=orderNext>=Number(order.total_quantity||0)?'arrived':'partially_arrived';
+  await ctx.api.object('forge_purchase_arrival_notice').update({id,arrived_quantity:noticeNext,status:noticeStatus});await ctx.api.object('forge_purchase_order').update({id:order.id,arrived_quantity:orderNext,status:orderStatus});
+}
+return {id:receiptId,code,status,line_count:prepared.length,total_quantity:totalQuantity,untaxed_amount:untaxedAmount,taxed_amount:taxedAmount,notice_status:mode==='submit'?(Number(notice.arrived_quantity||0)+totalQuantity>=Number(notice.planned_quantity||0)?'arrived':'partially_arrived'):notice.status};
 ` },
+});
+
+export const PurchaseReceiptSubmit = defineAction({
+  name:'purchase_receipt_submit',label:'提交待检',objectName:'forge_purchase_receipt',icon:'send',locations:[...locations],order:20,visible:`record.status == 'draft'`,refreshAfter:true,
+  description:'把草稿到货登记提交到待检库存，并回写通知与采购订单到货进度。',successMessage:'到货登记已提交待检',
+  body:{language:'js',capabilities:['api.read','api.write'],source:`
+const id=ctx.recordId||(ctx.record&&ctx.record.id),receipt=ctx.record,actor=ctx.session&&ctx.session.userId;if(ctx.recordLoadDenied===true||!id||!receipt)throw new Error('当前到货登记不存在或不可访问');if(!actor)throw new Error('无法识别当前操作人');if(receipt.status!=='draft')throw new Error('到货登记状态已变化，请刷新后重试');
+const notice=await ctx.api.object('forge_purchase_arrival_notice').findOne({where:{id:receipt.notice_id}}),order=await ctx.api.object('forge_purchase_order').findOne({where:{id:receipt.order_id}}),lines=await ctx.api.object('forge_purchase_receipt_line').find({where:{receipt_id:id}});if(!notice||!order||!lines.length)throw new Error('到货登记关联的通知、订单或明细不存在');
+const round4=value=>Math.round((Number(value)+Number.EPSILON)*10000)/10000;let total=0;const prepared=[];
+for(const line of lines){const noticeLine=await ctx.api.object('forge_purchase_arrival_notice_line').findOne({where:{id:line.notice_line_id}}),orderLine=await ctx.api.object('forge_purchase_order_line').findOne({where:{id:line.order_line_id}});if(!noticeLine||!orderLine||!line.warehouse_id)throw new Error('到货明细的通知、订单或仓库引用不完整');const quantity=Number(line.quantity||0),remaining=round4(Number(noticeLine.planned_quantity||0)-Number(noticeLine.arrived_quantity||0));if(!(quantity>0)||quantity>remaining)throw new Error((line.item_code||line.name)+' 到货数量超过当前剩余可到数量');total=round4(total+quantity);prepared.push({line,noticeLine,orderLine,quantity});}
+for(const item of prepared){const next=round4(Number(item.noticeLine.arrived_quantity||0)+item.quantity),lineStatus=next>=Number(item.noticeLine.planned_quantity||0)?'arrived':'partially_arrived';await ctx.api.object('forge_purchase_arrival_notice_line').update({id:item.noticeLine.id,arrived_quantity:next,status:lineStatus});await ctx.api.object('forge_purchase_order_line').update({id:item.orderLine.id,arrived_quantity:round4(Number(item.orderLine.arrived_quantity||0)+item.quantity)});await ctx.api.object('forge_purchase_receipt_line').update({id:item.line.id,status:'pending_inspection'});}
+const noticeNext=round4(Number(notice.arrived_quantity||0)+total),noticeStatus=noticeNext>=Number(notice.planned_quantity||0)?'arrived':'partially_arrived',orderNext=round4(Number(order.arrived_quantity||0)+total),orderStatus=orderNext>=Number(order.total_quantity||0)?'arrived':'partially_arrived',now=new Date().toISOString();await ctx.api.object('forge_purchase_arrival_notice').update({id:notice.id,arrived_quantity:noticeNext,status:noticeStatus});await ctx.api.object('forge_purchase_order').update({id:order.id,arrived_quantity:orderNext,status:orderStatus});await ctx.api.object('forge_purchase_receipt').update({id,status:'pending_inspection',submitted_at:now,submitted_by:actor});return{id,status:'pending_inspection',total_quantity:total,notice_status:noticeStatus};
+`},
 });
 
 export const PurchaseInspectionComplete = defineAction({
