@@ -19,6 +19,8 @@
     "acceptance:sales-conversion": "node tests/sales-conversion.integration.mjs",
     "acceptance:sales-shipment": "node tests/sales-shipment.integration.mjs",
     "acceptance:sales-outbound": "node tests/sales-outbound.integration.mjs",
+    "acceptance:inventory": "node tests/inventory-opening.integration.mjs",
+    "acceptance:inventory-restart": "node tests/inventory-restart-readback.mjs",
     "acceptance:sales-restart": "node tests/sales-restart-readback.mjs"
   },
   "dependencies": {
