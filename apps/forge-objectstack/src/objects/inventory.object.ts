@@ -49,7 +49,7 @@ export const InventoryLedger = master('forge_inventory_ledger', '库存流水', 
     { value: 'inbound', label: '入库' }, { value: 'outbound', label: '出库' },
   ], { label: '变动方向', ...required }),
   movement_type: Field.select([
-    { value: 'opening_inbound', label: '期初入库' }, { value: 'sales_outbound', label: '销售出库' }, { value: 'adjustment', label: '库存调整' },
+    { value: 'opening_inbound', label: '期初入库' }, { value: 'purchase_inbound', label: '采购入库' }, { value: 'sales_outbound', label: '销售出库' }, { value: 'adjustment', label: '库存调整' },
   ], { label: '流水类型', ...required }),
   quantity: quantity('变动数量', true), before_on_hand: quantity('变动前库存'), after_on_hand: quantity('变动后库存'),
   before_available: quantity('变动前可用库存'), after_available: quantity('变动后可用库存'),

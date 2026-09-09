@@ -29,7 +29,7 @@ export const PurchaseOrder = master('forge_purchase_order', '采购订单', 'sho
   total_quantity: nonNegativeQuantity('采购总数量', true), total_amount: nonNegativeMoney('含税总额'),
   arrived_quantity: nonNegativeQuantity('已到货数量', true), inbound_quantity: nonNegativeQuantity('已入库数量', true),
   status: { ...select('订单状态', [
-    ['draft', '草稿'], ['pending_approval', '待审批'], ['approved', '已审批'], ['partially_arrived', '部分到货'],
+    ['draft', '草稿'], ['pending_approval', '待审批'], ['approved', '已审批'], ['partially_arrived', '部分到货'], ['arrived', '已到货'],
     ['completed', '已完成'], ['rejected', '已驳回'], ['cancelled', '已取消'],
   ], 'draft'), readonly: true },
   remarks: remarks(),
@@ -58,3 +58,42 @@ export const PurchaseArrivalNotice = master('forge_purchase_arrival_notice', '�
   ], 'pending_arrival'), readonly: true },
   responsible_id: owner(true), remarks: remarks(),
 }, ['code', 'order_id', 'supplier_id', 'item_code', 'warehouse_id', 'expected_arrival_on', 'planned_quantity', 'arrived_quantity', 'status']);
+
+// RM-006 to RM-008 and RM-025 expose the observable sequence arrival registration -> inspection -> purchase inbound.
+// RISEMAP has not yet completed this sequence with the shared fixture, so these records preserve a reviewable Forge slice.
+export const PurchaseReceipt = master('forge_purchase_receipt', '采购到货登记', 'package-check', {
+  name: text('到货登记名称', true), code: code('到货单号'), notice_id: reference('forge_purchase_arrival_notice', '到货通知', true),
+  order_id: reference('forge_purchase_order', '采购订单', true), order_line_id: reference('forge_purchase_order_line', '采购订单明细', true),
+  supplier_id: reference('forge_supplier', '供应商', true), warehouse_id: reference('forge_warehouse', '到货仓库', true),
+  sku_id: reference('forge_material_sku', '物料规格', true), item_code: text('物料编码'), arrived_on: Field.date({ label: '到货日期', ...required }),
+  quantity: positiveQuantity('到货数量'), batch_number: text('批次号'), taxed_unit_price: nonNegativeMoney('含税单价'),
+  taxed_amount: nonNegativeMoney('含税金额'), status: { ...select('到货登记状态', [
+    ['pending_inspection', '待检验'], ['inspected', '已检验'], ['stocked', '已入库'], ['cancelled', '已取消'],
+  ], 'pending_inspection'), readonly: true },
+  responsible_id: owner(true), remarks: remarks(),
+}, ['code', 'arrived_on', 'supplier_id', 'order_id', 'warehouse_id', 'item_code', 'quantity', 'taxed_amount', 'status']);
+
+export const PurchaseInspection = master('forge_purchase_inspection', '采购检验单', 'clipboard-check', {
+  name: text('检验单名称', true), code: code('检验单号'), receipt_id: reference('forge_purchase_receipt', '到货登记', true),
+  order_id: reference('forge_purchase_order', '采购订单', true), order_line_id: reference('forge_purchase_order_line', '采购订单明细', true),
+  supplier_id: reference('forge_supplier', '供应商', true), warehouse_id: reference('forge_warehouse', '到货仓库', true),
+  sku_id: reference('forge_material_sku', '物料规格', true), inspection_method: select('检验方式', [['full', '全检']], 'full'),
+  total_quantity: positiveQuantity('总数量'), accepted_quantity: nonNegativeQuantity('合格数量', true),
+  rejected_quantity: nonNegativeQuantity('不合格数量', true), inspected_on: Field.date({ label: '检验日期' }),
+  result: { ...select('检验结果', [['pending', '待判定'], ['passed', '合格'], ['partial', '部分合格'], ['rejected', '不合格']], 'pending'), readonly: true },
+  status: { ...select('检验状态', [['pending', '待检验'], ['completed', '已完成']], 'pending'), readonly: true },
+  inspector_id: owner(true), inspection_note: Field.textarea({ label: '检验结论', readonly: true }), remarks: remarks(),
+}, ['code', 'receipt_id', 'supplier_id', 'total_quantity', 'accepted_quantity', 'rejected_quantity', 'result', 'status', 'inspector_id']);
+
+export const PurchaseInbound = master('forge_purchase_inbound', '采购入库单', 'package-plus', {
+  name: text('入库单名称', true), code: code('采购入库单号'), receipt_id: reference('forge_purchase_receipt', '到货登记', true),
+  inspection_id: reference('forge_purchase_inspection', '采购检验单', true), order_id: reference('forge_purchase_order', '采购订单', true),
+  order_line_id: reference('forge_purchase_order_line', '采购订单明细', true), supplier_id: reference('forge_supplier', '供应商', true),
+  warehouse_id: reference('forge_warehouse', '入库仓库', true), sku_id: reference('forge_material_sku', '物料规格', true),
+  item_code: text('物料编码'), batch_number: text('批次号'), inbound_on: Field.date({ label: '入库日期', ...required }),
+  quantity: positiveQuantity('入库数量'), unit_cost: { ...nonNegativeMoney('含税单位成本'), readonly: true },
+  inventory_amount: { ...nonNegativeMoney('库存含税金额'), readonly: true },
+  before_on_hand: { ...nonNegativeQuantity('入库前库存'), readonly: true }, after_on_hand: { ...nonNegativeQuantity('入库后库存'), readonly: true },
+  status: { ...select('入库状态', [['stocked', '已入库'], ['cancelled', '已取消']], 'stocked'), readonly: true },
+  responsible_id: owner(true), remarks: remarks(),
+}, ['code', 'inbound_on', 'supplier_id', 'order_id', 'warehouse_id', 'item_code', 'quantity', 'unit_cost', 'inventory_amount', 'before_on_hand', 'after_on_hand', 'status']);
