@@ -167,10 +167,22 @@ const occurredAt = new Date().toISOString();
 if (balance) await ctx.api.object('forge_inventory_balance').update({ id: balance.id, on_hand_quantity: afterOnHand, reserved_quantity: reserved, available_quantity: afterAvailable, average_cost: averageCost, inventory_value: afterValue, last_movement_at: occurredAt });
 else await ctx.api.object('forge_inventory_balance').insert({ name: ctx.input.code + ' ' + line.name, balance_key: balanceKey, warehouse_id: inspection.warehouse_id, sku_id: inspection.sku_id, on_hand_quantity: afterOnHand, reserved_quantity: 0, available_quantity: afterAvailable, average_cost: averageCost, inventory_value: afterValue, last_movement_at: occurredAt, remarks: '由采购入库建立' });
 await ctx.api.object('forge_inventory_ledger').insert({ name: ctx.input.code + ' ' + line.name + ' 入库', code: ctx.input.code + '-001', warehouse_id: inspection.warehouse_id, sku_id: inspection.sku_id, direction: 'inbound', movement_type: 'purchase_inbound', quantity, before_on_hand: beforeOnHand, after_on_hand: afterOnHand, before_available: beforeAvailable, after_available: afterAvailable, unit_cost: unitCost, amount, occurred_at: occurredAt, source_object: 'forge_purchase_inbound', source_id: inboundId, source_line_id: line.id, responsible_id: order.responsible_id, remarks: ctx.input.remarks || ('由检验单 ' + inspection.code + ' 创建') });
+let payableId = null;
+if (order.payable_trigger === 'inbound') {
+  const payableCreated = await ctx.api.object('forge_accounts_payable').insert({
+    name: order.code + ' 应付 ' + ctx.input.code, code: 'AP-' + ctx.input.code, source_type: 'purchase_inbound',
+    inbound_id: inboundId, invoice_id: null, order_id: order.id, supplier_id: order.supplier_id,
+    recognized_on: ctx.input.inbound_on, due_on: null, original_amount: amount, paid_amount: 0, offset_amount: 0,
+    outstanding_amount: amount, status: 'unpaid', responsible_id: order.responsible_id,
+    remarks: '由采购入库单 ' + ctx.input.code + ' 自动确认；应付日期待发票登记。',
+  });
+  payableId = typeof payableCreated === 'string' ? payableCreated : payableCreated && (payableCreated.id || (payableCreated.record && payableCreated.record.id));
+  if (!payableId) throw new Error('采购入库确认应付后未返回记录ID');
+}
 const lineInbound = round4(Number(line.inbound_quantity || 0) + quantity), orderInbound = round4(Number(order.inbound_quantity || 0) + quantity);
 await ctx.api.object('forge_purchase_order_line').update({ id: line.id, inbound_quantity: lineInbound });
 await ctx.api.object('forge_purchase_order').update({ id: order.id, inbound_quantity: orderInbound, status: orderInbound >= Number(order.total_quantity || 0) ? 'completed' : 'partially_arrived' });
 await ctx.api.object('forge_purchase_receipt').update({ id: receipt.id, status: 'stocked' });
-return { id: inboundId, inspection_id: id, quantity, inventory_amount: amount, before_on_hand: beforeOnHand, after_on_hand: afterOnHand };
+return { id: inboundId, inspection_id: id, payable_id: payableId, quantity, inventory_amount: amount, before_on_hand: beforeOnHand, after_on_hand: afterOnHand };
 ` },
 });

@@ -55,6 +55,8 @@ export default defineStack({
             object('purchase_receipts', '到货登记', 'forge_purchase_receipt', 'package-check'),
             object('purchase_inspections', '采购检验单', 'forge_purchase_inspection', 'clipboard-check'),
             object('purchase_inbounds', '采购入库', 'forge_purchase_inbound', 'package-plus'),
+            object('purchase_invoices', '采购发票', 'forge_purchase_invoice', 'receipt'),
+            object('accounts_payable', '应付账款', 'forge_accounts_payable', 'hand-coins'),
           ]),
           group('supplier_records', '供应商档案', [
             object('suppliers', '供应商', 'forge_supplier', 'truck'),
