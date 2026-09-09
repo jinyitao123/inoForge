@@ -137,15 +137,34 @@ export const PurchaseInspection = master('forge_purchase_inspection', '采购检
 }, ['code', 'receipt_id', 'supplier_id', 'total_quantity', 'accepted_quantity', 'rejected_quantity', 'result', 'status', 'inspector_id']);
 
 export const PurchaseInbound = master('forge_purchase_inbound', '采购入库单', 'package-plus', {
-  name: text('入库单名称', true), code: code('采购入库单号'), receipt_id: reference('forge_purchase_receipt', '到货登记', true),
-  receipt_line_id: reference('forge_purchase_receipt_line', '到货登记明细'),
-  inspection_id: reference('forge_purchase_inspection', '采购检验单', true), order_id: reference('forge_purchase_order', '采购订单', true),
+  name: text('入库单名称', true), code: code('入库单号'), inbound_type: select('入库类型', [['purchase', '采购入库']], 'purchase'),
+  source_type: select('来源类型', [['purchase_order', '采购订单']], 'purchase_order'), order_id: reference('forge_purchase_order', '采购订单', true),
+  receipt_id: reference('forge_purchase_receipt', '到货登记'), supplier_id: reference('forge_supplier', '供应商', true), warehouse_id: reference('forge_warehouse', '默认入库仓库'),
+  inbound_on: Field.date({ label: '入库日期', ...required }), line_count: Field.number({ label: '物料行数', min: 0, scale: 0, readonly: true }),
+  total_quantity: nonNegativeQuantity('入库总数量', true), untaxed_amount: nonNegativeMoney('不含税金额'), taxed_amount: nonNegativeMoney('含税金额'),
+  status: { ...select('入库状态', [['draft', '草稿'], ['pending_approval', '待审批'], ['approved', '已审批'], ['stocked', '已入库'], ['cancelled', '已取消']], 'draft'), readonly: true },
+  submitted_at: Field.datetime({ label: '提交时间', readonly: true }), submitted_by: Field.user({ label: '提交人', readonly: true }),
+  approved_at: Field.datetime({ label: '审批时间', readonly: true }), approved_by: Field.user({ label: '审批人', readonly: true }),
+  stocked_at: Field.datetime({ label: '入库时间', readonly: true }), stocked_by: Field.user({ label: '入库人', readonly: true }),
+  approval_note: Field.textarea({ label: '审批意见', readonly: true }), responsible_id: owner(true), remarks: remarks(),
+}, ['code', 'inbound_type', 'source_type', 'inbound_on', 'supplier_id', 'order_id', 'receipt_id', 'warehouse_id', 'line_count', 'total_quantity', 'taxed_amount', 'status']);
+
+export const PurchaseInboundLine = master('forge_purchase_inbound_line', '采购入库明细', 'list', {
+  name: text('物料名称', true), inbound_id: reference('forge_purchase_inbound', '采购入库单', true),
+  inspection_id: reference('forge_purchase_inspection', '采购检验单', true), receipt_id: reference('forge_purchase_receipt', '到货登记', true),
+  receipt_line_id: reference('forge_purchase_receipt_line', '到货登记明细', true), order_id: reference('forge_purchase_order', '采购订单', true),
   order_line_id: reference('forge_purchase_order_line', '采购订单明细', true), supplier_id: reference('forge_supplier', '供应商', true),
-  warehouse_id: reference('forge_warehouse', '入库仓库', true), sku_id: reference('forge_material_sku', '物料规格', true),
-  item_code: text('物料编码'), batch_number: text('批次号'), inbound_on: Field.date({ label: '入库日期', ...required }),
-  quantity: positiveQuantity('入库数量'), unit_cost: { ...nonNegativeMoney('含税单位成本'), readonly: true },
-  inventory_amount: { ...nonNegativeMoney('库存含税金额'), readonly: true },
+  warehouse_id: reference('forge_warehouse', '入库仓库', true), warehouse_location: text('库位'), sku_id: reference('forge_material_sku', '物料规格', true),
+  item_code: text('物料编码'), model: text('型号'), specification: text('规格'), unit_name: text('单位'), batch_number: text('批次号'), external_sn: text('外部 SN'),
+  quantity: positiveQuantity('入库数量'), taxed_unit_price: nonNegativeMoney('含税单价'), untaxed_unit_price: nonNegativeMoney('不含税单价'),
+  tax_rate: percentage('税率'), untaxed_amount: nonNegativeMoney('不含税金额'), taxed_amount: nonNegativeMoney('含税金额'),
   before_on_hand: { ...nonNegativeQuantity('入库前库存'), readonly: true }, after_on_hand: { ...nonNegativeQuantity('入库后库存'), readonly: true },
-  status: { ...select('入库状态', [['stocked', '已入库'], ['cancelled', '已取消']], 'stocked'), readonly: true },
-  responsible_id: owner(true), remarks: remarks(),
-}, ['code', 'inbound_on', 'supplier_id', 'order_id', 'warehouse_id', 'item_code', 'quantity', 'unit_cost', 'inventory_amount', 'before_on_hand', 'after_on_hand', 'status']);
+  status: { ...select('明细状态', [['draft', '草稿'], ['pending_approval', '待审批'], ['approved', '已审批'], ['stocked', '已入库'], ['cancelled', '已取消']], 'draft'), readonly: true },
+  remarks: remarks(),
+}, ['inbound_id', 'item_code', 'name', 'model', 'unit_name', 'quantity', 'taxed_unit_price', 'taxed_amount', 'warehouse_id', 'batch_number', 'status']);
+
+export const PurchaseInboundApprovalLog = master('forge_purchase_inbound_approval_log', '采购入库审批记录', 'history', {
+  name: text('记录名称', true), inbound_id: reference('forge_purchase_inbound', '采购入库单', true),
+  action: select('动作', [['submitted', '提交审批'], ['approved', '审批通过'], ['stocked', '执行入库']]), from_status: text('原状态'), to_status: text('新状态'),
+  comment: Field.textarea({ label: '意见' }), occurred_at: Field.datetime({ label: '操作时间', ...required, readonly: true }), operator_id: Field.user({ label: '操作人', ...required, readonly: true }),
+}, ['inbound_id', 'action', 'from_status', 'to_status', 'comment', 'operator_id', 'occurred_at']);
