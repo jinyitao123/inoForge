@@ -6,3 +6,4 @@ export * from './project.action.js';
 export * from './bom.action.js';
 export * from './shortage.action.js';
 export * from './supplier.action.js';
+export * from './production.action.js';
