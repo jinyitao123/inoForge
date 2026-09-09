@@ -208,3 +208,86 @@ try {
 return { id: itemId, plan_id: planId, item_type: ctx.input.item_type, item_count: items.length + 1 };
 ` },
 });
+
+export const ProjectWorkItemUpdateProgress = defineAction({
+  name: 'project_work_item_update_progress', label: '更新进度', objectName: 'forge_project_work_item', icon: 'gauge',
+  locations: [...locations], order: 10, visible: `record.item_type != 'phase'`, refreshAfter: true,
+  description: '更新完成度、状态和实际日期，并按 RISEMAP 已观察到的简单平均规则回算所属阶段。', successMessage: '工作项进度已更新',
+  params: [
+    { field: 'progress', objectOverride: 'forge_project_work_item', required: true },
+    { field: 'status', objectOverride: 'forge_project_work_item' },
+    { field: 'actual_start_on', objectOverride: 'forge_project_work_item' },
+    { field: 'actual_end_on', objectOverride: 'forge_project_work_item' },
+  ],
+  body: { language: 'js', capabilities: ['api.read', 'api.write'], source: `
+const id = ctx.recordId || (ctx.record && ctx.record.id); const item = ctx.record;
+if (ctx.recordLoadDenied === true || !id || !item) throw new Error('当前工作项不存在或不可访问');
+if (item.item_type === 'phase') throw new Error('阶段进度由下级任务和里程碑自动汇总');
+const progress = Number(ctx.input.progress);
+if (!Number.isFinite(progress) || progress < 0 || progress > 100) throw new Error('完成度必须在 0 到 100 之间');
+const today = new Date().toISOString().slice(0, 10);
+let status = ctx.input.status || (progress === 0 ? 'pending' : (progress === 100 ? 'completed' : 'in_progress'));
+if (!['pending','in_progress','completed','delayed','cancelled'].includes(status)) throw new Error('工作项状态不合法');
+if (status === 'completed' && progress !== 100) throw new Error('已完成工作项的完成度必须是 100');
+if (status === 'pending' && progress !== 0) throw new Error('未开始工作项的完成度必须是 0');
+let actualStart = ctx.input.actual_start_on || item.actual_start_on || null;
+let actualEnd = ctx.input.actual_end_on || item.actual_end_on || null;
+if (progress > 0 && !actualStart) actualStart = today;
+if (status === 'completed' && !actualEnd) actualEnd = today;
+if (actualEnd && !actualStart) throw new Error('填写实际完成日期前必须先有实际开始日期');
+if (actualStart && actualEnd && actualEnd < actualStart) throw new Error('实际完成日期不得早于实际开始日期');
+await ctx.api.object('forge_project_work_item').update({ id, progress, status, actual_start_on: actualStart, actual_end_on: actualEnd });
+let phaseProgress = null;
+if (item.parent_id) {
+  const children = await ctx.api.object('forge_project_work_item').find({ where: { parent_id: item.parent_id } });
+  const values = children.filter(child => child.item_type !== 'phase').map(child => child.id === id ? progress : Number(child.progress || 0));
+  phaseProgress = values.length ? Math.round(values.reduce((sum, value) => sum + value, 0) / values.length) : 0;
+  await ctx.api.object('forge_project_work_item').update({ id: item.parent_id, progress: phaseProgress });
+}
+const planItems = await ctx.api.object('forge_project_work_item').find({ where: { plan_id: item.plan_id } });
+const leafValues = planItems.filter(candidate => candidate.item_type !== 'phase').map(candidate => candidate.id === id ? progress : Number(candidate.progress || 0));
+const planProgress = leafValues.length ? Math.round(leafValues.reduce((sum, value) => sum + value, 0) / leafValues.length) : 0;
+await ctx.api.object('forge_project_plan').update({ id: item.plan_id, progress: planProgress });
+return { id, progress, status, actual_start_on: actualStart, actual_end_on: actualEnd, phase_progress: phaseProgress, plan_progress: planProgress };
+` },
+});
+
+export const ProjectPlanSubmitDailyReport = defineAction({
+  name: 'project_plan_submit_daily_report', label: '提交日报', objectName: 'forge_project_plan', icon: 'notebook-pen',
+  locations: [...locations], order: 20, visible: `record.status == 'active'`, refreshAfter: true,
+  description: '提交进度页中已观察到的日报字段。附件字段保留页面提示的 20MB 边界。', successMessage: '项目日报已提交',
+  params: [
+    { field: 'work_item_id', objectOverride: 'forge_project_daily_report', required: true },
+    { field: 'reporter_id', objectOverride: 'forge_project_daily_report', required: true },
+    { field: 'report_on', objectOverride: 'forge_project_daily_report', required: true },
+    { field: 'completed_today', objectOverride: 'forge_project_daily_report', required: true },
+    { field: 'completion_percent', objectOverride: 'forge_project_daily_report', required: true },
+    { field: 'blockage', objectOverride: 'forge_project_daily_report' }, { field: 'assistance_needed', objectOverride: 'forge_project_daily_report' },
+    { field: 'expected_finish_changed', objectOverride: 'forge_project_daily_report', defaultValue: false },
+    { field: 'expected_finish_on', objectOverride: 'forge_project_daily_report' }, { field: 'attachment', objectOverride: 'forge_project_daily_report' },
+  ],
+  body: { language: 'js', capabilities: ['api.read', 'api.write'], source: `
+const planId = ctx.recordId || (ctx.record && ctx.record.id); const plan = ctx.record;
+if (ctx.recordLoadDenied === true || !planId || !plan) throw new Error('当前项目计划不存在或不可访问');
+if (plan.status !== 'active') throw new Error('仅执行中的计划可以提交日报');
+if (!ctx.input.completed_today || !String(ctx.input.completed_today).trim()) throw new Error('今日完成内容为必填');
+const item = await ctx.api.object('forge_project_work_item').findOne({ where: { id: ctx.input.work_item_id } });
+if (!item || item.plan_id !== planId || item.item_type === 'phase') throw new Error('日报工作项必须是当前计划中的任务或里程碑');
+const progress = Number(ctx.input.completion_percent);
+if (!Number.isFinite(progress) || progress < 0 || progress > 100) throw new Error('完成度必须在 0 到 100 之间');
+const changed = ctx.input.expected_finish_changed === true;
+if (changed && !ctx.input.expected_finish_on) throw new Error('预计完成日期变化时必须填写调整后的日期');
+const reportOn = ctx.input.report_on || new Date().toISOString().slice(0, 10);
+const created = await ctx.api.object('forge_project_daily_report').insert({
+  name: reportOn + ' ' + item.name + ' 日报', report_key: planId + ':' + item.id + ':' + reportOn + ':' + Date.now(),
+  project_id: plan.project_id, plan_id: planId, work_item_id: item.id, reporter_id: ctx.input.reporter_id, report_on: reportOn,
+  completed_today: String(ctx.input.completed_today).trim(), completion_percent: progress,
+  blockage: ctx.input.blockage || null, assistance_needed: ctx.input.assistance_needed || null,
+  expected_finish_changed: changed, expected_finish_on: changed ? ctx.input.expected_finish_on : null,
+  attachment: ctx.input.attachment || null,
+});
+const reportId = typeof created === 'string' ? created : created && (created.id || (created.record && created.record.id));
+if (!reportId) throw new Error('日报创建后未返回记录ID');
+return { id: reportId, plan_id: planId, work_item_id: item.id, report_on: reportOn, completion_percent: progress };
+` },
+});

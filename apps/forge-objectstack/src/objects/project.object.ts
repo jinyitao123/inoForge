@@ -79,9 +79,23 @@ export const ProjectWorkItem = master('forge_project_work_item', '项目计划�
   parent_id: reference('forge_project_work_item', '所属阶段'), owner_id: Field.user({ label: '负责人' }),
   planned_start_on: Field.date({ label: '计划开始', ...required }), planned_end_on: Field.date({ label: '计划结束', ...required }),
   duration_days: Field.number({ label: '工期(天)', min: 0, scale: 0, readonly: true }),
-  predecessor_ids: Field.lookup('forge_project_work_item', { label: '前置任务', multiple: true }), weight: Field.number({ label: '权重', min: 0, max: 100, scale: 2, defaultValue: 20 }),
+  predecessor_ids: Field.lookup('forge_project_work_item', { label: '前置任务', multiple: true, relatedList: false }), weight: Field.number({ label: '权重', min: 0, max: 100, scale: 2, defaultValue: 20 }),
   critical_path: Field.boolean({ label: '关键路径', defaultValue: false }), planned_deliverable: Field.textarea({ label: '计划产出物' }),
-  status: { ...select('工作项状态', [['pending', '未开始'], ['in_progress', '进行中'], ['completed', '已完成'], ['cancelled', '已取消']], 'pending'), readonly: true },
+  status: { ...select('工作项状态', [['pending', '未开始'], ['in_progress', '进行中'], ['completed', '已完成'], ['delayed', '已延期'], ['cancelled', '已取消']], 'pending'), readonly: true },
   progress: Field.number({ label: '完成度', min: 0, max: 100, scale: 2, defaultValue: 0, readonly: true }),
+  actual_start_on: Field.date({ label: '实际开始', readonly: true }), actual_end_on: Field.date({ label: '实际完成', readonly: true }),
   sort_order: Field.number({ label: '排序', min: 0, scale: 0, defaultValue: 0 }), remarks: remarks(),
-}, ['plan_id', 'item_type', 'parent_id', 'name', 'owner_id', 'planned_start_on', 'planned_end_on', 'duration_days', 'predecessor_ids', 'weight', 'critical_path', 'status']);
+}, ['plan_id', 'item_type', 'parent_id', 'name', 'owner_id', 'planned_start_on', 'planned_end_on', 'duration_days', 'predecessor_ids', 'weight', 'critical_path', 'progress', 'status', 'actual_start_on', 'actual_end_on']);
+
+// Live RISEMAP 2026-09-09: the progress view provides one daily-report form beside the task table.
+export const ProjectDailyReport = master('forge_project_daily_report', '项目日报', 'notebook-pen', {
+  name: text('日报名称', true), report_key: code('日报编号'), project_id: reference('forge_project', '项目', true),
+  plan_id: reference('forge_project_plan', '项目计划', true), work_item_id: reference('forge_project_work_item', '工作项', true),
+  reporter_id: Field.user({ label: '填报人', ...required }), report_on: Field.date({ label: '日报日期', ...required }),
+  completed_today: Field.textarea({ label: '今日完成内容', ...required }),
+  completion_percent: Field.number({ label: '完成度', min: 0, max: 100, scale: 2, ...required }),
+  blockage: Field.textarea({ label: '阻塞问题' }), assistance_needed: Field.textarea({ label: '需要协助' }),
+  expected_finish_changed: Field.boolean({ label: '预计完成日期是否变化', defaultValue: false }),
+  expected_finish_on: Field.date({ label: '调整后的预计完成日期' }),
+  attachment: Field.file({ label: '附件', description: 'RISEMAP 页面提示单个附件不超过 20MB。' }), remarks: remarks(),
+}, ['report_on', 'project_id', 'plan_id', 'work_item_id', 'reporter_id', 'completion_percent', 'expected_finish_changed', 'expected_finish_on']);

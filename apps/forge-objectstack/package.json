@@ -35,7 +35,10 @@
     "acceptance:project-initiation-ui-readback": "node tests/project-initiation-ui-readback.mjs",
     "acceptance:project-plan": "node tests/project-plan.integration.mjs",
     "acceptance:project-plan-restart": "node tests/project-plan-restart-readback.mjs",
-    "acceptance:project-plan-ui-readback": "node tests/project-plan-ui-readback.mjs"
+    "acceptance:project-plan-ui-readback": "node tests/project-plan-ui-readback.mjs",
+    "acceptance:project-plan-execution": "node tests/project-plan-execution.integration.mjs",
+    "acceptance:project-plan-execution-restart": "node tests/project-plan-execution-restart-readback.mjs",
+    "acceptance:project-plan-execution-ui-readback": "node tests/project-plan-execution-ui-readback.mjs"
   },
   "dependencies": {
     "@objectstack/spec": "17.3.0",
