@@ -104,6 +104,8 @@ export default defineStack({
             object('projects', '项目中心', 'forge_project', 'briefcase-business'),
             object('project_members', '项目团队', 'forge_project_member', 'users'),
             object('project_sales_links', '订单合同关联', 'forge_project_sales_link', 'link'),
+            object('project_plans', '项目计划', 'forge_project_plan', 'calendar-range'),
+            object('project_work_items', '计划工作项', 'forge_project_work_item', 'list-checks'),
           ]),
           group('project_settings', '项目配置', [
             object('project_types', '项目类型', 'forge_project_type', 'tags'),
