@@ -121,8 +121,13 @@ export const SalesShipmentLine = master('forge_sales_shipment_line', '发货物�
 export const SalesOutbound = master('forge_sales_outbound', '销售出库单', 'truck', {
   name: text('出库单名称', true), code: code('出库单号'), shipment_id: reference('forge_sales_shipment', '发货单', true),
   order_id: reference('forge_sales_order', '销售订单', true), warehouse_id: reference('forge_warehouse', '出库仓库', true),
+  sku_id: reference('forge_material_sku', '物料规格', true),
   outbound_on: Field.date({ label: '出库日期', ...required }), quantity: positiveQuantity('出库数量'),
   customer_pickup: Field.boolean({ label: '客户自取', defaultValue: false }), recipient: text('收货人'),
-  recipient_phone: text('联系电话'), delivery_address: text('收货地址'), available_quantity: Field.number({ label: '校验时可用库存', min: 0, scale: 4 }),
+  recipient_phone: text('联系电话'), delivery_address: text('收货地址'), available_quantity: Field.number({ label: '校验时可用库存', min: 0, scale: 4, readonly: true }),
+  before_on_hand: Field.number({ label: '出库前库存', min: 0, scale: 4, readonly: true }),
+  after_on_hand: Field.number({ label: '出库后库存', min: 0, scale: 4, readonly: true }),
+  unit_cost: { ...nonNegativeMoney('含税单位成本'), readonly: true },
+  inventory_amount: { ...nonNegativeMoney('库存含税金额'), readonly: true },
   status: { ...choice('出库单状态', ['草稿', '已出库', '已取消'], '已出库'), readonly: true }, responsible_id: owner(true), remarks: remarks(),
-}, ['code', 'name', 'shipment_id', 'order_id', 'warehouse_id', 'outbound_on', 'quantity', 'available_quantity', 'status']);
+}, ['code', 'name', 'shipment_id', 'order_id', 'warehouse_id', 'sku_id', 'outbound_on', 'quantity', 'available_quantity', 'before_on_hand', 'after_on_hand', 'inventory_amount', 'status']);

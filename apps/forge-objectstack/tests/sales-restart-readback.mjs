@@ -93,8 +93,24 @@ assert.deepEqual(
   'shipment plan and actual outbound progress persisted together',
 );
 const persistedOutbound = (await api.request(`/data/forge_sales_outbound/${outboundReport.ids.outbound}`)).value.record;
-assert.deepEqual({ status: persistedOutbound.status, quantity: persistedOutbound.quantity, available_quantity: persistedOutbound.available_quantity },
-  { status: 'outbounded', quantity: 1, available_quantity: 1 }, 'outbound record persisted across restart');
+assert.deepEqual({ status: persistedOutbound.status, sku_id: persistedOutbound.sku_id, quantity: persistedOutbound.quantity,
+  available_quantity: persistedOutbound.available_quantity, before_on_hand: persistedOutbound.before_on_hand,
+  after_on_hand: persistedOutbound.after_on_hand, unit_cost: persistedOutbound.unit_cost, inventory_amount: persistedOutbound.inventory_amount },
+  { status: 'outbounded', sku_id: outboundReport.ids.sku, quantity: 1, available_quantity: 3,
+    before_on_hand: 3, after_on_hand: 2, unit_cost: 58000, inventory_amount: 58000 },
+  'outbound stock snapshot persisted across restart');
+const persistedBalance = (await api.request(`/data/forge_inventory_balance/${outboundReport.ids.balance}`)).value.record;
+assert.deepEqual({ on_hand_quantity: persistedBalance.on_hand_quantity, available_quantity: persistedBalance.available_quantity,
+  average_cost: persistedBalance.average_cost, inventory_value: persistedBalance.inventory_value },
+  { on_hand_quantity: 2, available_quantity: 2, average_cost: 58000, inventory_value: 116000 },
+  'outbound inventory deduction persisted across restart');
+const persistedLedger = (await api.request(`/data/forge_inventory_ledger/${outboundReport.ids.ledger}`)).value.record;
+assert.deepEqual({ source_object: persistedLedger.source_object, source_id: persistedLedger.source_id,
+  direction: persistedLedger.direction, movement_type: persistedLedger.movement_type, quantity: persistedLedger.quantity,
+  before_on_hand: persistedLedger.before_on_hand, after_on_hand: persistedLedger.after_on_hand },
+  { source_object: 'forge_sales_outbound', source_id: outboundReport.ids.outbound, direction: 'outbound',
+    movement_type: 'sales_outbound', quantity: 1, before_on_hand: 3, after_on_hand: 2 },
+  'source-linked outbound inventory ledger persisted across restart');
 
 report.restartVerification = {
   verifiedAt: new Date().toISOString(), status: 'passed', database: '.objectstack/forge.sqlite',
@@ -113,7 +129,7 @@ conversionReport.restartVerification = {
 await writeFile(conversionReportPath, JSON.stringify(conversionReport, null, 2));
 shipmentReport.restartVerification = {
   verifiedAt: new Date().toISOString(), status: 'passed', database: '.objectstack/forge.sqlite',
-  recordsRead: shipmentExpectations.length + 1, assertion: 'shipment plan, outbound record and order rollups survived restart with exact links, quantity and amount',
+  recordsRead: shipmentExpectations.length + 3, assertion: 'shipment plan, outbound stock snapshot, deducted balance, source-linked ledger and order rollups survived restart',
 };
 await writeFile(shipmentReportPath, JSON.stringify(shipmentReport, null, 2));
 console.log('PASS sales foundation, workflow, conversion and shipment chains survived full server restart with exact IDs, links, states, precision and rollups');
