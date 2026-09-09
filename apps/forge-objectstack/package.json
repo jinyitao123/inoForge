@@ -74,6 +74,9 @@
     ,"acceptance:project-operating-analysis": "node tests/project-operating-analysis.integration.mjs"
     ,"acceptance:project-operating-analysis-restart": "node tests/project-operating-analysis-restart-readback.mjs"
     ,"acceptance:project-operating-analysis-ui-readback": "node tests/project-operating-analysis-ui-readback.mjs"
+    ,"acceptance:project-timesheet-cost": "node tests/project-timesheet-cost.integration.mjs"
+    ,"acceptance:project-timesheet-cost-restart": "node tests/project-timesheet-cost-restart-readback.mjs"
+    ,"acceptance:project-timesheet-cost-ui-readback": "node tests/project-timesheet-cost-ui-readback.mjs"
   },
   "dependencies": {
     "@objectstack/spec": "17.3.0",
