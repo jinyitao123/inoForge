@@ -132,6 +132,11 @@ export default defineStack({
         id: 'integration_acceptance', label: '集成调试与验收', icon: 'badge-check',
         navigation: [
           group('acceptance_context', '项目上下文', [
+            page('delivery_acceptance_workspace', '调试与交付验收', 'page_delivery_acceptance_workspace', 'badge-check'),
+            object('commissioning_records', '集成调试记录', 'forge_commissioning_record', 'wrench'),
+            object('delivery_packages', '项目交付包', 'forge_delivery_package', 'package-check'),
+            object('customer_acceptances', '客户验收单', 'forge_customer_acceptance', 'badge-check'),
+            object('acceptance_rectifications', '验收整改项', 'forge_acceptance_rectification', 'refresh-cw'),
             object('acceptance_projects', '项目中心', 'forge_project', 'briefcase-business'),
             object('acceptance_daily_reports', '项目日报', 'forge_project_daily_report', 'notebook-pen'),
           ]),

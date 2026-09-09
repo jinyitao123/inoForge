@@ -65,6 +65,9 @@
     ,"acceptance:production-transform": "node tests/production-transform.integration.mjs"
     ,"acceptance:production-transform-restart": "node tests/production-transform-restart-readback.mjs"
     ,"acceptance:production-transform-ui-readback": "node tests/production-transform-ui-readback.mjs"
+    ,"acceptance:delivery-acceptance": "node tests/delivery-acceptance.integration.mjs"
+    ,"acceptance:delivery-acceptance-restart": "node tests/delivery-acceptance-restart-readback.mjs"
+    ,"acceptance:delivery-acceptance-ui-readback": "node tests/delivery-acceptance-ui-readback.mjs"
   },
   "dependencies": {
     "@objectstack/spec": "17.3.0",
