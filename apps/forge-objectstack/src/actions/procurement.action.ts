@@ -2,6 +2,53 @@ import { defineAction } from '@objectstack/spec';
 
 const locations = ['record_header', 'record_more'] as const;
 
+export const BomShortageCreatePurchaseOrder = defineAction({
+  name: 'bom_shortage_create_purchase_order', label: '提交采购审核', objectName: 'forge_bom_shortage_analysis', icon: 'shopping-cart',
+  locations: [...locations], order: 10, visible: `record.status == 'completed'`, refreshAfter: true,
+  description: '以本次缺料快照的缺口项生成一张待审核采购订单。', successMessage: 'BOM缺料采购订单已提交审核',
+  params: [
+    { field: 'code', objectOverride: 'forge_purchase_order', required: true },
+    { field: 'supplier_id', objectOverride: 'forge_purchase_order', required: true },
+    { field: 'warehouse_id', objectOverride: 'forge_purchase_order' },
+    { field: 'expected_arrival_on', objectOverride: 'forge_purchase_order', required: true },
+    { field: 'payment_term', objectOverride: 'forge_purchase_order', required: true },
+    { field: 'payment_method', objectOverride: 'forge_purchase_order', required: true },
+    { field: 'settlement_on', objectOverride: 'forge_purchase_order' },
+    { field: 'arrival_address', objectOverride: 'forge_purchase_order' },
+    { field: 'remarks', objectOverride: 'forge_purchase_order' },
+  ],
+  onSuccess: { navigate: '/_console/apps/forge/page/page_purchase_order_workspace?id=${result.id}' },
+  body: { language: 'js', capabilities: ['api.read', 'api.write'], source: `
+const analysisId=ctx.recordId||(ctx.record&&ctx.record.id), analysis=ctx.record, actor=ctx.session&&ctx.session.userId;
+if(ctx.recordLoadDenied===true||!analysisId||!analysis) throw new Error('当前缺料分析不存在或不可访问');
+if(!actor) throw new Error('无法识别当前操作人');
+if(analysis.status!=='completed') throw new Error('仅已完成的缺料分析可以生成采购订单');
+const bom=await ctx.api.object('forge_bom').findOne({where:{id:analysis.bom_id}});
+if(!bom||bom.status!=='active') throw new Error('关联BOM必须处于已生效状态');
+const supplier=await ctx.api.object('forge_supplier').findOne({where:{id:ctx.input.supplier_id}});
+if(!supplier||supplier.status!=='active'||supplier.approval_status!=='approved') throw new Error('供应商必须启用且已审批');
+const existing=await ctx.api.object('forge_purchase_order').findOne({where:{shortage_analysis_id:analysisId}});
+if(existing&&!['cancelled','rejected'].includes(existing.status)) throw new Error('该缺料快照已生成有效采购订单');
+const lines=(await ctx.api.object('forge_bom_shortage_line').find({where:{analysis_id:analysisId}})).filter(line=>Number(line.shortage_quantity||0)>0&&line.source_type==='purchased');
+if(!lines.length) throw new Error('该缺料快照没有可采购的缺口项');
+const code=String(ctx.input.code||'').trim(), expected=ctx.input.expected_arrival_on, paymentTerm=String(ctx.input.payment_term||'').trim();
+if(!code||!expected||!paymentTerm||!ctx.input.payment_method) throw new Error('采购订单号、供应商、付款条件、付款方式和期望到货日期不能为空');
+const round4=value=>Math.round((Number(value)+Number.EPSILON)*10000)/10000;
+let totalQuantity=0,totalAmount=0; const prepared=[];
+for(const line of lines){
+  const sku=await ctx.api.object('forge_material_sku').findOne({where:{id:line.sku_id}}); if(!sku||sku.enabled===false) throw new Error('缺料明细包含不可用物料规格');
+  const quantity=Number(line.shortage_quantity||0), taxed=round4(Number(sku.cost_price||0)), subtotal=round4(quantity*taxed);
+  totalQuantity+=quantity; totalAmount+=subtotal; prepared.push({line,sku,quantity,taxed,subtotal});
+}
+const now=new Date().toISOString(), today=new Date(Date.now()+8*60*60*1000).toISOString().slice(0,10); totalQuantity=round4(totalQuantity); totalAmount=round4(totalAmount);
+const created=await ctx.api.object('forge_purchase_order').insert({name:supplier.name+' - 采购订单',code,supplier_id:supplier.id,source_type:'bom_shortage',bom_id:bom.id,shortage_analysis_id:analysisId,project_id:analysis.project_id||bom.project_id||null,warehouse_id:ctx.input.warehouse_id||null,expected_arrival_on:expected,order_on:today,payment_term:paymentTerm,payment_method:ctx.input.payment_method,currency:'cny',exchange_rate:1,payable_trigger:'inbound',settlement_on:ctx.input.settlement_on||null,arrival_address:ctx.input.arrival_address||null,responsible_id:actor,line_count:prepared.length,total_quantity:totalQuantity,total_amount:totalAmount,arrived_quantity:0,inbound_quantity:0,status:'pending_approval',submitted_at:now,submitted_by:actor,remarks:ctx.input.remarks||('由BOM '+bom.code+' 缺料分析生成')});
+const orderId=typeof created==='string'?created:created&&(created.id||(created.record&&created.record.id)); if(!orderId) throw new Error('采购订单创建后未返回记录ID');
+for(const item of prepared) await ctx.api.object('forge_purchase_order_line').insert({name:item.line.name,order_id:orderId,sku_id:item.line.sku_id,item_code:item.line.item_code,model:item.line.model,specification:item.line.specification,unit_name:item.line.unit_name,quantity:item.quantity,arrived_quantity:0,inspected_quantity:0,accepted_quantity:0,inbound_quantity:0,taxed_unit_price:item.taxed,untaxed_unit_price:item.line.untaxed_unit_price,tax_rate:bom.tax_rate||13,taxed_subtotal:item.subtotal,source_bom_id:bom.id,source_analysis_line_id:item.line.id,expected_arrival_on:expected});
+await ctx.api.object('forge_purchase_order_approval_log').insert({name:code+' 提交审核',order_id:orderId,action:'submitted',from_status:'draft',to_status:'pending_approval',comment:ctx.input.remarks||'提交审核',occurred_at:now,operator_id:actor});
+return {id:orderId,status:'pending_approval',line_count:prepared.length,total_quantity:totalQuantity,total_amount:totalAmount,bom_id:bom.id,shortage_analysis_id:analysisId};
+` },
+});
+
 export const PurchaseOrderSubmit = defineAction({
   name: 'purchase_order_submit', label: '提交审核', objectName: 'forge_purchase_order', icon: 'send',
   locations: [...locations], order: 10, visible: `record.status == 'draft'`, refreshAfter: true,
@@ -11,14 +58,16 @@ const id = ctx.recordId || (ctx.record && ctx.record.id); const order = ctx.reco
 if (ctx.recordLoadDenied === true || !id || !order) throw new Error('当前采购订单不存在或不可访问');
 if (order.status !== 'draft') throw new Error('采购订单状态已变化，请刷新后重试');
 const supplier = await ctx.api.object('forge_supplier').findOne({ where: { id: order.supplier_id } });
-if (!supplier || supplier.status !== 'active') throw new Error('供应商必须处于启用状态');
+if (!supplier || supplier.status !== 'active' || supplier.approval_status !== 'approved') throw new Error('供应商必须启用且已审批');
 const lines = await ctx.api.object('forge_purchase_order_line').find({ where: { order_id: id } });
 if (!lines.length) throw new Error('采购订单至少需要一条物料明细');
 const round4 = value => Math.round((value + Number.EPSILON) * 10000) / 10000;
 for (const line of lines) if (!(Number(line.quantity || 0) > 0)) throw new Error('采购数量必须大于0');
 const totalQuantity = round4(lines.reduce((sum, line) => sum + Number(line.quantity || 0), 0));
 const totalAmount = round4(lines.reduce((sum, line) => sum + Number(line.taxed_subtotal || 0), 0));
-await ctx.api.object('forge_purchase_order').update({ id, line_count: lines.length, total_quantity: totalQuantity, total_amount: totalAmount, status: 'pending_approval' });
+const actor=ctx.session&&ctx.session.userId; if(!actor) throw new Error('无法识别当前操作人'); const now=new Date().toISOString(), today=new Date(Date.now()+8*60*60*1000).toISOString().slice(0,10);
+await ctx.api.object('forge_purchase_order').update({ id, line_count: lines.length, total_quantity: totalQuantity, total_amount: totalAmount, status: 'pending_approval', submitted_at:now, submitted_by:actor, order_on:order.order_on||today });
+await ctx.api.object('forge_purchase_order_approval_log').insert({name:order.code+' 提交审核',order_id:id,action:'submitted',from_status:'draft',to_status:'pending_approval',comment:'提交审核',occurred_at:now,operator_id:actor});
 return { id, status: 'pending_approval', line_count: lines.length, total_quantity: totalQuantity, total_amount: totalAmount };
 ` },
 });
@@ -26,36 +75,32 @@ return { id, status: 'pending_approval', line_count: lines.length, total_quantit
 export const PurchaseOrderApprove = defineAction({
   name: 'purchase_order_approve', label: '同意', objectName: 'forge_purchase_order', icon: 'circle-check',
   locations: [...locations], order: 10, visible: `record.status == 'pending_approval'`, refreshAfter: true,
-  confirmText: '审批通过后将按订单明细生成待到货通知，是否继续？', successMessage: '采购订单已审批并生成到货通知',
+  params: [{ name: 'approval_note', label: '审批意见', type: 'textarea', required: true }],
+  description: '审批通过后生成一张订单级到货通知。', successMessage: '采购订单已审核并生成到货通知',
   body: { language: 'js', capabilities: ['api.read', 'api.write'], source: `
 const id = ctx.recordId || (ctx.record && ctx.record.id); const order = ctx.record;
 if (ctx.recordLoadDenied === true || !id || !order) throw new Error('当前采购订单不存在或不可访问');
 if (order.status !== 'pending_approval') throw new Error('采购订单状态已变化，请刷新后重试');
 const lines = await ctx.api.object('forge_purchase_order_line').find({ where: { order_id: id } });
 if (!lines.length) throw new Error('采购订单至少需要一条物料明细');
-let noticeCount = 0;
-for (let index = 0; index < lines.length; index++) {
-  const line = lines[index];
-  const existing = await ctx.api.object('forge_purchase_arrival_notice').findOne({ where: { order_line_id: line.id } });
-  if (existing && existing.status !== 'cancelled') { noticeCount++; continue; }
-  await ctx.api.object('forge_purchase_arrival_notice').insert({
-    name: order.code + ' 到货通知 ' + String(index + 1), code: order.code + '-AN-' + String(index + 1).padStart(3, '0'),
-    order_id: id, order_line_id: line.id, supplier_id: order.supplier_id, warehouse_id: order.warehouse_id,
-    sku_id: line.sku_id, item_code: line.item_code || null,
-    expected_arrival_on: line.expected_arrival_on || order.expected_arrival_on,
-    planned_quantity: Number(line.quantity || 0), arrived_quantity: 0, responsible_id: order.responsible_id,
-    remarks: '由采购订单 ' + order.code + ' 审批生成；实际到货、检验和入库另行登记。',
-  });
-  noticeCount++;
+const actor=ctx.session&&ctx.session.userId, note=String(ctx.input.approval_note||'').trim(); if(!actor) throw new Error('无法识别当前操作人'); if(!note) throw new Error('审批意见不能为空');
+let notice=await ctx.api.object('forge_purchase_arrival_notice').findOne({where:{order_id:id}}), noticeId=notice&&notice.id;
+if(!notice||notice.status==='cancelled'){
+  const total=lines.reduce((sum,line)=>sum+Number(line.quantity||0),0);
+  const created=await ctx.api.object('forge_purchase_arrival_notice').insert({name:order.code+' 到货通知',code:order.code+'-AN-001',order_id:id,supplier_id:order.supplier_id,warehouse_id:order.warehouse_id||null,expected_arrival_on:order.expected_arrival_on,line_count:lines.length,planned_quantity:total,arrived_quantity:0,status:'pending_arrival',responsible_id:order.responsible_id,remarks:'由采购订单 '+order.code+' 审核生成'});
+  noticeId=typeof created==='string'?created:created&&(created.id||(created.record&&created.record.id)); if(!noticeId) throw new Error('到货通知创建后未返回记录ID');
+  for(const line of lines) await ctx.api.object('forge_purchase_arrival_notice_line').insert({name:line.name,notice_id:noticeId,order_id:id,order_line_id:line.id,sku_id:line.sku_id,item_code:line.item_code,model:line.model,specification:line.specification,unit_name:line.unit_name,planned_quantity:line.quantity,arrived_quantity:0,status:'pending_arrival'});
 }
-await ctx.api.object('forge_purchase_order').update({ id, status: 'approved' });
-return { id, status: 'approved', arrival_notice_count: noticeCount };
+const now=new Date().toISOString();
+await ctx.api.object('forge_purchase_order').update({ id, status: 'approved', approved_at:now, approved_by:actor });
+await ctx.api.object('forge_purchase_order_approval_log').insert({name:order.code+' 审核同意',order_id:id,action:'approved',from_status:'pending_approval',to_status:'approved',comment:note,occurred_at:now,operator_id:actor});
+return { id, status: 'approved', arrival_notice_count: 1, arrival_notice_id: noticeId };
 ` },
 });
 
 export const PurchaseArrivalRegister = defineAction({
   name: 'purchase_arrival_register', label: '登记到货', objectName: 'forge_purchase_arrival_notice', icon: 'package-check',
-  locations: [...locations], order: 20, visible: `record.status == 'pending_arrival' || record.status == 'partially_arrived'`, refreshAfter: true,
+  locations: [...locations], order: 20, visible: 'false', refreshAfter: true,
   description: '登记本次实际到货数量，并生成一张待检验单。', successMessage: '到货已登记，物料进入待检验',
   params: [
     { field: 'code', objectOverride: 'forge_purchase_receipt', required: true },
@@ -68,6 +113,8 @@ export const PurchaseArrivalRegister = defineAction({
   body: { language: 'js', capabilities: ['api.read', 'api.write'], source: `
 const id = ctx.recordId || (ctx.record && ctx.record.id); const notice = ctx.record;
 if (ctx.recordLoadDenied === true || !id || !notice) throw new Error('当前到货通知不存在或不可访问');
+const noticeLines = await ctx.api.object('forge_purchase_arrival_notice_line').find({ where: { notice_id: id } });
+if (noticeLines.length) throw new Error('订单级多物料到货登记尚未开放，请等待下一采购阶段');
 if (!['pending_arrival', 'partially_arrived'].includes(notice.status)) throw new Error('到货通知状态已变化，请刷新后重试');
 const quantity = Number(ctx.input.quantity || 0), planned = Number(notice.planned_quantity || 0), arrived = Number(notice.arrived_quantity || 0);
 if (!(quantity > 0)) throw new Error('本次到货数量必须大于0');

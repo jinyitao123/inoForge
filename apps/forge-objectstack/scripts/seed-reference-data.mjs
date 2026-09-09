@@ -25,7 +25,7 @@ export async function seedReferenceData() {
       ? await api.request(`/data/${entry.object}/${matches[0].id}`, 'PATCH', data)
       : await api.request(`/data/${entry.object}`, 'POST', data);
     if (result.status < 200 || result.status >= 300) throw new Error(`Write failed ${entry.key}: ${JSON.stringify(result)}`);
-    ids[entry.key] = result.value.id || result.value.record?.id || matches[0]?.id;
+    ids[entry.key] = result.value.id || result.value.record?.id || result.value.data?.id || result.value.data?.record?.id || matches[0]?.id;
     if (!ids[entry.key]) throw new Error(`Missing saved ID: ${entry.key}`);
     results.push({ key: entry.key, object: entry.object, id: ids[entry.key], evidence: entry.evidence, operation: matches.length ? 'update' : 'create' });
   }

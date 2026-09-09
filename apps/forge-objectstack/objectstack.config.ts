@@ -80,8 +80,10 @@ export default defineStack({
             object('shortage_lines', '缺料明细', 'forge_bom_shortage_line', 'list'),
           ]),
           group('procurement_flow', '采购执行', [
-            object('purchase_orders', '采购订单', 'forge_purchase_order', 'shopping-cart'),
+            page('purchase_orders', '采购订单', 'page_purchase_order_workspace', 'shopping-cart'),
+            object('purchase_order_lines', '采购订单明细', 'forge_purchase_order_line', 'list'),
             object('purchase_arrival_notices', '到货通知', 'forge_purchase_arrival_notice', 'package-search'),
+            object('purchase_arrival_notice_lines', '到货通知明细', 'forge_purchase_arrival_notice_line', 'list'),
             object('purchase_receipts', '到货登记', 'forge_purchase_receipt', 'package-check'),
             object('purchase_inspections', '采购检验', 'forge_purchase_inspection', 'clipboard-check'),
             object('purchase_inbounds', '采购入库', 'forge_purchase_inbound', 'package-plus'),
