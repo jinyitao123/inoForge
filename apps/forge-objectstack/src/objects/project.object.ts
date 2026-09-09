@@ -99,3 +99,32 @@ export const ProjectDailyReport = master('forge_project_daily_report', '项目�
   expected_finish_on: Field.date({ label: '调整后的预计完成日期' }),
   attachment: Field.file({ label: '附件', description: 'RISEMAP 页面提示单个附件不超过 20MB。' }), remarks: remarks(),
 }, ['report_on', 'project_id', 'plan_id', 'work_item_id', 'reporter_id', 'completion_percent', 'expected_finish_changed', 'expected_finish_on']);
+
+// RISEMAP RM-097: project time records carry worker, project, content, time type, hours, rate, cost and review status.
+export const ProjectTimesheet = master('forge_project_timesheet', '项目工时', 'clock-3', {
+  name: text('工时记录名称', true), code: code('工时单号'), project_id: reference('forge_project', '关联项目', true),
+  work_item_id: reference('forge_project_work_item', '关联任务'), worker_id: Field.user({ label: '人员', ...required }),
+  work_on: Field.date({ label: '日期', ...required }), work_content: Field.textarea({ label: '工作内容', ...required }),
+  time_type: select('工时类型', [['normal', '正常'], ['overtime', '加班'], ['travel', '出差']], 'normal'),
+  hours: Field.number({ label: '工时(h)', min: 0.25, max: 24, scale: 2, ...required }),
+  hourly_rate: Field.currency({ label: '费率', precision: 18, scale: 2, min: 0, ...required }),
+  cost_amount: { ...Field.currency({ label: '工时成本', precision: 18, scale: 2, min: 0, defaultValue: 0 }), readonly: true },
+  status: { ...select('审核状态', [['draft', '草稿'], ['pending_review', '待审核'], ['approved', '已通过'], ['rejected', '已驳回']], 'draft'), readonly: true },
+  submitted_at: Field.datetime({ label: '提交时间', readonly: true }), reviewed_at: Field.datetime({ label: '审核时间', readonly: true }),
+  reviewer_id: Field.user({ label: '审核人', readonly: true }), review_comment: Field.textarea({ label: '审核意见', readonly: true }),
+  responsible_id: owner(true), remarks: remarks(),
+}, ['code', 'work_on', 'worker_id', 'project_id', 'work_item_id', 'work_content', 'hours', 'time_type', 'hourly_rate', 'cost_amount', 'status']);
+
+// RISEMAP RM-140: approved business records feed a traceable cost pool before operating analysis consumes them.
+export const ProjectCostEntry = master('forge_project_cost_entry', '项目成本池', 'circle-dollar-sign', {
+  name: text('成本名称', true), code: code('成本编号'), project_id: reference('forge_project', '项目', true),
+  customer_id: reference('forge_customer', '客户', true), source_type: select('来源类型', [
+    ['timesheet', '项目工时'], ['production_material', '生产材料'], ['expense', '费用报销'], ['subcontract', '委外'], ['manual', '手工登记'],
+  ]),
+  cost_type: select('成本类型', [['labor', '人工成本'], ['material', '材料成本'], ['manufacturing', '制造费用'], ['travel', '差旅费用'], ['subcontract', '委外成本'], ['other', '其他成本']]),
+  source_id: text('来源记录ID', true), occurred_on: Field.date({ label: '发生日期', ...required }),
+  total_amount: { ...amount('成本总额'), readonly: true }, allocated_amount: { ...amount('已归集金额'), readonly: true },
+  remaining_amount: { ...amount('剩余金额'), readonly: true },
+  status: { ...select('归集状态', [['unallocated', '待归集'], ['allocated', '已归集'], ['suspended', '暂挂'], ['reversed', '已冲销']], 'unallocated'), readonly: true },
+  responsible_id: owner(true), remarks: remarks(),
+}, ['code', 'source_type', 'cost_type', 'name', 'customer_id', 'project_id', 'occurred_on', 'total_amount', 'allocated_amount', 'remaining_amount', 'status']);

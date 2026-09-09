@@ -11,8 +11,8 @@
 - 合同及项目金额：`243200`
 - 项目预算：`180000`
 - 计划周期：`2026-09-10` 至 `2026-12-31`
-- 验证数据库：立项/WBS 使用 `.objectstack/otc-project.sqlite`；执行、正式 BOM、缺料分析、缺料采购、多物料到货、逐物料检验、多物料采购入库、生产组装、拆解换件、交付验收、收款结算和项目经营分析分别使用独立 `.objectstack/otc-project-execution.sqlite`、`.objectstack/otc-formal-bom-final-20260910b.sqlite`、`.objectstack/otc-shortage-analysis-final.sqlite`、`.objectstack/otc-bom-purchase-final-v6.sqlite`、`.objectstack/otc-multiline-arrival-final-v2.sqlite`、`.objectstack/otc-multiline-inspection-final-v2.sqlite`、`.objectstack/otc-multiline-inbound-final.sqlite`、`.objectstack/otc-production-assembly.sqlite`、`.objectstack/otc-production-transform.sqlite`、`.objectstack/otc-integration-acceptance.sqlite`、`.objectstack/otc-collection-settlement.sqlite`、`.objectstack/otc-project-analysis.sqlite`
-- 验证端口：立项/WBS、执行、正式 BOM、缺料分析、缺料采购、多物料到货、逐物料检验、多物料采购入库、生产组装、拆解换件、交付验收、收款结算和项目经营分析最终验收分别为 `4342`、`4343`、`4346`、`4347`、`4351`、`4353`、`4354`、`4355`、`4356`、`4357`、`4358`、`4359`、`4360`，均不复用主线 `4310`
+- 验证数据库：立项/WBS 使用 `.objectstack/otc-project.sqlite`；执行、正式 BOM、缺料分析、缺料采购、多物料到货、逐物料检验、多物料采购入库、生产组装、拆解换件、交付验收、收款结算、项目经营分析和工时人工成本分别使用独立 `.objectstack/otc-project-execution.sqlite`、`.objectstack/otc-formal-bom-final-20260910b.sqlite`、`.objectstack/otc-shortage-analysis-final.sqlite`、`.objectstack/otc-bom-purchase-final-v6.sqlite`、`.objectstack/otc-multiline-arrival-final-v2.sqlite`、`.objectstack/otc-multiline-inspection-final-v2.sqlite`、`.objectstack/otc-multiline-inbound-final.sqlite`、`.objectstack/otc-production-assembly.sqlite`、`.objectstack/otc-production-transform.sqlite`、`.objectstack/otc-integration-acceptance.sqlite`、`.objectstack/otc-collection-settlement.sqlite`、`.objectstack/otc-project-analysis.sqlite`、`.objectstack/otc-project-timesheet-cost.sqlite`
+- 验证端口：立项/WBS、执行、正式 BOM、缺料分析、缺料采购、多物料到货、逐物料检验、多物料采购入库、生产组装、拆解换件、交付验收、收款结算、项目经营分析和工时人工成本最终验收分别为 `4342`、`4343`、`4346`、`4347`、`4351`、`4353`、`4354`、`4355`、`4356`、`4357`、`4358`、`4359`、`4360`、`4361`，均不复用主线 `4310`
 
 ## 顺序阶段
 
@@ -31,7 +31,8 @@
 | 7.1 | 生产拆解与换件 | 拆解会扣减成品并要求每项理论量完整分配为回收/报废；换件不动整机，新件出库，旧件可回收或报废；远端只读预览后未保存 | 已实现拆解与换件头、逐项分配、确认前库存预检、成品/新旧件余额、来源流水和成本变化 | 5 组通过；API 拆解四项全回收，换件两处覆盖回收/报废，整机库存不变 | `.objectstack/otc-production-transform.sqlite` 完整停服重启后回读 API 与浏览器两类单据、明细、余额和流水 | 浏览器办理 `DIS-2026-0002`，电源回收 `1`/报废 `1`；办理 `REP-2026-0002` 回收 PLC、领用 HMI，整机 `1 → 1`；重启刷新通过 | Forge 库存核心闭合、RISEMAP 待成功记录复核；下一步进入集成调试与交付验收 |
 | 7.2 | 集成调试、交付包与客户验收 | 已观察项目/任务/工时和交付包模板；交付包模板定义文件夹结构并用于项目快速初始化，成功调试与客户验收未跑通 | 已实现逐项调试、交付资料齐套、客户验收、整改关闭、复验、证据引用和项目完工联动 | 7 组通过；调试 `4/5 → 5/5`、资料 `3/4 → 4/4`、验收 `3/4 → 整改 → 4/4` | `.objectstack/otc-integration-acceptance.sqlite` 完整停服重启后回读 API 与浏览器两套记录和已完工项目 | 浏览器办理 `COM-2026-0002 → DP-2026-0002 → ACC-2026-0002`，关闭 `REC-2026-0002` 后复验并完成客户确认；重启刷新通过 | Forge 本阶段闭合、RISEMAP 待成功记录复核；下一步进入收款核销与项目结算 |
 | 8 | 开票、收款与项目结算 | 收款流水明确为实际到账后手工分配到销售订单，核销前可取消，审核后计入订单回款；资金账户字段与待分配/待审核状态已观察，同材料成功链未跑通 | 已实现验收开票、应收、资金账户、实际到账、手工分配、取消、审核核销、项目累计与毛利结算快照 | 7 组通过；`243200` 两笔到账、取消待审分配、部分与最终核销、结算前置和成本毛利均覆盖 | `.objectstack/otc-collection-settlement.sqlite` 完整停服重启后回读 API 与浏览器账户、发票、应收、收款、核销和结算 | 浏览器办理 `FA-BROWSER-20260910 → INV-BROWSER-20260910-001 → CR-BROWSER-20260910-001 → CA-BROWSER-20260910-001 → PST-BROWSER-20260910`，`121600` 全额结清；重启刷新通过 | Forge 本阶段闭合、RISEMAP 待同材料成功记录复核；下一步进入项目经营分析和成本归集 |
-| 9 | 项目经营分析 | 项目分析中心显示营收、成本、利润、回款、成本构成、费用流向和利润率排名；项目统计另含状态、进度和贡献排行。当前 RISEMAP 项目为 `243200 / 0 / 243200 / 0` | 已实现全部/单项目经营视图，按持久项目与结算快照计算营收、生产材料成本、利润、进度、回款及排名明细 | 5 项通过；两项目总营收 `364800`、成本 `48960.01`、利润 `315839.99`、回款率 `100%` | `.objectstack/otc-project-analysis.sqlite` 完整停服重启后回读项目、结算来源和全部汇总 | 浏览器核对全部项目视图并切换 `PRJ-2026-002`，回读 `121600 / 16320.0034 / 105279.9966 / 100%` 及结算编号；重启刷新通过 | 可追溯经营视图闭合；成本只含生产材料，下一步补工时、制造费用和外部项目成本归集 |
+| 9 | 项目经营分析 | 项目分析中心显示营收、成本、利润、回款、成本构成、费用流向和利润率排名；项目统计另含状态、进度和贡献排行。当前 RISEMAP 项目为 `243200 / 0 / 243200 / 0` | 已实现全部/单项目经营视图，按持久项目与结算快照计算营收、生产材料成本、利润、进度、回款及排名明细 | 5 项通过；两项目总营收 `364800`、成本 `48960.01`、利润 `315839.99`、回款率 `100%` | `.objectstack/otc-project-analysis.sqlite` 完整停服重启后回读项目、结算来源和全部汇总 | 浏览器核对全部项目视图并切换 `PRJ-2026-002`，回读 `121600 / 16320.0034 / 105279.9966 / 100%` 及结算编号；重启刷新通过 | 可追溯经营视图闭合；该阶段成本只含生产材料，人工成本由阶段 10 承接，组合分析仍待补验 |
+| 10 | 项目工时与人工成本 | 已观察工时字段、待审核/已通过/已驳回状态，以及工时连接项目执行、人员利用率和人工成本的说明；同材料成功审核未跑通 | 已实现工时草稿、提交、审核、驳回、来源追溯、人工成本归集和活动项目累计成本 | 6 组通过；`6.5h × 200 = 1300`，驳回记录不入成本，匿名、非法工时、已结算项目和重复审核被阻断 | `.objectstack/otc-project-timesheet-cost.sqlite` 完整停服重启后回读 API 与浏览器工时、审核人、成本来源和项目累计；完整性检查 `ok` | 浏览器办理 `TS-BROWSER-20260910-001` 的草稿、提交和审核，回读 `8h × 220 = 1760` 及对应人工成本；重启后新开页面仍可见 | 核心工时人工成本闭合；下一步补制造费用、差旅、委外、报销及其他外部项目成本 |
 
 ## 阶段 1 验证边界
 
@@ -162,4 +163,12 @@ Forge 定向验收覆盖以下行为：
 2. 单项目视图逐项回读 `PRJ-2026-002` 的状态、进度、营收、成本、利润、利润率、回款和 `PST-BROWSER-20260910` 结算来源，不保存一套脱离业务对象的报表数字。
 3. 浏览器已完成全部项目到单个项目的筛选切换；完整停服并从同一 SQLite 重启后，全部汇总和单项目明细保持一致。
 4. RISEMAP 当前项目分析展示营收 `243200`、成本 `0`、利润 `243200`、已回款 `0`，是尚未归集成本和回款的不同业务状态，不能用于宣称数值对照一致。
-5. 当前成本构成仅有生产材料成本。人工、制造费用、差旅、委外、报销、其他项目费用、财务期间、收入确认、日期区间、组织权限、导出产物和刷新缓存仍未实现。
+5. 本阶段验收时成本构成仅有生产材料成本。人工成本随后由阶段 10 实现；制造费用、差旅、委外、报销、其他项目费用、财务期间、收入确认、日期区间、组织权限、导出产物和刷新缓存仍未实现。
+
+## 阶段 10 项目工时与人工成本验证边界
+
+1. 工时按项目、人员、可选任务、日期、内容、类型、工时和费率保存；单条工时限制为 `0.25` 至 `24` 小时，已结算、已终止或已归档项目被阻断。
+2. 草稿提交后进入待审核。驳回保存真实操作人和意见且不生成成本；审核通过按 `工时 × 费率` 生成唯一来源人工成本并累加项目成本，重复审核被阻断。
+3. API 项目审批 `6.5h × 200 = 1300`，浏览器项目审批 `8h × 220 = 1760`；页面同时回读工时状态、成本来源、归集金额和当前项目总成本。
+4. 完整停服并从 `.objectstack/otc-project-timesheet-cost.sqlite` 重启后，两套记录、审核人、成本来源与项目累计按原 ID 回读，SQLite 完整性检查为 `ok`。
+5. RISEMAP 同材料工时审核尚未执行。岗位费率、薪资公式、加班规则、批量工时、非项目与闲置工时、撤回重提、反审核、成本冲销、结算后调整和事务级原子性仍待实现或复核。
