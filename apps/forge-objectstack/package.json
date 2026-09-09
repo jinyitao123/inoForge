@@ -32,7 +32,10 @@
     "acceptance:procurement-finance-restart": "node tests/procurement-finance-restart-readback.mjs",
     "acceptance:project-initiation": "node tests/project-initiation.integration.mjs",
     "acceptance:project-initiation-restart": "node tests/project-initiation-restart-readback.mjs",
-    "acceptance:project-initiation-ui-readback": "node tests/project-initiation-ui-readback.mjs"
+    "acceptance:project-initiation-ui-readback": "node tests/project-initiation-ui-readback.mjs",
+    "acceptance:project-plan": "node tests/project-plan.integration.mjs",
+    "acceptance:project-plan-restart": "node tests/project-plan-restart-readback.mjs",
+    "acceptance:project-plan-ui-readback": "node tests/project-plan-ui-readback.mjs"
   },
   "dependencies": {
     "@objectstack/spec": "17.3.0",

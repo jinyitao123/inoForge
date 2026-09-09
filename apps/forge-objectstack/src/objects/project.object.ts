@@ -59,3 +59,29 @@ export const ProjectSalesLink = master('forge_project_sales_link', '项目订单
   contract_id: reference('forge_sales_contract', '销售合同', true), order_id: reference('forge_sales_order', '销售订单', true),
   order_amount: amount('订单金额', true), invoice_amount: amount('已开票', true), collected_amount: amount('已回款', true), remarks: remarks(),
 }, ['project_id', 'contract_id', 'order_id', 'order_amount', 'invoice_amount', 'collected_amount']);
+
+// Live RISEMAP 2026-09-09: a project without a plan offers system/custom/copy/manual starts.
+// The observed tenant had zero system and custom templates, so only the manual structure is implemented here.
+export const ProjectPlan = master('forge_project_plan', '项目计划', 'calendar-range', {
+  name: text('计划名称', true), plan_key: code('计划编号'), project_id: reference('forge_project', '项目', true),
+  source: select('创建方式', [['manual', '手工创建'], ['system_template', '系统模板'], ['custom_template', '我的模板'], ['copied_project', '从项目复制']], 'manual'),
+  revision: Field.number({ label: '修订号', min: 1, scale: 0, defaultValue: 1, readonly: true }),
+  planned_start_on: Field.date({ label: '计划开始', ...required }), planned_end_on: Field.date({ label: '计划结束', ...required }),
+  status: { ...select('计划状态', [['active', '执行中'], ['superseded', '已替代'], ['archived', '已归档']], 'active'), readonly: true },
+  item_count: Field.number({ label: '工作项数', min: 0, scale: 0, defaultValue: 0, readonly: true }),
+  progress: Field.number({ label: '计划进度', min: 0, max: 100, scale: 2, defaultValue: 0, readonly: true }), remarks: remarks(),
+}, ['project_id', 'name', 'source', 'revision', 'planned_start_on', 'planned_end_on', 'item_count', 'progress', 'status']);
+
+export const ProjectWorkItem = master('forge_project_work_item', '项目计划工作项', 'list-checks', {
+  name: text('名称', true), item_key: code('工作项编号'), project_id: reference('forge_project', '项目', true),
+  plan_id: reference('forge_project_plan', '项目计划', true),
+  item_type: select('类型', [['phase', '阶段'], ['milestone', '里程碑'], ['task', '任务']], 'task'),
+  parent_id: reference('forge_project_work_item', '所属阶段'), owner_id: Field.user({ label: '负责人' }),
+  planned_start_on: Field.date({ label: '计划开始', ...required }), planned_end_on: Field.date({ label: '计划结束', ...required }),
+  duration_days: Field.number({ label: '工期(天)', min: 0, scale: 0, readonly: true }),
+  predecessor_ids: Field.lookup('forge_project_work_item', { label: '前置任务', multiple: true }), weight: Field.number({ label: '权重', min: 0, max: 100, scale: 2, defaultValue: 20 }),
+  critical_path: Field.boolean({ label: '关键路径', defaultValue: false }), planned_deliverable: Field.textarea({ label: '计划产出物' }),
+  status: { ...select('工作项状态', [['pending', '未开始'], ['in_progress', '进行中'], ['completed', '已完成'], ['cancelled', '已取消']], 'pending'), readonly: true },
+  progress: Field.number({ label: '完成度', min: 0, max: 100, scale: 2, defaultValue: 0, readonly: true }),
+  sort_order: Field.number({ label: '排序', min: 0, scale: 0, defaultValue: 0 }), remarks: remarks(),
+}, ['plan_id', 'item_type', 'parent_id', 'name', 'owner_id', 'planned_start_on', 'planned_end_on', 'duration_days', 'predecessor_ids', 'weight', 'critical_path', 'status']);

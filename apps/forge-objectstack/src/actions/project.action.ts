@@ -106,3 +106,105 @@ export const ProjectTerminate = defineAction({
   params: [{ field: 'termination_reason', objectOverride: 'forge_project', required: true }], successMessage: '项目已终止',
   body: { language: 'js', capabilities: ['api.write'], source: `const id=ctx.recordId||(ctx.record&&ctx.record.id); if(!id||!ctx.record||!['pending','in_progress','paused'].includes(ctx.record.status)) throw new Error('当前项目不能终止'); await ctx.api.object('forge_project').update({id,status:'terminated',termination_reason:ctx.input.termination_reason}); return {id,status:'terminated'};` },
 });
+
+export const ProjectCreateManualPlan = defineAction({
+  name: 'project_create_manual_plan', label: '手工创建计划', objectName: 'forge_project', icon: 'calendar-plus',
+  locations: [...locations], order: 40, visible: `record.status == 'in_progress' || record.status == 'paused'`, refreshAfter: true,
+  description: '从一个阶段开始建立项目计划。当前租户未观察到可用系统或自定义模板。', successMessage: '项目计划和首个阶段已创建',
+  params: [
+    { field: 'phase_name', objectOverride: 'forge_project_work_item', required: true },
+    { field: 'owner_id', objectOverride: 'forge_project_work_item' },
+    { field: 'planned_start_on', objectOverride: 'forge_project_work_item', required: true },
+    { field: 'planned_end_on', objectOverride: 'forge_project_work_item', required: true },
+    { field: 'weight', objectOverride: 'forge_project_work_item', defaultValue: 20 },
+    { field: 'critical_path', objectOverride: 'forge_project_work_item', defaultValue: false },
+    { field: 'planned_deliverable', objectOverride: 'forge_project_work_item' },
+  ],
+  onSuccess: { navigate: '/_console/apps/forge/forge_project_plan/record/${result.id}' },
+  body: { language: 'js', capabilities: ['api.read', 'api.write'], source: `
+const projectId = ctx.recordId || (ctx.record && ctx.record.id); const project = ctx.record;
+if (ctx.recordLoadDenied === true || !projectId || !project) throw new Error('当前项目不存在或不可访问');
+if (!['in_progress','paused'].includes(project.status)) throw new Error('仅进行中或已暂停项目可以创建计划');
+if (!ctx.input.phase_name || !ctx.input.planned_start_on || !ctx.input.planned_end_on) throw new Error('首个阶段和计划日期均为必填');
+if (ctx.input.planned_end_on < ctx.input.planned_start_on) throw new Error('计划结束日期不得早于计划开始日期');
+const existing = await ctx.api.object('forge_project_plan').find({ where: { project_id: projectId, status: 'active' } });
+if (existing.length) throw new Error('当前项目已经存在执行中的计划');
+const start = Date.parse(ctx.input.planned_start_on), end = Date.parse(ctx.input.planned_end_on);
+const duration = Math.floor((end - start) / 86400000);
+let planId = null, phaseId = null;
+try {
+  const plan = await ctx.api.object('forge_project_plan').insert({ name: project.name + '计划 V1', plan_key: projectId + ':R1', project_id: projectId,
+    source: 'manual', revision: 1, planned_start_on: ctx.input.planned_start_on, planned_end_on: ctx.input.planned_end_on,
+    status: 'active', item_count: 1, progress: 0, remarks: '从首个阶段手工创建' });
+  planId = typeof plan === 'string' ? plan : plan && (plan.id || (plan.record && plan.record.id));
+  if (!planId) throw new Error('项目计划创建后未返回记录ID');
+  const phase = await ctx.api.object('forge_project_work_item').insert({ name: ctx.input.phase_name, item_key: planId + ':1', project_id: projectId,
+    plan_id: planId, item_type: 'phase', owner_id: ctx.input.owner_id || project.manager_id || null,
+    planned_start_on: ctx.input.planned_start_on, planned_end_on: ctx.input.planned_end_on, duration_days: duration,
+    weight: Number(ctx.input.weight == null ? 20 : ctx.input.weight), critical_path: ctx.input.critical_path === true,
+    planned_deliverable: ctx.input.planned_deliverable || null, status: 'pending', progress: 0, sort_order: 10 });
+  phaseId = typeof phase === 'string' ? phase : phase && (phase.id || (phase.record && phase.record.id));
+  if (!phaseId) throw new Error('首个阶段创建后未返回记录ID');
+} catch (error) {
+  if (planId) await ctx.api.object('forge_project_plan').delete(planId);
+  throw error;
+}
+return { id: planId, project_id: projectId, phase_id: phaseId, source: 'manual', item_count: 1 };
+` },
+});
+
+export const ProjectPlanAddWorkItem = defineAction({
+  name: 'project_plan_add_work_item', label: '新增阶段/里程碑/任务', objectName: 'forge_project_plan', icon: 'list-plus',
+  locations: [...locations], order: 10, visible: `record.status == 'active'`, refreshAfter: true,
+  description: '按 RISEMAP 计划页字段添加阶段、里程碑或任务。', successMessage: '计划工作项已添加',
+  params: [
+    { field: 'item_type', objectOverride: 'forge_project_work_item', required: true },
+    { field: 'name', objectOverride: 'forge_project_work_item', required: true },
+    { field: 'parent_id', objectOverride: 'forge_project_work_item' }, { field: 'owner_id', objectOverride: 'forge_project_work_item' },
+    { field: 'planned_start_on', objectOverride: 'forge_project_work_item', required: true },
+    { field: 'planned_end_on', objectOverride: 'forge_project_work_item', required: true },
+    { field: 'predecessor_ids', objectOverride: 'forge_project_work_item', multiple: true },
+    { field: 'weight', objectOverride: 'forge_project_work_item', defaultValue: 20 },
+    { field: 'critical_path', objectOverride: 'forge_project_work_item', defaultValue: false },
+    { field: 'planned_deliverable', objectOverride: 'forge_project_work_item' },
+  ],
+  body: { language: 'js', capabilities: ['api.read', 'api.write'], source: `
+const planId = ctx.recordId || (ctx.record && ctx.record.id); const plan = ctx.record;
+if (ctx.recordLoadDenied === true || !planId || !plan) throw new Error('当前项目计划不存在或不可访问');
+if (plan.status !== 'active') throw new Error('仅执行中的计划可以添加工作项');
+if (!['phase','milestone','task'].includes(ctx.input.item_type)) throw new Error('工作项类型必须是阶段、里程碑或任务');
+if (!ctx.input.name || !ctx.input.planned_start_on || !ctx.input.planned_end_on) throw new Error('名称和计划日期均为必填');
+if (ctx.input.planned_end_on < ctx.input.planned_start_on) throw new Error('计划结束日期不得早于计划开始日期');
+if (ctx.input.item_type === 'phase' && ctx.input.parent_id) throw new Error('阶段必须是顶层工作项');
+if (ctx.input.parent_id) {
+  const parent = await ctx.api.object('forge_project_work_item').findOne({ where: { id: ctx.input.parent_id } });
+  if (!parent || parent.plan_id !== planId || parent.item_type !== 'phase') throw new Error('所属阶段必须来自当前计划');
+}
+const predecessorIds = Array.isArray(ctx.input.predecessor_ids) ? ctx.input.predecessor_ids : (ctx.input.predecessor_ids ? [ctx.input.predecessor_ids] : []);
+for (const predecessorId of predecessorIds) {
+  const predecessor = await ctx.api.object('forge_project_work_item').findOne({ where: { id: predecessorId } });
+  if (!predecessor || predecessor.plan_id !== planId || predecessor.item_type === 'phase') throw new Error('前置任务必须是当前计划中的任务或里程碑');
+}
+const duplicates = await ctx.api.object('forge_project_work_item').find({ where: { plan_id: planId, name: ctx.input.name } });
+if (duplicates.length) throw new Error('当前计划已存在同名工作项');
+const items = await ctx.api.object('forge_project_work_item').find({ where: { plan_id: planId } });
+const start = Date.parse(ctx.input.planned_start_on), end = Date.parse(ctx.input.planned_end_on);
+const duration = Math.floor((end - start) / 86400000);
+let itemId = null;
+try {
+  const created = await ctx.api.object('forge_project_work_item').insert({ name: ctx.input.name, item_key: planId + ':' + (items.length + 1),
+    project_id: plan.project_id, plan_id: planId, item_type: ctx.input.item_type, parent_id: ctx.input.parent_id || null,
+    owner_id: ctx.input.owner_id || null, planned_start_on: ctx.input.planned_start_on, planned_end_on: ctx.input.planned_end_on,
+    duration_days: duration, predecessor_ids: predecessorIds, weight: Number(ctx.input.weight == null ? 20 : ctx.input.weight),
+    critical_path: ctx.input.critical_path === true, planned_deliverable: ctx.input.planned_deliverable || null,
+    status: 'pending', progress: 0, sort_order: (items.length + 1) * 10 });
+  itemId = typeof created === 'string' ? created : created && (created.id || (created.record && created.record.id));
+  if (!itemId) throw new Error('计划工作项创建后未返回记录ID');
+  await ctx.api.object('forge_project_plan').update({ id: planId, item_count: items.length + 1 });
+} catch (error) {
+  if (itemId) await ctx.api.object('forge_project_work_item').delete(itemId);
+  throw error;
+}
+return { id: itemId, plan_id: planId, item_type: ctx.input.item_type, item_count: items.length + 1 };
+` },
+});
