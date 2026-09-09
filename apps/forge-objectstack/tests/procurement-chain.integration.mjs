@@ -26,8 +26,8 @@ async function find(object, where) {
   return result.value.records.filter(record => Object.entries(where).every(([field, value]) => record[field] === value));
 }
 
-async function invoke(object, action, id) {
-  return api.request(`/actions/${object}/${action}/${id}`, 'POST', { params: {} });
+async function invoke(object, action, id, params = {}) {
+  return api.request(`/actions/${object}/${action}/${id}`, 'POST', { params });
 }
 
 function actionResult(response) {
@@ -36,6 +36,7 @@ function actionResult(response) {
 
 try {
   const previous = JSON.parse(await readFile('.objectstack/acceptance/procurement-chain-report.json', 'utf8'));
+  if (previous.ids?.arrivalNoticeLine) await api.request(`/data/forge_purchase_arrival_notice_line/${previous.ids.arrivalNoticeLine}`, 'DELETE');
   if (previous.ids?.arrivalNotice) await api.request(`/data/forge_purchase_arrival_notice/${previous.ids.arrivalNotice}`, 'DELETE');
   if (previous.ids?.orderLine) await api.request(`/data/forge_purchase_order_line/${previous.ids.orderLine}`, 'DELETE');
   if (previous.ids?.order) await api.request(`/data/forge_purchase_order/${previous.ids.order}`, 'DELETE');
@@ -64,6 +65,15 @@ await test('creates a draft purchase order with one existing supplier and SKU fi
   assert.equal(line.order_id, ids.order);
 });
 
+await test('requires and records supplier approval before purchase submission', async () => {
+  const blocked = await invoke('forge_purchase_order', 'purchase_order_submit', ids.order);
+  assert.equal(blocked.status, 400, JSON.stringify(blocked.value));
+  assert.match(blocked.value.error.message, /已审批/);
+  assert.equal((await invoke('forge_supplier', 'supplier_submit_approval', ids.supplier)).status, 200);
+  const approved = await invoke('forge_supplier', 'supplier_review', ids.supplier, { decision: 'approve', comment: '采购基础链供应商审批' });
+  assert.equal(approved.status, 200, JSON.stringify(approved.value));
+});
+
 await test('submits the order and rolls line quantity and amount into the header', async () => {
   const response = await invoke('forge_purchase_order', 'purchase_order_submit', ids.order);
   assert.equal(response.status, 200, JSON.stringify(response.value));
@@ -75,19 +85,23 @@ await test('submits the order and rolls line quantity and amount into the header
   );
 });
 
-await test('approves the order and creates one line-level pending-arrival notice', async () => {
-  const response = await invoke('forge_purchase_order', 'purchase_order_approve', ids.order);
+await test('approves the order and creates one order-level pending-arrival notice with one line', async () => {
+  const response = await invoke('forge_purchase_order', 'purchase_order_approve', ids.order, { approval_note: '采购基础链订单审核' });
   assert.equal(response.status, 200, JSON.stringify(response.value));
   assert.equal(actionResult(response).status, 'approved');
-  const notices = await find('forge_purchase_arrival_notice', { order_line_id: ids.orderLine });
+  const notices = await find('forge_purchase_arrival_notice', { order_id: ids.order });
   assert.equal(notices.length, 1);
   ids.arrivalNotice = notices[0].id;
   assert.deepEqual(
-    { order_id: notices[0].order_id, supplier_id: notices[0].supplier_id, warehouse_id: notices[0].warehouse_id, sku_id: notices[0].sku_id,
-      planned_quantity: notices[0].planned_quantity, arrived_quantity: notices[0].arrived_quantity, status: notices[0].status },
-    { order_id: ids.order, supplier_id: ids.supplier, warehouse_id: ids.warehouse, sku_id: ids.sku,
-      planned_quantity: 2, arrived_quantity: 0, status: 'pending_arrival' },
+    { order_id: notices[0].order_id, supplier_id: notices[0].supplier_id, warehouse_id: notices[0].warehouse_id,
+      line_count: notices[0].line_count, planned_quantity: notices[0].planned_quantity, arrived_quantity: notices[0].arrived_quantity, status: notices[0].status },
+    { order_id: ids.order, supplier_id: ids.supplier, warehouse_id: ids.warehouse,
+      line_count: 1, planned_quantity: 2, arrived_quantity: 0, status: 'pending_arrival' },
   );
+  const noticeLines = await find('forge_purchase_arrival_notice_line', { notice_id: ids.arrivalNotice });
+  assert.equal(noticeLines.length, 1); ids.arrivalNoticeLine = noticeLines[0].id;
+  assert.deepEqual({ order_line_id: noticeLines[0].order_line_id, sku_id: noticeLines[0].sku_id, planned_quantity: noticeLines[0].planned_quantity },
+    { order_line_id: ids.orderLine, sku_id: ids.sku, planned_quantity: 2 });
   const order = await read('forge_purchase_order', ids.order);
   assert.equal(order.status, 'approved');
   const line = await read('forge_purchase_order_line', ids.orderLine);
@@ -98,10 +112,11 @@ await test('approves the order and creates one line-level pending-arrival notice
 });
 
 await test('rejects a second approval and does not duplicate the notice', async () => {
-  const response = await invoke('forge_purchase_order', 'purchase_order_approve', ids.order);
+  const response = await invoke('forge_purchase_order', 'purchase_order_approve', ids.order, { approval_note: '重复审核' });
   assert.equal(response.status, 400, JSON.stringify(response.value));
   assert.match(response.value.error.message, /状态已变化/);
-  assert.equal((await find('forge_purchase_arrival_notice', { order_line_id: ids.orderLine })).length, 1);
+  assert.equal((await find('forge_purchase_arrival_notice', { order_id: ids.order })).length, 1);
+  assert.equal((await find('forge_purchase_arrival_notice_line', { notice_id: ids.arrivalNotice })).length, 1);
 });
 
 await test('rejects submitting a purchase order without any material line', async () => {
@@ -129,9 +144,9 @@ const report = {
   fixture: 'OEM-RM-20260909-A-procurement-v0.1', ids, cases,
   runtime: { url: process.env.FORGE_URL || 'http://localhost:4310', database: 'file:./.objectstack/procurement.sqlite', isolatedFromMainPort4310: true },
   passed: cases.every(testCase => testCase.status === 'passed'),
-  observedBoundary: 'An approved purchase order produces a line-level pending-arrival notice. It does not claim physical receipt, quality inspection, accepted quantity, purchase inbound, stock movement, accounts payable or invoice progress.',
+  observedBoundary: 'An approved purchase order produces one order-level pending-arrival notice with material lines. It does not claim physical receipt, quality inspection, accepted quantity, purchase inbound, stock movement, accounts payable or invoice progress.',
   limitations: [
-    'The current supplier master slice has no approved supplier state, so submission verifies active business status but cannot yet enforce RISEMAP supplier-approval eligibility.',
+    'The supplier must complete its independent approval before the purchase order can be submitted.',
     'Actual arrival registration, pending-inspection inventory, inspection orders, qualified/unqualified splits and purchase inbound remain outside this slice.',
     'Approval creates notices sequentially with idempotent line lookup because ObjectStack 17.3.0 transaction-wrapped audit writes have timed out in this app; concurrent approvals are not yet proven.',
     'Payment application, purchase invoicing, returns and accounts-payable generation are not implemented.',

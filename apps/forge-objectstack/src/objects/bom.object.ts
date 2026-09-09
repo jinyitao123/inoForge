@@ -23,7 +23,7 @@ export const Bom = master('forge_bom', 'BOM管理', 'git-branch', {
 }, ['code', 'name', 'product_name', 'bom_type', 'version', 'status', 'project_id', 'node_count', 'total_cost', 'effective_at']);
 
 export const BomNode = master('forge_bom_node', 'BOM结构', 'network', {
-  name: { ...text('节点名称', true), readonlyWhen: lockedOutsideDraft }, bom_id: { ...reference('forge_bom', 'BOM', true), readonly: true },
+  name: { ...text('节点名称', true), readonlyWhen: lockedOutsideDraft }, bom_id: { ...reference('forge_bom', 'BOM', true), readonlyWhen: `record.id != null` },
   parent_id: { ...reference('forge_bom_node', '父节点'), readonlyWhen: lockedOutsideDraft },
   sku_id: { ...reference('forge_material_sku', '物料规格'), readonlyWhen: lockedOutsideDraft },
   node_type: { ...choice('节点类型', ['根节点', '物料', '分组', '子BOM'], '物料'), readonlyWhen: lockedOutsideDraft },

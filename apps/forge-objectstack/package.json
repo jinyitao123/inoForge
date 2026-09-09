@@ -44,7 +44,10 @@
     "acceptance:formal-bom-ui-readback": "node tests/formal-bom-ui-readback.mjs",
     "acceptance:bom-shortage": "node tests/bom-shortage.integration.mjs",
     "acceptance:bom-shortage-ui-readback": "node tests/bom-shortage-ui-readback.mjs",
-    "acceptance:bom-shortage-restart": "node tests/bom-shortage-restart-readback.mjs"
+    "acceptance:bom-shortage-restart": "node tests/bom-shortage-restart-readback.mjs",
+    "acceptance:bom-shortage-purchase": "node tests/bom-shortage-purchase.integration.mjs",
+    "acceptance:bom-shortage-purchase-ui-readback": "node tests/bom-shortage-purchase-ui-readback.mjs",
+    "acceptance:bom-shortage-purchase-restart": "node tests/bom-shortage-purchase-restart-readback.mjs"
   },
   "dependencies": {
     "@objectstack/spec": "17.3.0",
