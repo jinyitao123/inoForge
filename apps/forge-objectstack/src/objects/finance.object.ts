@@ -2,6 +2,7 @@ import { Field } from '@objectstack/spec/data';
 import { master, text, code, reference, owner, remarks, required } from '../model.js';
 
 const amount = (label: string) => Field.currency({ label, precision: 18, scale: 4, min: 0 });
+const signedAmount = (label: string) => Field.currency({ label, precision: 18, scale: 4 });
 const quantity = (label: string) => Field.number({ label, min: 0.0001, scale: 4, ...required });
 const invoiceStatus = () => Field.select([
   { value: 'issued', label: '已开票' }, { value: 'settled', label: '已结清' }, { value: 'voided', label: '已作废' },
@@ -10,6 +11,11 @@ const receivableStatus = () => Field.select([
   { value: 'unpaid', label: '未收款' }, { value: 'partially_collected', label: '部分收款' },
   { value: 'settled', label: '已结清' }, { value: 'overdue', label: '已逾期' },
 ], { label: '应收状态', defaultValue: 'unpaid' });
+const paymentMethod = () => Field.select([
+  { value: 'bank_transfer', label: '银行转账' }, { value: 'alipay', label: '支付宝' },
+  { value: 'wechat_pay', label: '微信支付' }, { value: 'cash', label: '现金' },
+  { value: 'cheque', label: '支票' }, { value: 'other', label: '其他' },
+], { label: '收款方式', defaultValue: 'bank_transfer' });
 
 // RM-056, RM-144 and RM-145 currently establish the sales-request / finance-ledger split.
 // This first executable slice represents the issued finance-side document directly.
@@ -40,6 +46,60 @@ export const AccountsReceivable = master('forge_accounts_receivable', '应收账
   collected_amount: { ...amount('已核销金额'), readonly: true }, outstanding_amount: { ...amount('应收余额'), readonly: true },
   status: { ...receivableStatus(), readonly: true }, responsible_id: owner(true), remarks: remarks(),
 }, ['code', 'customer_id', 'invoice_id', 'order_id', 'recognized_on', 'due_on', 'original_amount', 'outstanding_amount', 'status', 'responsible_id']);
+
+// RM-131 to RM-135 separate the physical fund account and receipt flow from receivable write-off.
+// Successful same-input RISEMAP receipt allocation is still pending, so approval is explicit and auditable here.
+export const FundAccount = master('forge_fund_account', '资金账户', 'landmark', {
+  name: text('账户名称', true), code: code('账户编码'), account_type: Field.select([
+    { value: 'bank', label: '银行账户' }, { value: 'wechat', label: '微信' },
+    { value: 'alipay', label: '支付宝' }, { value: 'cash', label: '现金账户' },
+    { value: 'other', label: '其他' },
+  ], { label: '账户类型', ...required }),
+  bank_name: text('开户银行'), branch_name: text('开户支行'), account_number: text('账户号码'),
+  bank_account_type: Field.select([{ value: 'basic', label: '基本户' }, { value: 'general', label: '一般户' }, { value: 'special', label: '专用户' }], { label: '银行账户类型', defaultValue: 'general' }),
+  currency: Field.select([{ value: 'cny', label: '人民币 (CNY)' }], { label: '币种', defaultValue: 'cny', ...required }),
+  opening_balance: amount('期初余额'), current_balance: { ...amount('当前余额'), readonly: true },
+  opening_on: Field.date({ label: '期初日期', ...required }), allow_print: Field.boolean({ label: '允许打印', defaultValue: false }),
+  account_manager: text('客户经理'), manager_phone: text('联系电话'), visibility_scope: Field.select([
+    { value: 'creator_admin', label: '仅创建人+管理员可见' }, { value: 'organization', label: '全组织可见' },
+  ], { label: '可见范围', defaultValue: 'creator_admin' }),
+  status: Field.select([{ value: 'active', label: '启用' }, { value: 'inactive', label: '停用' }], { label: '账户状态', defaultValue: 'active' }),
+  responsible_id: owner(true), remarks: remarks(),
+}, ['code', 'name', 'account_type', 'bank_name', 'account_number', 'currency', 'opening_balance', 'current_balance', 'status']);
+
+export const CashReceipt = master('forge_cash_receipt', '收款流水', 'badge-dollar-sign', {
+  name: text('收款流水名称', true), code: code('流水号'), customer_id: reference('forge_customer', '客户', true),
+  account_id: reference('forge_fund_account', '收款账户', true), received_on: Field.date({ label: '收款日期', ...required }),
+  payment_method: paymentMethod(), amount: amount('收款金额'), allocated_amount: { ...amount('已分配金额'), readonly: true },
+  unallocated_amount: { ...amount('未分配金额'), readonly: true },
+  status: { ...Field.select([
+    { value: 'unallocated', label: '待分配' }, { value: 'partially_allocated', label: '部分分配' },
+    { value: 'pending_review', label: '待审核' }, { value: 'allocated', label: '已分配' },
+  ], { label: '分配状态', defaultValue: 'unallocated' }), readonly: true },
+  counterpart_reference: text('对方流水号'), responsible_id: owner(true), remarks: remarks(),
+}, ['code', 'customer_id', 'received_on', 'payment_method', 'account_id', 'amount', 'allocated_amount', 'unallocated_amount', 'status']);
+
+export const CollectionAllocation = master('forge_collection_allocation', '收款核销', 'badge-check', {
+  name: text('核销名称', true), code: code('核销编号'), receipt_id: reference('forge_cash_receipt', '收款流水', true),
+  receivable_id: reference('forge_accounts_receivable', '应收账款', true), invoice_id: reference('forge_sales_invoice', '销项发票', true),
+  order_id: reference('forge_sales_order', '销售订单', true), contract_id: reference('forge_sales_contract', '销售合同'),
+  customer_id: reference('forge_customer', '客户', true), allocated_on: Field.date({ label: '分配日期', ...required }),
+  amount: amount('核销金额'), status: { ...Field.select([
+    { value: 'pending_review', label: '待审核' }, { value: 'approved', label: '已审核' },
+    { value: 'cancelled', label: '已取消' },
+  ], { label: '核销状态', defaultValue: 'pending_review' }), readonly: true },
+  approved_at: { ...Field.datetime({ label: '审核时间' }), readonly: true }, responsible_id: owner(true), remarks: remarks(),
+}, ['code', 'receipt_id', 'receivable_id', 'customer_id', 'order_id', 'allocated_on', 'amount', 'status', 'responsible_id']);
+
+export const ProjectSettlement = master('forge_project_settlement', '项目结算', 'chart-no-axes-combined', {
+  name: text('结算名称', true), code: code('结算编号'), project_id: reference('forge_project', '项目', true),
+  settled_on: Field.date({ label: '结算日期', ...required }), contract_amount: { ...amount('合同金额'), readonly: true },
+  invoiced_amount: { ...amount('已开票'), readonly: true }, collected_amount: { ...amount('已回款'), readonly: true },
+  production_cost: { ...amount('生产材料成本'), readonly: true }, gross_margin: { ...signedAmount('项目毛利'), readonly: true },
+  gross_margin_rate: Field.number({ label: '毛利率 (%)', scale: 4, readonly: true }),
+  status: { ...Field.select([{ value: 'settled', label: '已结算' }], { label: '结算状态', defaultValue: 'settled' }), readonly: true },
+  responsible_id: owner(true), remarks: remarks(),
+}, ['code', 'project_id', 'settled_on', 'contract_amount', 'invoiced_amount', 'collected_amount', 'production_cost', 'gross_margin', 'gross_margin_rate', 'status']);
 
 const payableStatus = () => Field.select([
   { value: 'unpaid', label: '未付款' }, { value: 'partially_paid', label: '部分付款' },

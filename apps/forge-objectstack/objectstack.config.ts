@@ -146,8 +146,12 @@ export default defineStack({
         id: 'invoice_collection', label: '开票回款', icon: 'wallet-cards',
         navigation: [
           group('sales_finance', '销售财务', [
+            page('collection_settlement_workspace', '开票回款与项目结算', 'page_collection_settlement_workspace', 'wallet-cards'),
             object('sales_invoices', '销售发票', 'forge_sales_invoice', 'receipt-text'),
             object('accounts_receivable', '应收账款', 'forge_accounts_receivable', 'wallet-cards'),
+            object('cash_receipts', '收款流水', 'forge_cash_receipt', 'badge-dollar-sign'),
+            object('collection_allocations', '收款核销', 'forge_collection_allocation', 'badge-check'),
+            object('fund_accounts', '资金账户', 'forge_fund_account', 'landmark'),
           ]),
           group('purchase_finance', '采购财务', [
             object('purchase_invoices', '采购发票', 'forge_purchase_invoice', 'receipt'),
@@ -159,7 +163,9 @@ export default defineStack({
         id: 'project_close', label: '结项经营复盘', icon: 'chart-no-axes-combined',
         navigation: [
           group('close_context', '项目上下文', [
+            page('close_settlement_workspace', '项目结算工作台', 'page_collection_settlement_workspace', 'chart-no-axes-combined'),
             object('close_projects', '项目中心', 'forge_project', 'briefcase-business'),
+            object('project_settlements', '项目结算', 'forge_project_settlement', 'chart-no-axes-combined'),
             object('close_sales_links', '项目订单关联', 'forge_project_sales_link', 'link'),
           ]),
         ],
