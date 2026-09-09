@@ -296,7 +296,7 @@ export const SalesShipmentCreateOutbound = defineAction({
   params: [
     { field: 'code', objectOverride: 'forge_sales_outbound', required: true }, { field: 'warehouse_id', objectOverride: 'forge_sales_outbound', required: true },
     { field: 'outbound_on', objectOverride: 'forge_sales_outbound', required: true }, { field: 'quantity', objectOverride: 'forge_sales_outbound', required: true },
-    { field: 'available_quantity', objectOverride: 'forge_sales_outbound', required: true }, { field: 'customer_pickup', objectOverride: 'forge_sales_outbound' },
+    { field: 'customer_pickup', objectOverride: 'forge_sales_outbound' },
     { field: 'remarks', objectOverride: 'forge_sales_outbound' },
   ],
   onSuccess: { navigate: '/_console/apps/forge/forge_sales_outbound/record/${result.id}' },
@@ -305,11 +305,22 @@ const id = ctx.recordId || (ctx.record && ctx.record.id); const shipment = ctx.r
 if (ctx.recordLoadDenied === true || !id || !shipment) throw new Error('当前发货单不存在或不可访问');
 if (!['pending_shipment', 'partially_outbounded'].includes(shipment.status)) throw new Error('发货单状态已变化，请刷新后重试');
 const lines = await ctx.api.object('forge_sales_shipment_line').find({ where: { shipment_id: id } }); if (lines.length !== 1) throw new Error('当前切片仅支持单条物料明细发货单');
-const line = lines[0], quantity = Number(ctx.input.quantity || 0), available = Number(ctx.input.available_quantity || 0), already = Number(shipment.outbound_quantity || 0);
-if (!(quantity > 0)) throw new Error('本次出库数量必须大于0'); if (quantity + already > Number(shipment.total_quantity || 0)) throw new Error('本次出库数量超过发货单剩余数量'); if (quantity > available) throw new Error('可用库存不足，无法创建出库单');
+const line = lines[0], quantity = Number(ctx.input.quantity || 0), already = Number(shipment.outbound_quantity || 0);
+if (!(quantity > 0)) throw new Error('本次出库数量必须大于0'); if (quantity + already > Number(shipment.total_quantity || 0)) throw new Error('本次出库数量超过发货单剩余数量');
+const round4 = value => Math.round((value + Number.EPSILON) * 10000) / 10000;
+const balanceKey = ctx.input.warehouse_id + ':' + line.sku_id;
+const balances = await ctx.api.object('forge_inventory_balance').find({ where: { balance_key: balanceKey } });
+if (balances.length > 1) throw new Error('同一仓库和物料存在重复库存余额');
+if (!balances.length) throw new Error('出库仓库没有该物料的库存余额');
+const balance = balances[0], available = Number(balance.available_quantity || 0), beforeOnHand = Number(balance.on_hand_quantity || 0), reserved = Number(balance.reserved_quantity || 0), unitCost = Number(balance.average_cost || 0), beforeValue = Number(balance.inventory_value || 0);
+if (quantity > available || quantity > beforeOnHand) throw new Error('可用库存不足，无法创建出库单');
+const afterOnHand = round4(beforeOnHand - quantity), afterAvailable = round4(available - quantity), inventoryAmount = round4(quantity * unitCost), afterValue = Math.max(0, round4(beforeValue - inventoryAmount));
 const nextStatus = quantity + already >= Number(shipment.total_quantity || 0) ? 'outbounded' : 'partially_outbounded';
-const created = await ctx.api.object('forge_sales_outbound').insert({ name: shipment.name + ' 出库 ' + ctx.input.code, code: ctx.input.code, shipment_id: id, order_id: line.order_id, warehouse_id: ctx.input.warehouse_id, outbound_on: ctx.input.outbound_on, quantity, customer_pickup: Boolean(ctx.input.customer_pickup), recipient: shipment.recipient, recipient_phone: shipment.recipient_phone || null, delivery_address: shipment.delivery_address, available_quantity: available, status: 'outbounded', responsible_id: shipment.responsible_id, remarks: ctx.input.remarks || ('由发货单 ' + shipment.code + ' 创建') });
+const created = await ctx.api.object('forge_sales_outbound').insert({ name: shipment.name + ' 出库 ' + ctx.input.code, code: ctx.input.code, shipment_id: id, order_id: line.order_id, warehouse_id: ctx.input.warehouse_id, sku_id: line.sku_id, outbound_on: ctx.input.outbound_on, quantity, customer_pickup: Boolean(ctx.input.customer_pickup), recipient: shipment.recipient, recipient_phone: shipment.recipient_phone || null, delivery_address: shipment.delivery_address, available_quantity: available, before_on_hand: beforeOnHand, after_on_hand: afterOnHand, unit_cost: unitCost, inventory_amount: inventoryAmount, status: 'outbounded', responsible_id: shipment.responsible_id, remarks: ctx.input.remarks || ('由发货单 ' + shipment.code + ' 创建') });
 const outboundId = typeof created === 'string' ? created : created && (created.id || (created.record && created.record.id)); if (!outboundId) throw new Error('出库单创建后未返回记录ID');
+const occurredAt = new Date().toISOString();
+await ctx.api.object('forge_inventory_balance').update({ id: balance.id, on_hand_quantity: afterOnHand, reserved_quantity: reserved, available_quantity: afterAvailable, average_cost: unitCost, inventory_value: afterValue, last_movement_at: occurredAt });
+await ctx.api.object('forge_inventory_ledger').insert({ name: ctx.input.code + ' ' + line.name + ' 出库', code: ctx.input.code + '-001', warehouse_id: ctx.input.warehouse_id, sku_id: line.sku_id, direction: 'outbound', movement_type: 'sales_outbound', quantity, before_on_hand: beforeOnHand, after_on_hand: afterOnHand, before_available: available, after_available: afterAvailable, unit_cost: unitCost, amount: inventoryAmount, occurred_at: occurredAt, source_object: 'forge_sales_outbound', source_id: outboundId, source_line_id: line.id, responsible_id: shipment.responsible_id, remarks: ctx.input.remarks || ('由发货单 ' + shipment.code + ' 创建') });
 const order = await ctx.api.object('forge_sales_order').findOne({ where: { id: line.order_id } }); const orderLines = await ctx.api.object('forge_sales_order_line').find({ where: { order_id: line.order_id } });
 const shipped = Number(orderLines.reduce((sum, item) => sum + Number(item.shipped_quantity || 0), 0)) + quantity;
 await ctx.api.object('forge_sales_shipment').update({ id, outbound_quantity: already + quantity, outbound_count: Number(shipment.outbound_count || 0) + 1, status: nextStatus }); await ctx.api.object('forge_sales_shipment_line').update({ id: line.id, outbound_quantity: Number(line.outbound_quantity || 0) + quantity }); await ctx.api.object('forge_sales_order_line').update({ id: line.order_line_id, shipped_quantity: Number(line.shipped_quantity || 0) + quantity });
