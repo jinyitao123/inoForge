@@ -77,6 +77,11 @@
     ,"acceptance:project-timesheet-cost": "node tests/project-timesheet-cost.integration.mjs"
     ,"acceptance:project-timesheet-cost-restart": "node tests/project-timesheet-cost-restart-readback.mjs"
     ,"acceptance:project-timesheet-cost-ui-readback": "node tests/project-timesheet-cost-ui-readback.mjs"
+    ,"acceptance:project-expense-cost": "node tests/project-expense-cost.integration.mjs"
+    ,"acceptance:project-expense-cost-restart": "node tests/project-expense-cost-restart-readback.mjs"
+    ,"acceptance:project-expense-cost-ui-readback": "node tests/project-expense-cost-ui-readback.mjs"
+    ,"acceptance:project-full-cost-settlement": "FORGE_FULL_COST_SETTLEMENT=1 node tests/sales-collection.integration.mjs"
+    ,"acceptance:project-full-cost-settlement-restart": "node tests/project-full-cost-settlement-restart-readback.mjs"
   },
   "dependencies": {
     "@objectstack/spec": "17.3.0",
