@@ -7,3 +7,4 @@ export * from './bom.object.js';
 export * from './sales.object.js';
 export * from './procurement.object.js';
 export * from './inventory.object.js';
+export * from './finance.object.js';
