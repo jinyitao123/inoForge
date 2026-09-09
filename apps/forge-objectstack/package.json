@@ -1,0 +1,46 @@
+{
+  "name": "forge-objectstack",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "pnpm": ">=10.15",
+    "node": ">=24.19.0 <25"
+  },
+  "scripts": {
+    "dev": "objectstack dev",
+    "start": "objectstack start",
+    "build": "objectstack build",
+    "validate": "objectstack validate",
+    "typecheck": "tsc --noEmit",
+    "acceptance:master-data": "node tests/master-data.integration.mjs",
+    "acceptance:sales": "node tests/sales-foundation.integration.mjs",
+    "acceptance:sales-workflow": "node tests/sales-workflow.integration.mjs",
+    "acceptance:sales-conversion": "node tests/sales-conversion.integration.mjs",
+    "acceptance:sales-shipment": "node tests/sales-shipment.integration.mjs",
+    "acceptance:sales-outbound": "node tests/sales-outbound.integration.mjs",
+    "acceptance:sales-restart": "node tests/sales-restart-readback.mjs"
+  },
+  "dependencies": {
+    "@objectstack/spec": "17.3.0",
+    "@objectstack/runtime": "17.3.0",
+    "@objectstack/plugin-hono-server": "17.3.0",
+    "@objectstack/connector-rest": "17.3.0",
+    "@objectstack/connector-openapi": "17.3.0",
+    "@objectstack/connector-mcp": "17.3.0"
+  },
+  "devDependencies": {
+    "@objectstack/cli": "17.3.0",
+    "typescript": "6.0.3"
+  },
+  "packageManager": "pnpm@10.30.3",
+  "pnpm": {
+    "overrides": {
+      "better-auth": "1.7.2",
+      "@better-auth/core": "1.7.2",
+      "@better-auth/oauth-provider": "1.7.2",
+      "@better-auth/scim": "1.7.2",
+      "@better-auth/sso": "1.7.2"
+    }
+  }
+}
