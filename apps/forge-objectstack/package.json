@@ -53,7 +53,12 @@
     "acceptance:multiline-arrival-restart": "node tests/multiline-arrival-restart-readback.mjs",
     "acceptance:multiline-inspection": "node tests/multiline-inspection.integration.mjs",
     "acceptance:multiline-inspection-ui-readback": "node tests/multiline-inspection-ui-readback.mjs",
-    "acceptance:multiline-inspection-restart": "node tests/multiline-inspection-restart-readback.mjs"
+    "acceptance:multiline-inspection-restart": "node tests/multiline-inspection-restart-readback.mjs",
+    "acceptance:multiline-inbound": "node tests/multiline-inbound.integration.mjs",
+    "acceptance:partial-inbound": "node tests/partial-inbound.integration.mjs",
+    "acceptance:multiline-inbound-browser-fixture": "node tests/multiline-inbound-browser-fixture.mjs",
+    "acceptance:multiline-inbound-ui-readback": "node tests/multiline-inbound-ui-readback.mjs",
+    "acceptance:multiline-inbound-restart": "node tests/multiline-inbound-restart-readback.mjs"
   },
   "dependencies": {
     "@objectstack/spec": "17.3.0",

@@ -4,7 +4,7 @@
 
 这是一份早期、待复核的检验与入库切片。它曾把采购订单审批后的待到货通知继续推进为“登记到货 → 来料检验 → 合格数量采购入库 → 库存余额与流水”，并以单行 PLC 订单验证到货 2、合格 1、入库 1。
 
-2026-09-10 的 RISEMAP 同材料复核已确认，采购订单审批后产生的是一张含多条物料的订单级到货通知。当前实现已迁移通知模型，并已在 `docs/forge-multiline-arrival-slice.md` 完成多物料到货登记验收。本文件中的旧单物料检验与入库仍不能代表当前主线能力。
+2026-09-10 的 RISEMAP 同材料复核已确认，采购订单审批后产生的是一张含多条物料的订单级到货通知。当前实现已迁移通知模型，并已在 `docs/forge-multiline-arrival-slice.md` 完成多物料到货登记验收。当前主线已在 `docs/forge-multiline-inspection-slice.md` 与 `docs/forge-multiline-inbound-slice.md` 完成逐物料检验和多物料采购入库重做。本文件只保留早期实验记录。
 
 ## 已实现规则
 
@@ -23,4 +23,4 @@ API 验收覆盖 5 项业务检查，包括完整到货建检验单、重复到�
 
 ## 保留边界
 
-多物料到货登记、逐物料待检和逐物料检验已按当前订单级通知模型重新实现，详见 `docs/forge-multiline-arrival-slice.md` 与 `docs/forge-multiline-inspection-slice.md`。本文件剩余有效内容仅是旧单物料入库实验；抽检方案、免检规则、批次追溯细化、供应商不合格处置、采购退货、当前多物料入库、应付与进项发票继续待同材料复核。当前单据和累计量采用顺序写入，尚无原子回滚保证。
+多物料到货登记、逐物料检验和多物料采购入库已按当前订单级通知模型重新实现，详见 `docs/forge-multiline-arrival-slice.md`、`docs/forge-multiline-inspection-slice.md` 与 `docs/forge-multiline-inbound-slice.md`。新主线收窄了旧实验的应付触发假设，入库只落库存，应付与进项发票继续待 RISEMAP 同材料复核。抽检方案、免检规则、批次追溯细化、供应商不合格处置和采购退货仍未完成。当前单据和累计量采用顺序写入，尚无原子回滚保证。
