@@ -107,6 +107,8 @@ export default defineStack({
             page('production_issues', '领料单', 'page_production_material_workspace', 'package-minus'),
             page('production_supplies', '补料单', 'page_production_supply_workspace', 'package-plus'),
             page('production_returns', '退料单', 'page_production_return_workspace', 'undo-2'),
+            page('disassembly_orders', '拆解单', 'page_production_disassembly_workspace', 'unplug'),
+            page('replacement_orders', '换件单', 'page_production_replacement_workspace', 'replace'),
             object('production_inbounds', '生产入库', 'forge_production_inbound', 'package-check'),
             object('production_logs', '生产业务日志', 'forge_production_approval_log', 'history'),
           ]),
