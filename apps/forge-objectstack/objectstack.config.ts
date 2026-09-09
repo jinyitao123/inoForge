@@ -52,6 +52,9 @@ export default defineStack({
           group('purchase_transactions', '采购业务', [
             object('purchase_orders', '采购订单', 'forge_purchase_order', 'shopping-cart'),
             object('purchase_arrival_notices', '到货通知', 'forge_purchase_arrival_notice', 'package-search'),
+            object('purchase_receipts', '到货登记', 'forge_purchase_receipt', 'package-check'),
+            object('purchase_inspections', '采购检验单', 'forge_purchase_inspection', 'clipboard-check'),
+            object('purchase_inbounds', '采购入库', 'forge_purchase_inbound', 'package-plus'),
           ]),
           group('supplier_records', '供应商档案', [
             object('suppliers', '供应商', 'forge_supplier', 'truck'),

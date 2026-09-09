@@ -25,7 +25,9 @@
     "acceptance:procurement": "node tests/procurement-chain.integration.mjs",
     "acceptance:procurement-restart": "node tests/procurement-restart-readback.mjs",
     "acceptance:inventory": "node tests/inventory-opening.integration.mjs",
-    "acceptance:inventory-restart": "node tests/inventory-restart-readback.mjs"
+    "acceptance:inventory-restart": "node tests/inventory-restart-readback.mjs",
+    "acceptance:procurement-receipt-inbound": "node tests/procurement-receipt-inbound.integration.mjs",
+    "acceptance:procurement-receipt-inbound-restart": "node tests/procurement-receipt-inbound-restart-readback.mjs"
   },
   "dependencies": {
     "@objectstack/spec": "17.3.0",
