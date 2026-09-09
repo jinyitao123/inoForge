@@ -164,6 +164,7 @@ export default defineStack({
         navigation: [
           group('close_context', '项目上下文', [
             page('close_settlement_workspace', '项目结算工作台', 'page_collection_settlement_workspace', 'chart-no-axes-combined'),
+            page('project_operating_analysis', '项目经营分析', 'page_project_operating_analysis', 'chart-no-axes-combined'),
             object('close_projects', '项目中心', 'forge_project', 'briefcase-business'),
             object('project_settlements', '项目结算', 'forge_project_settlement', 'chart-no-axes-combined'),
             object('close_sales_links', '项目订单关联', 'forge_project_sales_link', 'link'),
