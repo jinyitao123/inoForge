@@ -22,7 +22,7 @@ export const Project = ObjectSchema.create({
     priority: select('优先级', [['high', '高'], ['medium', '中'], ['low', '低']], 'medium'),
     planned_start_on: Field.date({ label: '计划开始日期', ...required }),
     planned_end_on: Field.date({ label: '计划结束日期', ...required }),
-    actual_start_on: Field.date({ label: '实际开始日期', readonly: true }),
+    actual_start_on: Field.date({ label: '实际开始日期', readonly: true }), actual_end_on: Field.date({ label: '实际结束日期', readonly: true }),
     expected_revenue: amount('预计营收'), budget_amount: amount('预算金额'),
     contract_amount: amount('合同金额', true), invoice_amount: amount('已开票', true),
     collected_amount: amount('已回款', true), total_cost: amount('总成本', true),

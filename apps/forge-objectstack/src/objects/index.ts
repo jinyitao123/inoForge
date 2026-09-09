@@ -11,3 +11,4 @@ export * from './inventory.object.js';
 export * from './finance.object.js';
 export * from './project.object.js';
 export * from './production.object.js';
+export * from './delivery.object.js';
