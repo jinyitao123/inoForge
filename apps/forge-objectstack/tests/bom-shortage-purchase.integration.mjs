@@ -81,7 +81,10 @@ await test('creates one pending-review order from all four shortage lines', asyn
     'RM-PLC-1215C': 1, 'RM-HMI-700': 1, 'RM-PSU-24V10A': 2, 'RM-CAB-800': 1,
   });
   assert.deepEqual(Object.fromEntries(lines.map(line => [line.item_code, line.taxed_unit_price])), {
-    'RM-PLC-1215C': 6800, 'RM-HMI-700': 3200, 'RM-PSU-24V10A': 860, 'RM-CAB-800': 4600,
+    'RM-PLC-1215C': 6800.001, 'RM-HMI-700': 3200.0018, 'RM-PSU-24V10A': 859.9978, 'RM-CAB-800': 4600.004,
+  });
+  assert.deepEqual(Object.fromEntries(lines.map(line => [line.item_code, line.untaxed_unit_price])), {
+    'RM-PLC-1215C': 6017.7, 'RM-HMI-700': 2831.86, 'RM-PSU-24V10A': 761.06, 'RM-CAB-800': 4070.8,
   });
   assert.ok(lines.every(line => line.source_bom_id === ids.bom && line.source_analysis_line_id));
   ids.orderLines = lines.map(line => line.id);
