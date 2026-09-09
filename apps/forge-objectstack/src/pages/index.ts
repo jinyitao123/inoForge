@@ -10,3 +10,4 @@ export * from './delivery-acceptance-workspace.page.js';
 export * from './collection-settlement-workspace.page.js';
 export * from './project-operating-analysis.page.js';
 export * from './project-timesheet-cost.page.js';
+export * from './project-expense-cost.page.js';

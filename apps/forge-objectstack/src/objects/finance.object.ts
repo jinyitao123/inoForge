@@ -95,11 +95,53 @@ export const ProjectSettlement = master('forge_project_settlement', '项目结�
   name: text('结算名称', true), code: code('结算编号'), project_id: reference('forge_project', '项目', true),
   settled_on: Field.date({ label: '结算日期', ...required }), contract_amount: { ...amount('合同金额'), readonly: true },
   invoiced_amount: { ...amount('已开票'), readonly: true }, collected_amount: { ...amount('已回款'), readonly: true },
-  production_cost: { ...amount('生产材料成本'), readonly: true }, gross_margin: { ...signedAmount('项目毛利'), readonly: true },
+  production_cost: { ...amount('生产材料成本'), readonly: true }, labor_cost: { ...amount('人工成本'), readonly: true },
+  manufacturing_cost: { ...amount('制造费用'), readonly: true }, travel_cost: { ...amount('差旅费用'), readonly: true },
+  subcontract_cost: { ...amount('委外成本'), readonly: true }, other_cost: { ...amount('其他项目成本'), readonly: true },
+  total_cost: { ...amount('项目总成本'), readonly: true }, gross_margin: { ...signedAmount('项目毛利'), readonly: true },
   gross_margin_rate: Field.number({ label: '毛利率 (%)', scale: 4, readonly: true }),
   status: { ...Field.select([{ value: 'settled', label: '已结算' }], { label: '结算状态', defaultValue: 'settled' }), readonly: true },
   responsible_id: owner(true), remarks: remarks(),
-}, ['code', 'project_id', 'settled_on', 'contract_amount', 'invoiced_amount', 'collected_amount', 'production_cost', 'gross_margin', 'gross_margin_rate', 'status']);
+}, ['code', 'project_id', 'settled_on', 'contract_amount', 'invoiced_amount', 'collected_amount', 'production_cost', 'labor_cost', 'manufacturing_cost', 'travel_cost', 'subcontract_cost', 'other_cost', 'total_cost', 'gross_margin', 'gross_margin_rate', 'status']);
+
+// RM-142 reimbursement drafts contain a project cost owner and one or more dated expense lines.
+export const ProjectExpense = master('forge_project_expense', '项目费用报销', 'hand-coins', {
+  name: text('费用标题', true), code: code('报销单号'), project_id: reference('forge_project', '关联项目', true),
+  customer_id: reference('forge_customer', '客户', true), ownership_type: Field.select([
+    { value: 'project', label: '项目成本' },
+  ], { label: '成本归属', defaultValue: 'project', ...required }),
+  claim_type: Field.select([
+    { value: 'self', label: '本人报销' }, { value: 'on_behalf', label: '代人报销' },
+  ], { label: '报销类型', defaultValue: 'self', ...required }),
+  applicant_id: Field.user({ label: '申请人', ...required }), beneficiary_id: Field.user({ label: '报销人', ...required }),
+  supplier_id: reference('forge_supplier', '供应商'), expected_payment_on: Field.date({ label: '期望付款日期' }),
+  total_amount: { ...amount('单据金额'), readonly: true }, line_count: Field.number({ label: '费用项数', min: 0, scale: 0, defaultValue: 0, readonly: true }),
+  status: { ...Field.select([
+    { value: 'draft', label: '待提交' }, { value: 'pending_review', label: '待审核' },
+    { value: 'approved', label: '已通过' }, { value: 'rejected', label: '已驳回' },
+    { value: 'paid', label: '已打款' }, { value: 'voided', label: '已作废' },
+  ], { label: '报销状态', defaultValue: 'draft' }), readonly: true },
+  submitted_at: Field.datetime({ label: '提交时间', readonly: true }), reviewed_at: Field.datetime({ label: '审核时间', readonly: true }),
+  reviewer_id: Field.user({ label: '审核人', readonly: true }), review_comment: Field.textarea({ label: '审核意见', readonly: true }),
+  cost_entry_count: Field.number({ label: '成本记录数', min: 0, scale: 0, defaultValue: 0, readonly: true }),
+  responsible_id: owner(true), remarks: remarks(),
+}, ['code', 'name', 'ownership_type', 'claim_type', 'applicant_id', 'beneficiary_id', 'project_id', 'supplier_id', 'total_amount', 'line_count', 'status']);
+
+export const ProjectExpenseLine = master('forge_project_expense_line', '项目费用明细', 'list', {
+  name: text('费用名称', true), line_key: code('费用明细编号'), expense_id: reference('forge_project_expense', '报销单', true),
+  category: Field.select([
+    { value: 'manufacturing', label: '制造费用' }, { value: 'travel', label: '差旅费用' },
+    { value: 'subcontract', label: '外协与委外' }, { value: 'inspection', label: '检测认证' },
+    { value: 'software', label: '软件与云服务' }, { value: 'office', label: '行政办公' }, { value: 'other', label: '其他费用' },
+  ], { label: '费用类别', ...required }),
+  cost_type: Field.select([
+    { value: 'manufacturing', label: '制造费用' }, { value: 'travel', label: '差旅费用' },
+    { value: 'subcontract', label: '委外成本' }, { value: 'other', label: '其他成本' },
+  ], { label: '成本类型', ...required }),
+  occurred_on: Field.date({ label: '发生日期', ...required }), amount: amount('金额'),
+  description: Field.textarea({ label: '费用说明', ...required }), invoice_reference: text('票据编号'),
+  attachment: Field.file({ label: '票据附件' }), remarks: remarks(),
+}, ['expense_id', 'line_key', 'category', 'cost_type', 'name', 'occurred_on', 'amount', 'description', 'invoice_reference']);
 
 const payableStatus = () => Field.select([
   { value: 'unpaid', label: '未付款' }, { value: 'partially_paid', label: '部分付款' },
