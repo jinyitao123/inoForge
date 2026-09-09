@@ -85,6 +85,9 @@
     ,"acceptance:purchase-payment": "node tests/purchase-payment.integration.mjs"
     ,"acceptance:purchase-payment-ui-readback": "node tests/purchase-payment-ui-readback.mjs"
     ,"acceptance:purchase-payment-restart": "node tests/purchase-payment-restart-readback.mjs"
+    ,"acceptance:prepayment-refund": "node tests/prepayment-refund.integration.mjs"
+    ,"acceptance:prepayment-refund-ui-readback": "node tests/prepayment-refund-ui-readback.mjs"
+    ,"acceptance:prepayment-refund-restart": "node tests/prepayment-refund-restart-readback.mjs"
   },
   "dependencies": {
     "@objectstack/spec": "17.3.0",
