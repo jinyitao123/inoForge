@@ -11,8 +11,8 @@
 - 合同及项目金额：`243200`
 - 项目预算：`180000`
 - 计划周期：`2026-09-10` 至 `2026-12-31`
-- 验证数据库：立项/WBS 使用 `.objectstack/otc-project.sqlite`；执行、正式 BOM、缺料分析、缺料采购、多物料到货、逐物料检验、多物料采购入库、生产组装、拆解换件和交付验收分别使用独立 `.objectstack/otc-project-execution.sqlite`、`.objectstack/otc-formal-bom-final-20260910b.sqlite`、`.objectstack/otc-shortage-analysis-final.sqlite`、`.objectstack/otc-bom-purchase-final-v6.sqlite`、`.objectstack/otc-multiline-arrival-final-v2.sqlite`、`.objectstack/otc-multiline-inspection-final-v2.sqlite`、`.objectstack/otc-multiline-inbound-final.sqlite`、`.objectstack/otc-production-assembly.sqlite`、`.objectstack/otc-production-transform.sqlite`、`.objectstack/otc-integration-acceptance.sqlite`
-- 验证端口：立项/WBS、执行、正式 BOM、缺料分析、缺料采购、多物料到货、逐物料检验、多物料采购入库、生产组装、拆解换件和交付验收最终验收分别为 `4342`、`4343`、`4346`、`4347`、`4351`、`4353`、`4354`、`4355`、`4356`、`4357`、`4358`，均不复用主线 `4310`
+- 验证数据库：立项/WBS 使用 `.objectstack/otc-project.sqlite`；执行、正式 BOM、缺料分析、缺料采购、多物料到货、逐物料检验、多物料采购入库、生产组装、拆解换件、交付验收和收款结算分别使用独立 `.objectstack/otc-project-execution.sqlite`、`.objectstack/otc-formal-bom-final-20260910b.sqlite`、`.objectstack/otc-shortage-analysis-final.sqlite`、`.objectstack/otc-bom-purchase-final-v6.sqlite`、`.objectstack/otc-multiline-arrival-final-v2.sqlite`、`.objectstack/otc-multiline-inspection-final-v2.sqlite`、`.objectstack/otc-multiline-inbound-final.sqlite`、`.objectstack/otc-production-assembly.sqlite`、`.objectstack/otc-production-transform.sqlite`、`.objectstack/otc-integration-acceptance.sqlite`、`.objectstack/otc-collection-settlement.sqlite`
+- 验证端口：立项/WBS、执行、正式 BOM、缺料分析、缺料采购、多物料到货、逐物料检验、多物料采购入库、生产组装、拆解换件、交付验收和收款结算最终验收分别为 `4342`、`4343`、`4346`、`4347`、`4351`、`4353`、`4354`、`4355`、`4356`、`4357`、`4358`、`4359`，均不复用主线 `4310`
 
 ## 顺序阶段
 
@@ -30,7 +30,7 @@
 | 7 | 生产组装与领退补料 | 已核对同材料成品选择、BOM 四行展开、零库存缺口、按计划日期分配、领补退选择门槛、分批入库与独立完工说明；远端未保存生产单 | 已实现组装单、优先齐套、领料审批过账、补料、退料、分批生产入库、净物料成本和独立完工 | 6 组通过；两台主单、四行领料、补 `1` 退 `1`、两批入库，竞争单齐套 `80%` | `.objectstack/otc-production-assembly.sqlite` 完整停服重启后回读组装需求、三类物料单、八条流水、两批入库和成品余额 | 浏览器办理 `ASM-2026-0003`、`MAT-2026-0002`、`WIN-2026-0003`，完成 5 件领料、1 台入库和独立完工；重启刷新通过 | Forge 组装核心闭合、RISEMAP 待成功记录复核；下一步实现拆解与换件 |
 | 7.1 | 生产拆解与换件 | 拆解会扣减成品并要求每项理论量完整分配为回收/报废；换件不动整机，新件出库，旧件可回收或报废；远端只读预览后未保存 | 已实现拆解与换件头、逐项分配、确认前库存预检、成品/新旧件余额、来源流水和成本变化 | 5 组通过；API 拆解四项全回收，换件两处覆盖回收/报废，整机库存不变 | `.objectstack/otc-production-transform.sqlite` 完整停服重启后回读 API 与浏览器两类单据、明细、余额和流水 | 浏览器办理 `DIS-2026-0002`，电源回收 `1`/报废 `1`；办理 `REP-2026-0002` 回收 PLC、领用 HMI，整机 `1 → 1`；重启刷新通过 | Forge 库存核心闭合、RISEMAP 待成功记录复核；下一步进入集成调试与交付验收 |
 | 7.2 | 集成调试、交付包与客户验收 | 已观察项目/任务/工时和交付包模板；交付包模板定义文件夹结构并用于项目快速初始化，成功调试与客户验收未跑通 | 已实现逐项调试、交付资料齐套、客户验收、整改关闭、复验、证据引用和项目完工联动 | 7 组通过；调试 `4/5 → 5/5`、资料 `3/4 → 4/4`、验收 `3/4 → 整改 → 4/4` | `.objectstack/otc-integration-acceptance.sqlite` 完整停服重启后回读 API 与浏览器两套记录和已完工项目 | 浏览器办理 `COM-2026-0002 → DP-2026-0002 → ACC-2026-0002`，关闭 `REC-2026-0002` 后复验并完成客户确认；重启刷新通过 | Forge 本阶段闭合、RISEMAP 待成功记录复核；下一步进入收款核销与项目结算 |
-| 8 | 开票、收款与项目结算 | 销售链和项目显示金额口径已观察，完整收款未跑通 | 开票应收已有切片，收款核销尚未合入 | 部分通过 | 部分通过 | 部分通过 | 等交付验收后顺序办理 |
+| 8 | 开票、收款与项目结算 | 收款流水明确为实际到账后手工分配到销售订单，核销前可取消，审核后计入订单回款；资金账户字段与待分配/待审核状态已观察，同材料成功链未跑通 | 已实现验收开票、应收、资金账户、实际到账、手工分配、取消、审核核销、项目累计与毛利结算快照 | 7 组通过；`243200` 两笔到账、取消待审分配、部分与最终核销、结算前置和成本毛利均覆盖 | `.objectstack/otc-collection-settlement.sqlite` 完整停服重启后回读 API 与浏览器账户、发票、应收、收款、核销和结算 | 浏览器办理 `FA-BROWSER-20260910 → INV-BROWSER-20260910-001 → CR-BROWSER-20260910-001 → CA-BROWSER-20260910-001 → PST-BROWSER-20260910`，`121600` 全额结清；重启刷新通过 | Forge 本阶段闭合、RISEMAP 待同材料成功记录复核；下一步进入项目经营分析和成本归集 |
 
 ## 阶段 1 验证边界
 
@@ -144,3 +144,13 @@ Forge 定向验收覆盖以下行为：
 6. 客户确认需签字文件或确认编号及客户意见；活动项目计划未全部达到 `100%` 时明确阻断。确认后验收为已通过、交付包为客户已接收、项目为 `100% / 已完工`，实际结束日期使用验收业务日期。
 7. 完整停服并从 `.objectstack/otc-integration-acceptance.sqlite` 重启后，API 与浏览器两套调试检查、交付资料、验收项、整改、证据引用和项目状态全部按原 ID 回读；浏览器刷新继续显示 `ACC-2026-0002` 四项通过和 `REC-2026-0002` 已关闭。
 8. RISEMAP 当前只证明项目执行与交付包模板入口，成功调试、交付和客户验收仍待同材料复核。真实二进制附件、客户外部账号、电子签名、验收修订/撤回、角色权限、组装单项目归属强校验和多动作事务原子性仍未证明。
+
+## 阶段 8 开票、收款与项目结算验证边界
+
+1. 只有已完成客户验收、状态为已完工且存在关联销售订单的项目可以按订单未开票余额开票；应收日期早于开票日期、重复超额开票和匿名调用均被拒绝。
+2. API 基准开票 `243200` 并同步形成同额应收。资金账户期初余额 `1000`，两笔实际到账 `100000 + 143200` 后余额为 `244200`；到账本身不提前减少应收。
+3. 收款需手工分配到应收。待审核的 `60000` 分配取消后完整恢复流水未分配余额；审核 `100000` 后应收为部分收款，审核剩余 `143200` 后应收与发票结清，订单、项目和关联记录累计均为 `243200`。
+4. 项目在未全额开票、未全额回款或存在未结清应收时被阻断。结算按已交付组装单去重汇总物料成本 `32640.0066`，保存毛利 `210559.9934` 并把项目置为已结算。
+5. 浏览器独立为 `PRJ-2026-002` 创建并选用新账户，完成 `121600` 验收开票、实际到账、分配审核和项目结算；成本 `16320.0034`，毛利 `105279.9966`。
+6. 完整停服并从 `.objectstack/otc-collection-settlement.sqlite` 重启后，API 和浏览器创建的账户、发票、应收、收款流水、核销记录、项目累计和结算快照均按原 ID 回读，数据库完整性检查为 `ok`。
+7. RISEMAP 当前只证明收款分配、取消和审核的页面规则及资金账户字段，没有同材料成功链。Forge 的验收开票触发和项目结算规则仍待复核；银行导入、预收款、退款、反核销、红冲、对账、收入确认、工时/制造费用、税务、角色权限和多对象事务原子性仍未证明。

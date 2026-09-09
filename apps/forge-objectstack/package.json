@@ -68,6 +68,9 @@
     ,"acceptance:delivery-acceptance": "node tests/delivery-acceptance.integration.mjs"
     ,"acceptance:delivery-acceptance-restart": "node tests/delivery-acceptance-restart-readback.mjs"
     ,"acceptance:delivery-acceptance-ui-readback": "node tests/delivery-acceptance-ui-readback.mjs"
+    ,"acceptance:otc-collection-settlement": "node tests/sales-collection.integration.mjs"
+    ,"acceptance:otc-collection-settlement-restart": "node tests/sales-collection-restart-readback.mjs"
+    ,"acceptance:otc-collection-settlement-ui-readback": "node tests/collection-settlement-ui-readback.mjs"
   },
   "dependencies": {
     "@objectstack/spec": "17.3.0",
