@@ -27,3 +27,11 @@ RISEMAP 证据为 `2098` 至 `2107`，包括发货表单、数量1、库存警�
 内置浏览器已实际打开 Forge 订单、发货单和出库结果。最新同库串联与重启后，销售出库列表直接显示校验时可用库存 3、出库前 3、出库后 2 和库存金额 58000；销项发票与应收账款列表均显示折后金额 121600。历史页面证据保留为 [出库后发货单回写](references/risemap-capture/deep/supply-chain/outbound/rm-043/800-forge-iab-shipment-outbounded.png)、[旧版销售出库单列表](references/risemap-capture/deep/supply-chain/outbound/rm-043/801-forge-iab-sales-outbound-list.png) 和 [旧版销售出库单详情](references/risemap-capture/deep/supply-chain/outbound/rm-043/802-forge-iab-sales-outbound-detail.png)；本轮证据为 [库存驱动的销售出库](references/risemap-capture/deep/supply-chain/outbound/rm-043/803-forge-iab-inventory-backed-outbound-list.png)、[销项发票](references/risemap-capture/deep/supply-chain/outbound/rm-043/804-forge-iab-sales-invoice-list.png) 与 [应收账款](references/risemap-capture/deep/supply-chain/outbound/rm-043/805-forge-iab-accounts-receivable-list.png)。
 
 当前动作在 ObjectStack 17.3.0 中不能把单据、余额、流水和累计回写包在 `ctx.api.transaction` 内：开发运行时的审计写入会等待至 30 秒超时。当前使用顺序写入，因此中间写入失败时的补偿或原子性仍是未闭合风险。多明细分配、多订单合并发货、发货单取消、并发库存预占与重试幂等仍在后续切片处理。
+
+## 分批交付纠错与浏览器验收
+
+第二张发货单首次真实出库时，订单头进入已发货且已发货金额累计为 256000，但订单明细的已发货数量仍停在 1。原因是出库动作错误地从发货单明细读取 `shipped_quantity`。修正后，动作按关联订单明细的当前值累计；两张各 1 台的发货单完成出库后，订单明细为已发货 2/2，允许第二张 121600 的折后销项发票，第三次开票继续被“超过已发货未开票数量”阻断。
+
+独立端口 4340 和独立 SQLite 上的接口验收已经覆盖两次真实建发货单、出库和开票动作，并通过完整停服重启回读。随后从第二批办理前的同一数据库基线开始，内置真实浏览器依次提交 `UI-DN-2-20260909`、`UI-OUT-2-20260909` 和 `UI-INV-2-20260909`。页面确认订单已发货、发货单数 2、已发货金额 256000、已开票金额 243200；发票与应收列表各有两笔 121600，库存余额为 1、可用库存为 1、库存金额为 58000。再次完整停服重启后，接口回读和库存页面均保持相同结果。
+
+这里仍只证明 Forge 的分批交付与开票行为。RISEMAP 同一材料的成功出库、开票和收款仍未跑通，因此发货金额采用折前含税单价而发票采用折后分摊价的差异继续保留，不能写成对照通过；收款及应收核销也尚未在 Forge 实现。
