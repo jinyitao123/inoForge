@@ -41,7 +41,10 @@
     "acceptance:project-plan-execution-ui-readback": "node tests/project-plan-execution-ui-readback.mjs",
     "acceptance:formal-bom": "node tests/formal-bom.integration.mjs",
     "acceptance:formal-bom-restart": "node tests/formal-bom-restart-readback.mjs",
-    "acceptance:formal-bom-ui-readback": "node tests/formal-bom-ui-readback.mjs"
+    "acceptance:formal-bom-ui-readback": "node tests/formal-bom-ui-readback.mjs",
+    "acceptance:bom-shortage": "node tests/bom-shortage.integration.mjs",
+    "acceptance:bom-shortage-ui-readback": "node tests/bom-shortage-ui-readback.mjs",
+    "acceptance:bom-shortage-restart": "node tests/bom-shortage-restart-readback.mjs"
   },
   "dependencies": {
     "@objectstack/spec": "17.3.0",
