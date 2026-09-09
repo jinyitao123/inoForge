@@ -97,6 +97,19 @@ export default defineStack({
           ]),
         ],
       },
+      {
+        id: 'project_delivery', label: '项目与交付', icon: 'briefcase-business',
+        navigation: [
+          group('project_execution', '项目执行', [
+            object('projects', '项目中心', 'forge_project', 'briefcase-business'),
+            object('project_members', '项目团队', 'forge_project_member', 'users'),
+            object('project_sales_links', '订单合同关联', 'forge_project_sales_link', 'link'),
+          ]),
+          group('project_settings', '项目配置', [
+            object('project_types', '项目类型', 'forge_project_type', 'tags'),
+          ]),
+        ],
+      },
     ],
   }],
 });
