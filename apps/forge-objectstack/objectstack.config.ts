@@ -61,9 +61,7 @@ export default defineStack({
         id: 'plan_design', label: '计划与方案设计', icon: 'drafting-compass',
         navigation: [
           group('project_planning', '项目计划与执行', [
-            object('project_plans', '项目计划', 'forge_project_plan', 'calendar-range'),
-            object('project_work_items', '计划工作项', 'forge_project_work_item', 'list-checks'),
-            object('project_daily_reports', '项目日报', 'forge_project_daily_report', 'notebook-pen'),
+            page('project_plan_workspace', '项目计划与执行', 'page_project_plan_workspace', 'calendar-range'),
           ]),
           group('design_bom', '方案与 BOM', [
             page('bom_workspace', 'BOM管理', 'page_bom_workspace', 'git-branch'),
