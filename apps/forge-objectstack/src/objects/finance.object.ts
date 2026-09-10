@@ -91,6 +91,51 @@ export const CollectionAllocation = master('forge_collection_allocation', '收�
   approved_at: { ...Field.datetime({ label: '审核时间' }), readonly: true }, responsible_id: owner(true), remarks: remarks(),
 }, ['code', 'receipt_id', 'receivable_id', 'customer_id', 'order_id', 'allocated_on', 'amount', 'status', 'responsible_id']);
 
+export const CustomerPrepayment = master('forge_customer_prepayment', '客户预收款', 'landmark', {
+  name: text('预收款名称', true), code: code('预收款编号'), customer_id: reference('forge_customer', '客户', true),
+  order_id: reference('forge_sales_order', '销售订单', true), contract_id: reference('forge_sales_contract', '销售合同'),
+  receipt_id: reference('forge_cash_receipt', '收款流水', true), original_amount: amount('预收金额'),
+  offset_amount: { ...amount('已冲抵金额'), readonly: true }, refunded_amount: { ...amount('已退款金额'), readonly: true },
+  balance_amount: { ...amount('预收款余额'), readonly: true }, status: { ...Field.select([
+    { value: 'pending_confirmation', label: '待确认' }, { value: 'active', label: '待分配' },
+    { value: 'partially_used', label: '部分使用' }, { value: 'settled', label: '已结清' },
+    { value: 'refunded', label: '已退款' },
+  ], { label: '预收款状态', defaultValue: 'pending_confirmation' }), readonly: true },
+  confirmed_by: Field.user({ label: '确认人', readonly: true }), confirmed_at: Field.datetime({ label: '确认时间', readonly: true }),
+  confirmation_comment: Field.textarea({ label: '确认意见', readonly: true }), responsible_id: owner(true), remarks: remarks(),
+}, ['code', 'customer_id', 'order_id', 'receipt_id', 'original_amount', 'offset_amount', 'refunded_amount', 'balance_amount', 'status']);
+
+export const CustomerPrepaymentOffset = master('forge_customer_prepayment_offset', '预收款冲抵', 'badge-check', {
+  name: text('冲抵名称', true), code: code('冲抵编号'), prepayment_id: reference('forge_customer_prepayment', '客户预收款', true),
+  receivable_id: reference('forge_accounts_receivable', '应收账款', true), invoice_id: reference('forge_sales_invoice', '销项发票', true),
+  customer_id: reference('forge_customer', '客户', true), order_id: reference('forge_sales_order', '销售订单', true),
+  contract_id: reference('forge_sales_contract', '销售合同'), amount: amount('冲抵金额'), offset_on: Field.date({ label: '冲抵日期', ...required }),
+  reviewer_id: Field.user({ label: '核销人', readonly: true }), reviewed_at: Field.datetime({ label: '核销时间', readonly: true }),
+  review_comment: Field.textarea({ label: '核销意见', readonly: true }), status: { ...Field.select([
+    { value: 'approved', label: '已核销' },
+  ], { label: '冲抵状态', defaultValue: 'approved' }), readonly: true }, responsible_id: owner(true), remarks: remarks(),
+}, ['code', 'prepayment_id', 'receivable_id', 'customer_id', 'order_id', 'amount', 'offset_on', 'status']);
+
+export const CustomerRefund = master('forge_customer_refund', '客户退款', 'undo-2', {
+  name: text('退款名称', true), code: code('申请单号'), prepayment_id: reference('forge_customer_prepayment', '客户预收款', true),
+  order_id: reference('forge_sales_order', '关联销售订单', true), contract_id: reference('forge_sales_contract', '关联合同'),
+  customer_id: reference('forge_customer', '客户', true),
+  currency: Field.select([{ value: 'cny', label: '人民币' }, { value: 'usd', label: '美元' }, { value: 'eur', label: '欧元' }], { label: '币种', defaultValue: 'cny' }),
+  requested_amount: amount('申请退款金额'), actual_amount: { ...amount('实退金额'), readonly: true },
+  refund_method: paymentMethod('退款方式'), application_on: Field.date({ label: '申请日期', ...required }), reason: Field.textarea({ label: '退款原因', ...required }),
+  document_status: { ...Field.select([
+    { value: 'pending_review', label: '待审批' }, { value: 'approved', label: '已审批' }, { value: 'rejected', label: '已驳回' },
+    { value: 'pending_writeoff', label: '待核销' }, { value: 'completed', label: '已完成' },
+  ], { label: '单据状态', defaultValue: 'pending_review' }), readonly: true },
+  finance_status: { ...Field.select([{ value: 'pending', label: '待审批' }, { value: 'approved', label: '已审批' }, { value: 'rejected', label: '已驳回' }], { label: '财务审批', defaultValue: 'pending' }), readonly: true },
+  payment_status: { ...Field.select([{ value: 'pending', label: '待付款' }, { value: 'paid', label: '已付款' }], { label: '付款状态', defaultValue: 'pending' }), readonly: true },
+  writeoff_status: { ...Field.select([{ value: 'pending', label: '待核销' }, { value: 'approved', label: '已核销' }], { label: '核销状态', defaultValue: 'pending' }), readonly: true },
+  account_id: reference('forge_fund_account', '付款账户'), bank_reference: text('银行流水号'), applicant_id: Field.user({ label: '申请人', ...required }),
+  approver_id: Field.user({ label: '审批人', readonly: true }), approved_at: Field.datetime({ label: '审批时间', readonly: true }), approval_comment: Field.textarea({ label: '审批意见', readonly: true }),
+  reviewer_id: Field.user({ label: '核销人', readonly: true }), reviewed_at: Field.datetime({ label: '核销时间', readonly: true }), review_comment: Field.textarea({ label: '核销意见', readonly: true }),
+  responsible_id: owner(true), remarks: remarks(),
+}, ['code', 'contract_id', 'order_id', 'customer_id', 'currency', 'actual_amount', 'refund_method', 'document_status', 'finance_status', 'payment_status', 'writeoff_status', 'application_on']);
+
 export const ProjectSettlement = master('forge_project_settlement', '项目结算', 'chart-no-axes-combined', {
   name: text('结算名称', true), code: code('结算编号'), project_id: reference('forge_project', '项目', true),
   settled_on: Field.date({ label: '结算日期', ...required }), contract_amount: { ...amount('合同金额'), readonly: true },

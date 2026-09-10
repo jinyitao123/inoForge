@@ -11,8 +11,8 @@
 - 合同及项目金额：`243200`
 - 项目预算：`180000`
 - 计划周期：`2026-09-10` 至 `2026-12-31`
-- 验证数据库：立项/WBS 使用 `.objectstack/otc-project.sqlite`；执行、正式 BOM、缺料分析、缺料采购、多物料到货、逐物料检验、多物料采购入库、生产组装、拆解换件、交付验收、收款结算、项目经营分析、工时人工成本、项目费用、全成本结算、采购付款和供应商预付款退款分别使用独立 `.objectstack/otc-project-execution.sqlite`、`.objectstack/otc-formal-bom-final-20260910b.sqlite`、`.objectstack/otc-shortage-analysis-final.sqlite`、`.objectstack/otc-bom-purchase-final-v6.sqlite`、`.objectstack/otc-multiline-arrival-final-v2.sqlite`、`.objectstack/otc-multiline-inspection-final-v2.sqlite`、`.objectstack/otc-multiline-inbound-final.sqlite`、`.objectstack/otc-production-assembly.sqlite`、`.objectstack/otc-production-transform.sqlite`、`.objectstack/otc-integration-acceptance.sqlite`、`.objectstack/otc-collection-settlement.sqlite`、`.objectstack/otc-project-analysis.sqlite`、`.objectstack/otc-project-timesheet-cost.sqlite`、`.objectstack/otc-project-expense-cost.sqlite`、`.objectstack/otc-project-full-cost-settlement.sqlite`、`.objectstack/otc-purchase-payment.sqlite`、`.objectstack/otc-prepayment-refund.sqlite`
-- 验证端口：上述阶段最终验收依次使用 `4342`、`4343`、`4346`、`4347`、`4351`、`4353`、`4354`、`4355`、`4356`、`4357`、`4358`、`4359`、`4360`、`4361`、`4362`、`4363`、`4364`、`4365`，均不复用主线 `4310`
+- 验证数据库：立项/WBS 使用 `.objectstack/otc-project.sqlite`；执行、正式 BOM、缺料分析、缺料采购、多物料到货、逐物料检验、多物料采购入库、生产组装、拆解换件、交付验收、收款结算、项目经营分析、工时人工成本、项目费用、全成本结算、采购付款、供应商预付款退款和客户预收款退款分别使用独立 `.objectstack/otc-project-execution.sqlite`、`.objectstack/otc-formal-bom-final-20260910b.sqlite`、`.objectstack/otc-shortage-analysis-final.sqlite`、`.objectstack/otc-bom-purchase-final-v6.sqlite`、`.objectstack/otc-multiline-arrival-final-v2.sqlite`、`.objectstack/otc-multiline-inspection-final-v2.sqlite`、`.objectstack/otc-multiline-inbound-final.sqlite`、`.objectstack/otc-production-assembly.sqlite`、`.objectstack/otc-production-transform.sqlite`、`.objectstack/otc-integration-acceptance.sqlite`、`.objectstack/otc-collection-settlement.sqlite`、`.objectstack/otc-project-analysis.sqlite`、`.objectstack/otc-project-timesheet-cost.sqlite`、`.objectstack/otc-project-expense-cost.sqlite`、`.objectstack/otc-project-full-cost-settlement.sqlite`、`.objectstack/otc-purchase-payment.sqlite`、`.objectstack/otc-prepayment-refund.sqlite`、`.objectstack/otc-customer-prepayment-refund.sqlite`
+- 验证端口：上述阶段最终验收依次使用 `4342`、`4343`、`4346`、`4347`、`4351`、`4353`、`4354`、`4355`、`4356`、`4357`、`4358`、`4359`、`4360`、`4361`、`4362`、`4363`、`4364`、`4365`、`4366`，均不复用主线 `4310`
 
 ## 顺序阶段
 
@@ -36,6 +36,7 @@
 | 11 | 项目费用与全成本结算 | 已观察费用报销的本人/代报、归属、供应商、预计付款、借款抵扣、费用明细、附件和状态；成本中心说明审批后的报销进入成本池；同材料审核与结算未跑通 | 已实现项目多明细费用草稿、提交、驳回、审核、逐行成本归集，以及材料/人工/制造/差旅/委外/其他的结算快照和分析构成 | 费用 6 组及全成本结算 8 组通过；API 费用 `2801` 叠加人工后项目成本 `4101`；结算总成本 `33790.0066`、毛利 `209409.9934` | `.objectstack/otc-project-expense-cost.sqlite` 和 `.objectstack/otc-project-full-cost-settlement.sqlite` 完整停服、完整性检查和同库重启回读通过 | 浏览器办理 `EXP-BROWSER-20260910-001` 的制造 `900` 与差旅 `380`，提交审核后分析页显示人工 `1760`、制造 `900`、差旅 `380`、总成本 `3040`、利润 `44960`；重启后新开页面仍可见 | 项目费用归集、活动分析和全成本结算核心闭合；下一步进入付款、预收退款、反核销、红冲、对账和收入确认 |
 | 12 | 采购付款与核销 | 付款任务证明采购、委外、运输需业务发起及审批，报销、薪资、税费由上游审批生成；财务登记实际付款后核销，预付款独立管理；同材料成功付款未跑通 | 已实现采购应付付款申请、审批/驳回、分笔实际出账、资金余额扣减、付款核销和应付结清 | 6 组通过；应付 `6800` 先由 API 支付 `2000 + 1200`，再由浏览器支付剩余 `3600`；停用、余额不足、超额及匿名操作均阻断 | `.objectstack/otc-purchase-payment.sqlite` 完整停服、完整性检查和同库重启回读任务、付款、核销、应付及账户 | 浏览器办理 `PT-BROWSER-20260910-001 → PAY-BROWSER-20260910-001`，账户 `5000 → 1400`，应付 `3600 → 0` 并结清；重启后新开页面显示来源单据和全部记录 | 核心采购付款闭合；下一步进入预付款、退款、反核销、红冲、对账和收入确认 |
 | 13 | 供应商预付款与退款 | 预付款页证明可按供应商和付款单汇总余额及冲抵；供应商退款表展示订单/合同、供应商、金额、方式、单据、审批、收款与核销状态；同材料成功记录未保存 | 已实现订单预付申请、审批和出账，逐笔预付款余额、同供应商应付冲抵，以及供应商退款申请、驳回、审批、到账和核销 | 6 组通过；`8000` 预付可高于当前应付 `6800` 但不超过订单 `13600`，冲抵 `1500`、退款 `1000` 后余额 `5500`；超额、到账金额不一致和重复核销均阻断 | `.objectstack/otc-prepayment-refund.sqlite` 完整停服、完整性检查和同库重启回读 API 与浏览器两套预付款、退款、冲抵、应付和账户 | 浏览器办理 `1200` 预付及 `300` 供应商退款全流程，预付款余额 `900`、账户余额 `2100`；重启后新开退款页显示已完成、已审批、已收款、已核销 | 供应商预付款和退款核心闭合；下一步进入客户退款、采购退货、反核销、红冲、对账和收入确认 |
+| 14 | 客户预收款与退款 | 收款管理证明待确认、全部、客户和订单预收视图；客户退款表展示合同、客户、金额、方式、单据、审批、付款与核销状态；同材料成功记录未保存 | 已实现订单预收到账、财务确认、同订单应收冲抵，以及客户退款申请、驳回、审批、付款和核销 | 6 组通过；订单 `10000`、应收 `6000` 时登记 `8000` 预收，冲抵 `1500`、退款 `1000` 后预收余额 `5500`、应收 `4500`、账户 `8000` | `.objectstack/otc-customer-prepayment-refund.sqlite` 完整停服、完整性检查和同库重启回读 API 与浏览器两套预收、冲抵、应收、退款和账户 | 浏览器办理 `1200` 预收、`200` 冲抵及 `300` 客户退款，预收余额 `700`、应收 `2800`、账户 `1900`；重启后新开退款页显示已完成、已审批、已付款、已核销 | 客户预收款和退款核心闭合；下一步进入采购退货、反核销、红冲、对账和收入确认 |
 
 ## 阶段 1 验证边界
 
@@ -202,3 +203,12 @@ Forge 定向验收覆盖以下行为：
 4. 浏览器独立支付 `1200` 预付款并完成 `300` 供应商退款，预付款余额为 `900`、浏览器资金账户为 `2100`；退款页显示单据已完成、财务已审批、已收款和已核销。
 5. `.objectstack/otc-prepayment-refund.sqlite` 从已停服的采购财务库复制，并用非破坏性迁移把付款任务和付款流水的 `payable_id` 调整为可空。完整停服重启后按原 ID 回读全部来源和余额，SQLite 完整性检查为 `ok`。
 6. RISEMAP 同材料预付款和供应商退款仍未保存。客户退款、采购退货、撤销付款、反核销、红冲、银行对账、费用自动任务、借款抵扣、角色权限、事务级原子性和失败补偿仍待实现或复核。
+
+## 阶段 14 客户预收款与退款验证边界
+
+1. 已审核或执行中销售订单可以登记预收到账；累计预收不得超过订单总额减已回款与既有预收余额。API 在订单 `10000`、当前应收 `6000` 时成功登记 `8000`。
+2. 到账立即把资金账户从 `1000` 增至 `9000`，财务确认后预收款才可分配。用 `1500` 冲抵同订单应收后，应收余额为 `4500`、预收余额为 `6500`，账户不发生第二次变化。
+3. 待审批、已审批和待核销客户退款占用可用预收余额；驳回释放占用。退款付款扣减资金账户，核销审核后才减少预收余额；API `1000` 退款后账户为 `8000`、预收余额为 `5500`。
+4. 浏览器办理 `1200` 预收、`200` 应收冲抵和 `300` 客户退款，最终预收余额 `700`、应收余额 `2800`、浏览器账户余额 `1900`；退款页显示已完成、已审批、已付款和已核销。
+5. `.objectstack/otc-customer-prepayment-refund.sqlite` 承接已停服的收款结算数据并非破坏性同步新表。完整停服重启后按原 ID 回读两套来源与余额，SQLite 完整性检查为 `ok`。
+6. RISEMAP 同材料预收款和客户退款仍未保存。销售退货、贷项通知、撤销收付款、反核销、红冲、银行对账、收入确认、角色权限、事务级原子性和失败补偿仍待实现或复核。

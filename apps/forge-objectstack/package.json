@@ -88,6 +88,9 @@
     ,"acceptance:prepayment-refund": "node tests/prepayment-refund.integration.mjs"
     ,"acceptance:prepayment-refund-ui-readback": "node tests/prepayment-refund-ui-readback.mjs"
     ,"acceptance:prepayment-refund-restart": "node tests/prepayment-refund-restart-readback.mjs"
+    ,"acceptance:customer-prepayment-refund": "node tests/customer-prepayment-refund.integration.mjs"
+    ,"acceptance:customer-prepayment-refund-ui-readback": "node tests/customer-prepayment-refund-ui-readback.mjs"
+    ,"acceptance:customer-prepayment-refund-restart": "node tests/customer-prepayment-refund-restart-readback.mjs"
   },
   "dependencies": {
     "@objectstack/spec": "17.3.0",
