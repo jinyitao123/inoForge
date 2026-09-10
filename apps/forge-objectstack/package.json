@@ -124,6 +124,9 @@
     ,"acceptance:bank-statement": "node tests/bank-statement.integration.mjs"
     ,"acceptance:bank-statement-ui-readback": "node tests/bank-statement-ui-readback.mjs"
     ,"acceptance:bank-statement-restart": "node tests/bank-statement-restart-readback.mjs"
+    ,"acceptance:drawing-lifecycle": "node tests/drawing-lifecycle.integration.mjs"
+    ,"acceptance:drawing-lifecycle-ui-readback": "node tests/drawing-lifecycle-ui-readback.mjs"
+    ,"acceptance:drawing-lifecycle-restart": "node tests/drawing-lifecycle-restart-readback.mjs"
   },
   "dependencies": {
     "@objectstack/spec": "17.3.0",
