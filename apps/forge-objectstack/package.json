@@ -106,6 +106,9 @@
     ,"acceptance:payment-reversal": "node tests/payment-reversal.integration.mjs"
     ,"acceptance:payment-reversal-ui-readback": "node tests/payment-reversal-ui-readback.mjs"
     ,"acceptance:payment-reversal-restart": "node tests/payment-reversal-restart-readback.mjs"
+    ,"acceptance:invoice-red-reversal": "node tests/invoice-red-reversal.integration.mjs"
+    ,"acceptance:invoice-red-reversal-ui-readback": "node tests/invoice-red-reversal-ui-readback.mjs"
+    ,"acceptance:invoice-red-reversal-restart": "node tests/invoice-red-reversal-restart-readback.mjs"
   },
   "dependencies": {
     "@objectstack/spec": "17.3.0",
