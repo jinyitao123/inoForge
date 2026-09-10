@@ -97,6 +97,18 @@
     ,"acceptance:purchase-replacement": "node tests/purchase-replacement.integration.mjs"
     ,"acceptance:purchase-replacement-ui-readback": "node tests/purchase-replacement-ui-readback.mjs"
     ,"acceptance:purchase-replacement-restart": "node tests/purchase-replacement-restart-readback.mjs"
+    ,"acceptance:revenue-recognition": "node tests/revenue-recognition.integration.mjs"
+    ,"acceptance:revenue-recognition-ui-readback": "node tests/revenue-recognition-ui-readback.mjs"
+    ,"acceptance:revenue-recognition-restart": "node tests/revenue-recognition-restart-readback.mjs"
+    ,"acceptance:collection-reversal": "node tests/collection-reversal.integration.mjs"
+    ,"acceptance:collection-reversal-ui-readback": "node tests/collection-reversal-ui-readback.mjs"
+    ,"acceptance:collection-reversal-restart": "node tests/collection-reversal-restart-readback.mjs"
+    ,"acceptance:payment-reversal": "node tests/payment-reversal.integration.mjs"
+    ,"acceptance:payment-reversal-ui-readback": "node tests/payment-reversal-ui-readback.mjs"
+    ,"acceptance:payment-reversal-restart": "node tests/payment-reversal-restart-readback.mjs"
+    ,"acceptance:invoice-red-reversal": "node tests/invoice-red-reversal.integration.mjs"
+    ,"acceptance:invoice-red-reversal-ui-readback": "node tests/invoice-red-reversal-ui-readback.mjs"
+    ,"acceptance:invoice-red-reversal-restart": "node tests/invoice-red-reversal-restart-readback.mjs"
   },
   "dependencies": {
     "@objectstack/spec": "17.3.0",
