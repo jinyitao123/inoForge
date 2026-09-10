@@ -6,14 +6,14 @@ export const code = (label: string) => Field.text({ label, ...required, unique: 
 export const reference = (object: string, label: string, mandatory = false) => Field.lookup(object, { label, ...(mandatory ? required : {}) });
 const optionCodes = {
   启用: 'active', 停用: 'inactive', 企业: 'company', 个人: 'person',
-  手机: 'mobile', 座机: 'telephone', 邮箱: 'email', 草稿: 'draft', 待审批: 'pending_approval',
+  手机: 'mobile', 座机: 'telephone', 邮箱: 'email', 草稿: 'draft', 待确认: 'pending', 待审批: 'pending_approval',
   已审批: 'approved', 已驳回: 'rejected', 已发送: 'sent', 已接受: 'accepted',
   已签订: 'signed', 履行中: 'active', 执行中: 'active', 已暂停: 'suspended', 已终止: 'terminated', 已到期: 'expired', 已完成: 'completed',
   直接新建: 'direct', 关联合同: 'contract', 已确认: 'confirmed', 部分发货: 'partially_shipped', 已发货: 'shipped', 已取消: 'cancelled',
   待发货: 'pending_shipment', 部分出库: 'partially_outbounded', 已出库: 'outbounded',
   银行转账: 'bank_transfer', 支付宝: 'alipay', 微信支付: 'wechat_pay', 现金: 'cash', 支票: 'cheque',
   其他: 'other', 电汇: 'wire_transfer', 承兑汇票: 'bank_acceptance', 在线支付: 'online_payment', 信用证: 'letter_of_credit',
-  按发货出库: 'shipment', 按开票: 'invoice', 按里程碑: 'milestone', 按周期: 'period', 手动确认: 'manual',
+  按发货出库: 'shipment', 按开票: 'invoice', 按里程碑: 'milestone', 按验收: 'acceptance', 按周期: 'period', 手动确认: 'manual',
   物料: 'material', 服务项目: 'service',
   原材料: 'raw_material', 半成品: 'semi_finished', 成品: 'finished', 贸易商品: 'traded',
   消耗品: 'consumable', 服务: 'service', 备件: 'spare', 包装材料: 'packaging',

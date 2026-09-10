@@ -97,6 +97,9 @@
     ,"acceptance:purchase-replacement": "node tests/purchase-replacement.integration.mjs"
     ,"acceptance:purchase-replacement-ui-readback": "node tests/purchase-replacement-ui-readback.mjs"
     ,"acceptance:purchase-replacement-restart": "node tests/purchase-replacement-restart-readback.mjs"
+    ,"acceptance:revenue-recognition": "node tests/revenue-recognition.integration.mjs"
+    ,"acceptance:revenue-recognition-ui-readback": "node tests/revenue-recognition-ui-readback.mjs"
+    ,"acceptance:revenue-recognition-restart": "node tests/revenue-recognition-restart-readback.mjs"
   },
   "dependencies": {
     "@objectstack/spec": "17.3.0",

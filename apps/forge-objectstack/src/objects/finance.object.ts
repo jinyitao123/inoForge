@@ -25,7 +25,9 @@ export const SalesInvoice = master('forge_sales_invoice', '销项发票', 'recei
   invoice_on: Field.date({ label: '开票日期', ...required }), due_on: Field.date({ label: '应收日期', ...required }),
   total_amount: amount('价税合计'), collected_amount: { ...amount('已收金额'), readonly: true },
   outstanding_amount: { ...amount('未收金额'), readonly: true },
-  status: { ...invoiceStatus(), readonly: true }, responsible_id: owner(true), remarks: remarks(),
+  status: { ...invoiceStatus(), readonly: true },
+  revenue_status: { ...Field.select([{ value: 'pending', label: '待确认' }, { value: 'pending_approval', label: '待审批' }, { value: 'approved', label: '已确认' }, { value: 'rejected', label: '已驳回' }], { label: '收入确认', defaultValue: 'pending' }), readonly: true },
+  responsible_id: owner(true), remarks: remarks(),
 }, ['code', 'customer_id', 'order_id', 'invoice_on', 'due_on', 'total_amount', 'outstanding_amount', 'status', 'responsible_id']);
 
 export const SalesInvoiceLine = master('forge_sales_invoice_line', '销项发票明细', 'list', {
@@ -46,6 +48,45 @@ export const AccountsReceivable = master('forge_accounts_receivable', '应收账
   collected_amount: { ...amount('已核销金额'), readonly: true }, outstanding_amount: { ...amount('应收余额'), readonly: true },
   status: { ...receivableStatus(), readonly: true }, responsible_id: owner(true), remarks: remarks(),
 }, ['code', 'customer_id', 'invoice_id', 'order_id', 'recognized_on', 'due_on', 'original_amount', 'outstanding_amount', 'status', 'responsible_id']);
+
+// RM-139 and DR-0172 to DR-0176 separate business evidence from finance approval.
+// This first executable slice closes shipment and invoice triggers; the remaining methods stay explicit metadata until their source schedules exist.
+export const RevenueRecognition = master('forge_revenue_recognition', '销售收入确认', 'badge-dollar-sign', {
+  name: text('确认单名称', true), code: code('确认单号'), source_key: text('来源键', true),
+  source_type: Field.select([
+    { value: 'sales_outbound', label: '销售出库' }, { value: 'sales_invoice', label: '销项发票' },
+    { value: 'milestone', label: '收入里程碑' }, { value: 'acceptance', label: '客户验收' },
+    { value: 'period', label: '收入周期' }, { value: 'manual', label: '手工确认' },
+  ], { label: '业务来源', ...required }), source_id: text('来源记录', true),
+  outbound_id: reference('forge_sales_outbound', '销售出库单'), invoice_id: reference('forge_sales_invoice', '销项发票'),
+  order_id: reference('forge_sales_order', '来源订单', true), contract_id: reference('forge_sales_contract', '关联合同'),
+  customer_id: reference('forge_customer', '客户', true), project_id: reference('forge_project', '项目'),
+  confirmation_method: Field.select([
+    { value: 'shipment', label: '按发货' }, { value: 'invoice', label: '按开票' },
+    { value: 'milestone', label: '按里程碑' }, { value: 'acceptance', label: '按验收' },
+    { value: 'period', label: '按周期' }, { value: 'manual', label: '手动' },
+  ], { label: '确认方式', ...required }),
+  net_amount: amount('净确认金额'), order_amount: { ...amount('订单金额'), readonly: true },
+  cumulative_amount: { ...amount('累计确认金额'), readonly: true }, remaining_amount: { ...amount('剩余待确认'), readonly: true },
+  recognition_on: Field.date({ label: '确认日期', ...required }), financial_period: text('财务期间', true),
+  invoice_status: Field.select([
+    { value: 'not_invoiced', label: '未开票' }, { value: 'partially_invoiced', label: '部分开票' }, { value: 'fully_invoiced', label: '已开票' },
+  ], { label: '开票状态', defaultValue: 'not_invoiced' }),
+  status: { ...Field.select([
+    { value: 'pending_review', label: '待审核' }, { value: 'approved', label: '已审核' },
+    { value: 'rejected', label: '已驳回' }, { value: 'voided', label: '已作废' },
+  ], { label: '状态', defaultValue: 'pending_review' }), readonly: true },
+  maker_id: Field.user({ label: '制单人', ...required, readonly: true }), made_at: Field.datetime({ label: '制单时间', ...required, readonly: true }),
+  reviewer_id: Field.user({ label: '审核人', readonly: true }), reviewed_at: Field.datetime({ label: '审核时间', readonly: true }),
+  review_comment: Field.textarea({ label: '审核意见', readonly: true }), responsible_id: owner(true), remarks: remarks(),
+}, ['code', 'order_id', 'customer_id', 'confirmation_method', 'net_amount', 'cumulative_amount', 'order_amount', 'remaining_amount', 'recognition_on', 'financial_period', 'invoice_status', 'status', 'maker_id', 'reviewer_id']);
+
+export const RevenueRecognitionLog = master('forge_revenue_recognition_log', '收入确认审批记录', 'history', {
+  name: text('记录名称', true), event_key: code('事件键'), recognition_id: reference('forge_revenue_recognition', '收入确认单', true),
+  action: Field.select([{ value: 'created', label: '生成确认单' }, { value: 'approved', label: '审核通过' }, { value: 'rejected', label: '驳回' }, { value: 'voided', label: '作废' }], { label: '动作', ...required }),
+  from_status: text('原状态'), to_status: text('新状态'), comment: Field.textarea({ label: '意见' }),
+  occurred_at: Field.datetime({ label: '操作时间', ...required, readonly: true }), operator_id: Field.user({ label: '操作人', ...required, readonly: true }),
+}, ['recognition_id', 'action', 'from_status', 'to_status', 'comment', 'operator_id', 'occurred_at']);
 
 // RM-131 to RM-135 separate the physical fund account and receipt flow from receivable write-off.
 // Successful same-input RISEMAP receipt allocation is still pending, so approval is explicit and auditable here.
