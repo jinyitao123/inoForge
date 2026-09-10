@@ -15,14 +15,14 @@ ${partyType === 'customer' ? `
 const charges=(await ctx.api.object('forge_accounts_receivable').find({where:{customer_id:partyId}})).filter(x=>x.status!=='red_reversed');
 const settlements=(await ctx.api.object('forge_collection_allocation').find({where:{customer_id:partyId}})).filter(x=>x.status==='approved');
 const offsets=includePrepayment?(await ctx.api.object('forge_customer_prepayment_offset').find({where:{customer_id:partyId}})).filter(x=>x.status==='approved'):[];
-for(const x of charges)entries.push({date:String(x.recognized_on||''),type:'receivable',direction:'increase',sourceKey:'receivable:'+x.id,receivable_id:x.id,amount:Number(x.original_amount||0),description:'应收 '+x.code});
+for(const x of charges)entries.push({date:String(x.recognized_on||''),type:'receivable',direction:'increase',sourceKey:'receivable:'+x.id,receivable_id:x.id,amount:round4(Number(x.original_amount||0)-Number(x.red_reversed_amount||0)),description:'应收 '+x.code});
 for(const x of settlements)entries.push({date:String(x.allocated_on||''),type:'collection',direction:'decrease',sourceKey:'collection:'+x.id,collection_id:x.id,amount:Number(x.amount||0),description:'收款核销 '+x.code});
 for(const x of offsets)entries.push({date:String(x.offset_on||''),type:'customer_prepayment_offset',direction:'decrease',sourceKey:'customer-offset:'+x.id,amount:Number(x.amount||0),description:'客户预收冲抵 '+x.code});
 ` : `
 const charges=(await ctx.api.object('forge_accounts_payable').find({where:{supplier_id:partyId}})).filter(x=>x.status!=='red_reversed');
 const settlements=(await ctx.api.object('forge_payment_writeoff').find({where:{supplier_id:partyId}})).filter(x=>x.status==='approved');
 const offsets=includePrepayment?(await ctx.api.object('forge_supplier_prepayment_offset').find({where:{supplier_id:partyId}})).filter(x=>x.status==='approved'):[];
-for(const x of charges)entries.push({date:String(x.recognized_on||''),type:'payable',direction:'increase',sourceKey:'payable:'+x.id,payable_id:x.id,amount:Number(x.original_amount||0),description:'应付 '+x.code});
+for(const x of charges)entries.push({date:String(x.recognized_on||''),type:'payable',direction:'increase',sourceKey:'payable:'+x.id,payable_id:x.id,amount:round4(Number(x.original_amount||0)-Number(x.red_reversed_amount||0)),description:'应付 '+x.code});
 for(const x of settlements){const payment=await ctx.api.object('forge_cash_payment').findOne({where:{id:x.payment_id}});entries.push({date:String(payment&&payment.paid_on||String(x.reviewed_at||'').slice(0,10)),type:'payment',direction:'decrease',sourceKey:'payment-writeoff:'+x.id,payment_writeoff_id:x.id,amount:Number(x.amount||0),description:'付款核销 '+x.code});}
 for(const x of offsets)entries.push({date:String(x.offset_on||''),type:'supplier_prepayment_offset',direction:'decrease',sourceKey:'supplier-offset:'+x.id,amount:Number(x.amount||0),description:'供应商预付冲抵 '+x.code});
 `}
