@@ -15,3 +15,4 @@ export * from './payment.action.js';
 export * from './prepayment.action.js';
 export * from './customer-prepayment.action.js';
 export * from './purchase-return.action.js';
+export * from './purchase-replacement.action.js';
