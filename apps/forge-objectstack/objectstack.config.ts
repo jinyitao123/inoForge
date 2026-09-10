@@ -82,6 +82,10 @@ export default defineStack({
           group('procurement_flow', '采购执行', [
             page('purchase_orders', '采购订单', 'page_purchase_order_workspace', 'shopping-cart'),
             object('purchase_order_lines', '采购订单明细', 'forge_purchase_order_line', 'list'),
+            page('purchase_returns', '采购退换货', 'page_purchase_return', 'rotate-ccw'),
+            object('purchase_return_lines', '采购退货明细', 'forge_purchase_return_line', 'list'),
+            object('purchase_return_logs', '退货审批记录', 'forge_purchase_return_approval_log', 'history'),
+            object('purchase_return_refunds', '退货退款流水', 'forge_purchase_return_refund_receipt', 'badge-dollar-sign'),
             object('purchase_arrival_notices', '到货通知', 'forge_purchase_arrival_notice', 'package-search'),
             object('purchase_arrival_notice_lines', '到货通知明细', 'forge_purchase_arrival_notice_line', 'list'),
             page('purchase_receipts', '到货登记', 'page_purchase_arrival_workspace', 'package-check'),

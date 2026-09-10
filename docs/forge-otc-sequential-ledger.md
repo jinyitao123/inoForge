@@ -11,7 +11,7 @@
 - 合同及项目金额：`243200`
 - 项目预算：`180000`
 - 计划周期：`2026-09-10` 至 `2026-12-31`
-- 验证数据库：立项/WBS 使用 `.objectstack/otc-project.sqlite`；执行、正式 BOM、缺料分析、缺料采购、多物料到货、逐物料检验、多物料采购入库、生产组装、拆解换件、交付验收、收款结算、项目经营分析、工时人工成本、项目费用、全成本结算、采购付款、供应商预付款退款和客户预收款退款分别使用独立 `.objectstack/otc-project-execution.sqlite`、`.objectstack/otc-formal-bom-final-20260910b.sqlite`、`.objectstack/otc-shortage-analysis-final.sqlite`、`.objectstack/otc-bom-purchase-final-v6.sqlite`、`.objectstack/otc-multiline-arrival-final-v2.sqlite`、`.objectstack/otc-multiline-inspection-final-v2.sqlite`、`.objectstack/otc-multiline-inbound-final.sqlite`、`.objectstack/otc-production-assembly.sqlite`、`.objectstack/otc-production-transform.sqlite`、`.objectstack/otc-integration-acceptance.sqlite`、`.objectstack/otc-collection-settlement.sqlite`、`.objectstack/otc-project-analysis.sqlite`、`.objectstack/otc-project-timesheet-cost.sqlite`、`.objectstack/otc-project-expense-cost.sqlite`、`.objectstack/otc-project-full-cost-settlement.sqlite`、`.objectstack/otc-purchase-payment.sqlite`、`.objectstack/otc-prepayment-refund.sqlite`、`.objectstack/otc-customer-prepayment-refund.sqlite`
+- 验证数据库：立项/WBS 使用 `.objectstack/otc-project.sqlite`；执行、正式 BOM、缺料分析、缺料采购、多物料到货、逐物料检验、多物料采购入库、生产组装、拆解换件、交付验收、收款结算、项目经营分析、工时人工成本、项目费用、全成本结算、采购付款、供应商预付款退款、客户预收款退款和采购退货退款分别使用独立 `.objectstack/otc-project-execution.sqlite`、`.objectstack/otc-formal-bom-final-20260910b.sqlite`、`.objectstack/otc-shortage-analysis-final.sqlite`、`.objectstack/otc-bom-purchase-final-v6.sqlite`、`.objectstack/otc-multiline-arrival-final-v2.sqlite`、`.objectstack/otc-multiline-inspection-final-v2.sqlite`、`.objectstack/otc-multiline-inbound-final.sqlite`、`.objectstack/otc-production-assembly.sqlite`、`.objectstack/otc-production-transform.sqlite`、`.objectstack/otc-integration-acceptance.sqlite`、`.objectstack/otc-collection-settlement.sqlite`、`.objectstack/otc-project-analysis.sqlite`、`.objectstack/otc-project-timesheet-cost.sqlite`、`.objectstack/otc-project-expense-cost.sqlite`、`.objectstack/otc-project-full-cost-settlement.sqlite`、`.objectstack/otc-purchase-payment.sqlite`、`.objectstack/otc-prepayment-refund.sqlite`、`.objectstack/otc-customer-prepayment-refund.sqlite`、`.objectstack/otc-purchase-return.sqlite`
 - 验证端口：上述阶段最终验收依次使用 `4342`、`4343`、`4346`、`4347`、`4351`、`4353`、`4354`、`4355`、`4356`、`4357`、`4358`、`4359`、`4360`、`4361`、`4362`、`4363`、`4364`、`4365`、`4366`，均不复用主线 `4310`
 
 ## 顺序阶段
@@ -212,3 +212,12 @@ Forge 定向验收覆盖以下行为：
 4. 浏览器办理 `1200` 预收、`200` 应收冲抵和 `300` 客户退款，最终预收余额 `700`、应收余额 `2800`、浏览器账户余额 `1900`；退款页显示已完成、已审批、已付款和已核销。
 5. `.objectstack/otc-customer-prepayment-refund.sqlite` 承接已停服的收款结算数据并非破坏性同步新表。完整停服重启后按原 ID 回读两套来源与余额，SQLite 完整性检查为 `ok`。
 6. RISEMAP 同材料预收款和客户退款仍未保存。销售退货、贷项通知、撤销收付款、反核销、红冲、银行对账、收入确认、角色权限、事务级原子性和失败补偿仍待实现或复核。
+
+## 阶段 15 采购退货退款验证边界
+
+1. 已审核采购订单可从已入库明细发起退货退款；系统同时校验原订单归属、已入库未退数量、未驳回申请占用和仓库可用库存，并按原含税单价形成参考货值。
+2. 退货依次经过草稿提交、财务审批、仓库确认、退货出库和供应商退款到账。驳回申请释放占用；仓库确认和出库都会重新校验库存。
+3. API 先驳回 `0.7` 件申请，再成功办理 `0.4` 件；出库按当前平均成本 `6800` 扣减 `2720`，库存从 `1` 降至 `0.6`、价值从 `6800` 降至 `4080`，退款账户从 `5000` 增至 `7720`。
+4. 浏览器完整办理 `0.2` 件，参考货值和退款均为 `1360`；最终累计已退 `0.6`，库存为 `0.4 / 2720`，浏览器账户从 `2100` 增至 `3460`，页面显示已完成、已确认、已出库和已收款。
+5. `.objectstack/otc-purchase-return.sqlite` 承接已停服的供应商预付款退款数据并非破坏性同步新表。完整停服重启后按原 ID 回读两笔退货、库存流水、退款流水、来源累计、库存和账户余额，SQLite 完整性检查为 `ok`。
+6. RISEMAP 同材料采购退货仍未保存。换货补货的到货、检验和入库链将在下一阶段实现；多明细、部分退款、批次/SN、角色权限、事务级原子性和失败补偿仍待实现或复核。
