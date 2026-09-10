@@ -140,6 +140,7 @@ export default defineStack({
         id: 'invoice_collection', label: '开票回款', icon: 'wallet-cards',
         navigation: [
           group('sales_finance', '销售财务', [
+            page('bank_flow', '统一银行流水', 'page_bank_flow', 'landmark'),
             page('finance_adjustments', '财务冲销', 'page_invoice_reversal', 'undo-2'),
             page('revenue_recognition', '销售收入确认', 'page_revenue_recognition', 'badge-dollar-sign'),
             page('customer_prepayment', '收款管理', 'page_customer_prepayment', 'badge-dollar-sign'),
