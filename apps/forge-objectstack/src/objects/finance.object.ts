@@ -308,19 +308,35 @@ export const CashPayment = master('forge_cash_payment', '付款流水', 'badge-m
   account_id: reference('forge_fund_account', '付款账户', true), paid_on: Field.date({ label: '付款日期', ...required }),
   payment_method: paymentMethod('付款方式'), amount: amount('付款金额'), allocated_amount: { ...amount('已核销金额'), readonly: true },
   unallocated_amount: { ...amount('未核销金额'), readonly: true }, status: { ...Field.select([
-    { value: 'pending_writeoff', label: '待核销' }, { value: 'allocated', label: '已核销' },
+    { value: 'pending_writeoff', label: '待核销' }, { value: 'allocated', label: '已核销' }, { value: 'reversed', label: '已撤销' },
   ], { label: '核销状态', defaultValue: 'pending_writeoff' }), readonly: true },
-  bank_reference: text('银行流水号'), responsible_id: owner(true), remarks: remarks(),
+  bank_reference: text('银行流水号'), reversed_by: Field.user({ label: '撤销人', readonly: true }),
+  reversed_at: Field.datetime({ label: '撤销时间', readonly: true }), reversal_reason: Field.textarea({ label: '撤销原因', readonly: true }),
+  responsible_id: owner(true), remarks: remarks(),
 }, ['code', 'task_id', 'supplier_id', 'paid_on', 'payment_method', 'account_id', 'amount', 'allocated_amount', 'unallocated_amount', 'status']);
 
 export const PaymentWriteoff = master('forge_payment_writeoff', '付款核销', 'badge-check', {
   name: text('核销名称', true), code: code('核销编号'), payment_id: reference('forge_cash_payment', '付款流水', true),
   task_id: reference('forge_payment_task', '付款任务', true), payable_id: reference('forge_accounts_payable', '应付账款', true),
   supplier_id: reference('forge_supplier', '供应商/往来单位', true), amount: amount('核销金额'),
-  status: { ...Field.select([{ value: 'pending_review', label: '待审核' }, { value: 'approved', label: '已核销' }], { label: '核销状态', defaultValue: 'pending_review' }), readonly: true },
+  status: { ...Field.select([
+    { value: 'pending_review', label: '待审核' }, { value: 'approved', label: '已核销' },
+    { value: 'cancelled', label: '已取消' }, { value: 'reversed', label: '已反核销' },
+  ], { label: '核销状态', defaultValue: 'pending_review' }), readonly: true },
   reviewer_id: Field.user({ label: '核销人', readonly: true }), reviewed_at: Field.datetime({ label: '核销时间', readonly: true }),
-  review_comment: Field.textarea({ label: '核销意见', readonly: true }), responsible_id: owner(true), remarks: remarks(),
+  review_comment: Field.textarea({ label: '核销意见', readonly: true }), reversed_by: Field.user({ label: '撤销人', readonly: true }),
+  reversed_at: Field.datetime({ label: '撤销时间', readonly: true }), reversal_reason: Field.textarea({ label: '撤销原因', readonly: true }),
+  responsible_id: owner(true), remarks: remarks(),
 }, ['code', 'payment_id', 'task_id', 'payable_id', 'supplier_id', 'amount', 'status']);
+
+export const PaymentReversalLog = master('forge_payment_reversal_log', '付款撤销记录', 'history', {
+  name: text('记录名称', true), event_key: code('事件键'), payment_id: reference('forge_cash_payment', '付款流水', true),
+  writeoff_id: reference('forge_payment_writeoff', '付款核销'), action: Field.select([
+    { value: 'writeoff_cancelled', label: '取消待核销' }, { value: 'writeoff_reversed', label: '反核销' },
+    { value: 'payment_reversed', label: '撤销付款' },
+  ], { label: '动作', ...required }), amount: amount('金额'), reason: Field.textarea({ label: '原因', ...required }),
+  occurred_at: Field.datetime({ label: '操作时间', ...required, readonly: true }), operator_id: Field.user({ label: '操作人', ...required, readonly: true }),
+}, ['payment_id', 'writeoff_id', 'action', 'amount', 'reason', 'operator_id', 'occurred_at']);
 
 export const SupplierPrepayment = master('forge_supplier_prepayment', '供应商预付款', 'landmark', {
   name: text('预付款名称', true), code: code('预付款编号'), supplier_id: reference('forge_supplier', '供应商/往来单位', true),
