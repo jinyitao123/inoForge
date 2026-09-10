@@ -1,8 +1,9 @@
 /** Local acceptance client. Never serializes passwords, tokens or cookies. */
 export async function connect(base = process.env.FORGE_URL || 'http://localhost:4310') {
   if (!['localhost', '127.0.0.1', '[::1]'].includes(new URL(base).hostname)) throw new Error('Acceptance client only permits a local Forge server');
+  const origin = new URL(base).origin;
   const response = await fetch(`${base}/api/v1/auth/sign-in/email`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    method: 'POST', headers: { 'Content-Type': 'application/json', Origin: origin },
     body: JSON.stringify({ email: process.env.FORGE_TEST_EMAIL || 'admin@objectos.ai', password: process.env.FORGE_TEST_PASSWORD || 'admin123' }),
   });
   const login = await response.json();
