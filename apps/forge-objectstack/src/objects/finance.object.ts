@@ -6,7 +6,7 @@ const signedAmount = (label: string) => Field.currency({ label, precision: 18, s
 const quantity = (label: string) => Field.number({ label, min: 0.0001, scale: 4, ...required });
 const invoiceStatus = () => Field.select([
   { value: 'issued', label: '已开票' }, { value: 'settled', label: '已结清' }, { value: 'voided', label: '已作废' },
-  { value: 'red_reversed', label: '已红冲' }, { value: 'red_invoice', label: '红字发票' },
+  { value: 'partially_red_reversed', label: '部分红冲' }, { value: 'red_reversed', label: '已红冲' }, { value: 'red_invoice', label: '红字发票' },
 ], { label: '发票状态', defaultValue: 'issued' });
 const receivableStatus = () => Field.select([
   { value: 'unpaid', label: '未收款' }, { value: 'partially_collected', label: '部分收款' },
@@ -25,7 +25,7 @@ export const SalesInvoice = master('forge_sales_invoice', '销项发票', 'recei
   contract_id: reference('forge_sales_contract', '销售合同'), customer_id: reference('forge_customer', '客户', true),
   invoice_on: Field.date({ label: '开票日期', ...required }), due_on: Field.date({ label: '应收日期', ...required }),
   total_amount: amount('价税合计'), collected_amount: { ...amount('已收金额'), readonly: true },
-  outstanding_amount: { ...amount('未收金额'), readonly: true },
+  outstanding_amount: { ...amount('未收金额'), readonly: true }, red_reversed_amount: { ...amount('已红冲金额'), defaultValue: 0, readonly: true },
   invoice_type: { ...Field.select([{ value: 'normal', label: '蓝字发票' }, { value: 'red', label: '红字发票' }], { label: '发票类型', defaultValue: 'normal' }), readonly: true },
   original_invoice_id: reference('forge_sales_invoice', '被红冲发票'),
   status: { ...invoiceStatus(), readonly: true },
@@ -33,16 +33,17 @@ export const SalesInvoice = master('forge_sales_invoice', '销项发票', 'recei
   reversed_by: Field.user({ label: '红冲人', readonly: true }), reversed_at: Field.datetime({ label: '红冲时间', readonly: true }),
   reversal_reason: Field.textarea({ label: '红冲原因', readonly: true }),
   responsible_id: owner(true), remarks: remarks(),
-}, ['code', 'customer_id', 'order_id', 'invoice_on', 'due_on', 'total_amount', 'outstanding_amount', 'status', 'responsible_id']);
+}, ['code', 'customer_id', 'order_id', 'invoice_on', 'due_on', 'total_amount', 'red_reversed_amount', 'outstanding_amount', 'status', 'responsible_id']);
 
 export const SalesInvoiceLine = master('forge_sales_invoice_line', '销项发票明细', 'list', {
   name: text('物料/服务名称', true), invoice_id: reference('forge_sales_invoice', '销项发票', true),
   order_id: reference('forge_sales_order', '销售订单', true), order_line_id: reference('forge_sales_order_line', '订单明细', true),
   sku_id: reference('forge_material_sku', '物料规格', true), item_code: text('物料编码'), model: text('型号'),
   specification: text('规格'), unit_name: text('单位'), quantity: quantity('开票数量'),
+  red_reversed_quantity: Field.number({ label: '已红冲数量', min: 0, scale: 4, defaultValue: 0, readonly: true }),
   taxed_unit_price: amount('含税单价'), tax_rate: Field.number({ label: '税率', min: 0, max: 100, scale: 4, defaultValue: 13 }),
   taxed_subtotal: amount('价税小计'), remarks: remarks(),
-}, ['invoice_id', 'order_id', 'item_code', 'name', 'model', 'quantity', 'taxed_unit_price', 'tax_rate', 'taxed_subtotal']);
+}, ['invoice_id', 'order_id', 'item_code', 'name', 'model', 'quantity', 'red_reversed_quantity', 'taxed_unit_price', 'tax_rate', 'taxed_subtotal']);
 
 // RM-133 lists receivables independently from invoices so cash allocation can be added later without rewriting invoice history.
 export const AccountsReceivable = master('forge_accounts_receivable', '应收账款', 'wallet-cards', {
@@ -50,9 +51,9 @@ export const AccountsReceivable = master('forge_accounts_receivable', '应收账
   order_id: reference('forge_sales_order', '销售订单', true), contract_id: reference('forge_sales_contract', '销售合同'),
   customer_id: reference('forge_customer', '客户', true), recognized_on: Field.date({ label: '确认日期', ...required }),
   due_on: Field.date({ label: '到期日期', ...required }), original_amount: amount('应收原值'),
-  collected_amount: { ...amount('已核销金额'), readonly: true }, outstanding_amount: { ...amount('应收余额'), readonly: true },
+  collected_amount: { ...amount('已核销金额'), readonly: true }, red_reversed_amount: { ...amount('已红冲金额'), defaultValue: 0, readonly: true }, outstanding_amount: { ...amount('应收余额'), readonly: true },
   status: { ...receivableStatus(), readonly: true }, responsible_id: owner(true), remarks: remarks(),
-}, ['code', 'customer_id', 'invoice_id', 'order_id', 'recognized_on', 'due_on', 'original_amount', 'outstanding_amount', 'status', 'responsible_id']);
+}, ['code', 'customer_id', 'invoice_id', 'order_id', 'recognized_on', 'due_on', 'original_amount', 'red_reversed_amount', 'outstanding_amount', 'status', 'responsible_id']);
 
 // RM-139 and DR-0172 to DR-0176 separate business evidence from finance approval.
 // This first executable slice closes shipment and invoice triggers; the remaining methods stay explicit metadata until their source schedules exist.
@@ -170,9 +171,11 @@ export const CustomerPrepaymentOffset = master('forge_customer_prepayment_offset
   contract_id: reference('forge_sales_contract', '销售合同'), amount: amount('冲抵金额'), offset_on: Field.date({ label: '冲抵日期', ...required }),
   reviewer_id: Field.user({ label: '核销人', readonly: true }), reviewed_at: Field.datetime({ label: '核销时间', readonly: true }),
   review_comment: Field.textarea({ label: '核销意见', readonly: true }), status: { ...Field.select([
-    { value: 'approved', label: '已核销' },
+    { value: 'approved', label: '已核销' }, { value: 'reversed', label: '已撤回' },
   ], { label: '冲抵状态', defaultValue: 'approved' }), readonly: true }, responsible_id: owner(true), remarks: remarks(),
-}, ['code', 'prepayment_id', 'receivable_id', 'customer_id', 'order_id', 'amount', 'offset_on', 'status']);
+  reversed_by: Field.user({ label: '撤回人', readonly: true }), reversed_at: Field.datetime({ label: '撤回时间', readonly: true }),
+  reversal_reason: Field.textarea({ label: '撤回原因', readonly: true }),
+}, ['code', 'prepayment_id', 'receivable_id', 'customer_id', 'order_id', 'amount', 'offset_on', 'status', 'reversed_by', 'reversed_at', 'reversal_reason']);
 
 export const CustomerRefund = master('forge_customer_refund', '客户退款', 'undo-2', {
   name: text('退款名称', true), code: code('申请单号'), prepayment_id: reference('forge_customer_prepayment', '客户预收款', true),
@@ -258,25 +261,27 @@ export const PurchaseInvoice = master('forge_purchase_invoice', '进项发票', 
   inbound_id: reference('forge_purchase_inbound', '采购入库单', true), order_id: reference('forge_purchase_order', '采购订单', true),
   supplier_id: reference('forge_supplier', '供应商', true), invoice_on: Field.date({ label: '开票日期', ...required }),
   due_on: Field.date({ label: '应付日期', ...required }), total_amount: amount('价税合计'),
+  red_reversed_amount: { ...amount('已红冲金额'), defaultValue: 0, readonly: true },
   tax_rate: Field.number({ label: '税率', min: 0, max: 100, scale: 4, defaultValue: 13 }),
   invoice_type: { ...Field.select([{ value: 'normal', label: '蓝字发票' }, { value: 'red', label: '红字发票' }], { label: '发票类型', defaultValue: 'normal' }), readonly: true },
   original_invoice_id: reference('forge_purchase_invoice', '被红冲发票'),
   status: { ...Field.select([
-    { value: 'normal', label: '正常' }, { value: 'voided', label: '已作废' }, { value: 'red_reversed', label: '已红冲' }, { value: 'red_invoice', label: '红字发票' },
+    { value: 'normal', label: '正常' }, { value: 'voided', label: '已作废' }, { value: 'partially_red_reversed', label: '部分红冲' }, { value: 'red_reversed', label: '已红冲' }, { value: 'red_invoice', label: '红字发票' },
   ], { label: '发票状态', defaultValue: 'normal' }), readonly: true },
   reversed_by: Field.user({ label: '红冲人', readonly: true }), reversed_at: Field.datetime({ label: '红冲时间', readonly: true }),
   reversal_reason: Field.textarea({ label: '红冲原因', readonly: true }),
   responsible_id: owner(true), remarks: remarks(),
-}, ['code', 'invoice_number', 'invoice_on', 'supplier_id', 'order_id', 'total_amount', 'tax_rate', 'status', 'responsible_id']);
+}, ['code', 'invoice_number', 'invoice_on', 'supplier_id', 'order_id', 'total_amount', 'red_reversed_amount', 'tax_rate', 'status', 'responsible_id']);
 
 export const PurchaseInvoiceLine = master('forge_purchase_invoice_line', '进项发票明细', 'list', {
   name: text('物料名称', true), invoice_id: reference('forge_purchase_invoice', '进项发票', true),
   inbound_id: reference('forge_purchase_inbound', '采购入库单', true), order_id: reference('forge_purchase_order', '采购订单', true),
   order_line_id: reference('forge_purchase_order_line', '采购订单明细', true), sku_id: reference('forge_material_sku', '物料规格', true),
   item_code: text('物料编码'), quantity: quantity('开票数量'), taxed_unit_price: amount('含税单价'),
+  red_reversed_quantity: Field.number({ label: '已红冲数量', min: 0, scale: 4, defaultValue: 0, readonly: true }),
   tax_rate: Field.number({ label: '税率', min: 0, max: 100, scale: 4, defaultValue: 13 }), taxed_subtotal: amount('价税小计'),
   remarks: remarks(),
-}, ['invoice_id', 'inbound_id', 'order_id', 'item_code', 'name', 'quantity', 'taxed_unit_price', 'tax_rate', 'taxed_subtotal']);
+}, ['invoice_id', 'inbound_id', 'order_id', 'item_code', 'name', 'quantity', 'red_reversed_quantity', 'taxed_unit_price', 'tax_rate', 'taxed_subtotal']);
 
 export const InvoiceReversalLog = master('forge_invoice_reversal_log', '发票红冲记录', 'history', {
   name: text('记录名称', true), event_key: code('事件键'), direction: Field.select([
@@ -284,9 +289,10 @@ export const InvoiceReversalLog = master('forge_invoice_reversal_log', '发票�
   ], { label: '发票方向', ...required }),
   original_sales_invoice_id: reference('forge_sales_invoice', '原销项发票'), red_sales_invoice_id: reference('forge_sales_invoice', '红字销项发票'),
   original_purchase_invoice_id: reference('forge_purchase_invoice', '原进项发票'), red_purchase_invoice_id: reference('forge_purchase_invoice', '红字进项发票'),
-  amount: amount('红冲金额'), reason: Field.textarea({ label: '红冲原因', ...required }),
+  reversal_kind: Field.select([{ value: 'full', label: '全额红冲' }, { value: 'partial', label: '部分红冲' }], { label: '红冲方式', defaultValue: 'full' }),
+  amount: amount('红冲金额'), remaining_amount: { ...amount('红冲后净额'), readonly: true }, reason: Field.textarea({ label: '红冲原因', ...required }),
   occurred_at: Field.datetime({ label: '红冲时间', ...required, readonly: true }), operator_id: Field.user({ label: '操作人', ...required, readonly: true }),
-}, ['event_key', 'direction', 'original_sales_invoice_id', 'red_sales_invoice_id', 'original_purchase_invoice_id', 'red_purchase_invoice_id', 'amount', 'reason', 'operator_id', 'occurred_at']);
+}, ['event_key', 'direction', 'reversal_kind', 'original_sales_invoice_id', 'red_sales_invoice_id', 'original_purchase_invoice_id', 'red_purchase_invoice_id', 'amount', 'remaining_amount', 'reason', 'operator_id', 'occurred_at']);
 
 export const AccountsPayable = master('forge_accounts_payable', '应付账款', 'hand-coins', {
   name: text('应付名称', true), code: code('应付编号'), source_type: Field.select([
@@ -296,9 +302,9 @@ export const AccountsPayable = master('forge_accounts_payable', '应付账款', 
   order_id: reference('forge_purchase_order', '采购订单', true), supplier_id: reference('forge_supplier', '供应商', true),
   recognized_on: Field.date({ label: '确认日期', ...required }), due_on: Field.date({ label: '到期日期' }),
   original_amount: amount('应付原值'), paid_amount: { ...amount('已付款金额'), readonly: true },
-  offset_amount: { ...amount('已冲抵金额'), readonly: true }, outstanding_amount: { ...amount('应付余额'), readonly: true },
+  offset_amount: { ...amount('已冲抵金额'), readonly: true }, red_reversed_amount: { ...amount('已红冲金额'), defaultValue: 0, readonly: true }, outstanding_amount: { ...amount('应付余额'), readonly: true },
   status: { ...payableStatus(), readonly: true }, responsible_id: owner(true), remarks: remarks(),
-}, ['code', 'source_type', 'supplier_id', 'inbound_id', 'invoice_id', 'order_id', 'recognized_on', 'due_on', 'original_amount', 'outstanding_amount', 'status', 'responsible_id']);
+}, ['code', 'source_type', 'supplier_id', 'inbound_id', 'invoice_id', 'order_id', 'recognized_on', 'due_on', 'original_amount', 'red_reversed_amount', 'outstanding_amount', 'status', 'responsible_id']);
 
 // RM-021 and RM-136 separate the business payment request, physical outgoing payment and finance write-off.
 export const PaymentTask = master('forge_payment_task', '付款任务', 'send-horizontal', {
@@ -374,9 +380,11 @@ export const SupplierPrepaymentOffset = master('forge_supplier_prepayment_offset
   amount: amount('冲抵金额'), offset_on: Field.date({ label: '冲抵日期', ...required }),
   reviewer_id: Field.user({ label: '核销人', readonly: true }), reviewed_at: Field.datetime({ label: '核销时间', readonly: true }),
   review_comment: Field.textarea({ label: '核销意见', readonly: true }), status: { ...Field.select([
-    { value: 'approved', label: '已核销' },
+    { value: 'approved', label: '已核销' }, { value: 'reversed', label: '已撤回' },
   ], { label: '冲抵状态', defaultValue: 'approved' }), readonly: true }, responsible_id: owner(true), remarks: remarks(),
-}, ['code', 'prepayment_id', 'payable_id', 'supplier_id', 'amount', 'offset_on', 'status']);
+  reversed_by: Field.user({ label: '撤回人', readonly: true }), reversed_at: Field.datetime({ label: '撤回时间', readonly: true }),
+  reversal_reason: Field.textarea({ label: '撤回原因', readonly: true }),
+}, ['code', 'prepayment_id', 'payable_id', 'supplier_id', 'amount', 'offset_on', 'status', 'reversed_by', 'reversed_at', 'reversal_reason']);
 
 export const SupplierRefund = master('forge_supplier_refund', '供应商退款', 'undo-2', {
   name: text('退款名称', true), code: code('申请单号'), prepayment_id: reference('forge_supplier_prepayment', '供应商预付款', true),

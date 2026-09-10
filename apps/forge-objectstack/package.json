@@ -112,6 +112,9 @@
     ,"acceptance:counterparty-reconciliation": "node tests/counterparty-reconciliation.integration.mjs"
     ,"acceptance:counterparty-reconciliation-ui-readback": "node tests/counterparty-reconciliation-ui-readback.mjs"
     ,"acceptance:counterparty-reconciliation-restart": "node tests/counterparty-reconciliation-restart-readback.mjs"
+    ,"acceptance:finance-adjustment": "node tests/finance-adjustment.integration.mjs"
+    ,"acceptance:finance-adjustment-ui-readback": "node tests/finance-adjustment-ui-readback.mjs"
+    ,"acceptance:finance-adjustment-restart": "node tests/finance-adjustment-restart-readback.mjs"
   },
   "dependencies": {
     "@objectstack/spec": "17.3.0",
