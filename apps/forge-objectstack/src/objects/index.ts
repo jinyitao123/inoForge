@@ -4,6 +4,7 @@ export * from './supplier.object.js';
 export * from './warehouse.object.js';
 export * from './material.object.js';
 export * from './bom.object.js';
+export * from './drawing.object.js';
 export * from './shortage.object.js';
 export * from './sales.object.js';
 export * from './procurement.object.js';

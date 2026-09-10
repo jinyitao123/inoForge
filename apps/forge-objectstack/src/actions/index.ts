@@ -4,6 +4,8 @@ export * from './inventory.action.js';
 export * from './finance.action.js';
 export * from './project.action.js';
 export * from './bom.action.js';
+export * from './drawing.action.js';
+export * from './drawing.action.js';
 export * from './shortage.action.js';
 export * from './supplier.action.js';
 export * from './production.action.js';

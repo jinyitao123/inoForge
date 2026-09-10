@@ -68,6 +68,16 @@ export default defineStack({
             object('bom_nodes', 'BOM结构明细', 'forge_bom_node', 'network'),
             object('bom_approval_logs', 'BOM审批日志', 'forge_bom_approval_log', 'history'),
           ]),
+          group('drawing_change', '图纸与工程变更', [
+            page('drawing_workspace', '图纸与工程变更', 'page_drawing_workspace', 'ruler'),
+            object('drawing_versions', '图纸版本', 'forge_drawing_version', 'files'),
+            object('drawing_reviews', '图纸评审', 'forge_drawing_review', 'clipboard-check'),
+            object('drawing_releases', '图纸发布', 'forge_drawing_release', 'send'),
+            object('drawing_changes', '图纸变更', 'forge_drawing_change', 'git-pull-request-arrow'),
+            object('drawing_distributions', '图纸发放记录', 'forge_drawing_distribution', 'share-2'),
+            object('customer_drawings', '客户图纸', 'forge_customer_drawing', 'file-input'),
+            object('drawing_logs', '图纸操作日志', 'forge_drawing_operation_log', 'history'),
+          ]),
         ],
       },
       {
