@@ -175,6 +175,12 @@ export default defineStack({
             object('supplier_prepayment_offsets', '预付款冲抵', 'forge_supplier_prepayment_offset', 'badge-check'),
             object('supplier_refund_records', '供应商退款记录', 'forge_supplier_refund', 'undo-2'),
           ]),
+          group('counterparty_reconciliation', '往来对账', [
+            page('counterparty_reconciliation_center', '对账中心', 'page_counterparty_reconciliation', 'file-check-2'),
+            object('counterparty_statements', '对账单', 'forge_counterparty_statement', 'file-check-2'),
+            object('counterparty_statement_lines', '对账明细', 'forge_counterparty_statement_line', 'list'),
+            object('counterparty_statement_logs', '对账记录', 'forge_counterparty_statement_log', 'history'),
+          ]),
         ],
       },
       {
