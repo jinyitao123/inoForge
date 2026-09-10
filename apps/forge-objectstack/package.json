@@ -118,6 +118,9 @@
     ,"acceptance:bank-flow": "node tests/bank-flow.integration.mjs"
     ,"acceptance:bank-flow-ui-readback": "node tests/bank-flow-ui-readback.mjs"
     ,"acceptance:bank-flow-restart": "node tests/bank-flow-restart-readback.mjs"
+    ,"acceptance:opening-balance-offset": "node tests/opening-balance-offset.integration.mjs"
+    ,"acceptance:opening-balance-offset-ui-readback": "node tests/opening-balance-offset-ui-readback.mjs"
+    ,"acceptance:opening-balance-offset-restart": "node tests/opening-balance-offset-restart-readback.mjs"
   },
   "dependencies": {
     "@objectstack/spec": "17.3.0",

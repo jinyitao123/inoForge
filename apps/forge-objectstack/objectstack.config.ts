@@ -152,6 +152,7 @@ export default defineStack({
             page('supplier_refunds', '退款申请', 'page_supplier_refund', 'undo-2'),
           ]),
           group('counterparty_reconciliation', '往来对账', [
+            page('opening_balance', '期初往来账与对冲', 'page_opening_balance', 'book-open-check'),
             page('counterparty_reconciliation_center', '对账中心', 'page_counterparty_reconciliation', 'file-check-2'),
           ]),
         ],
