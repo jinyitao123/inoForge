@@ -115,6 +115,9 @@
     ,"acceptance:finance-adjustment": "node tests/finance-adjustment.integration.mjs"
     ,"acceptance:finance-adjustment-ui-readback": "node tests/finance-adjustment-ui-readback.mjs"
     ,"acceptance:finance-adjustment-restart": "node tests/finance-adjustment-restart-readback.mjs"
+    ,"acceptance:bank-flow": "node tests/bank-flow.integration.mjs"
+    ,"acceptance:bank-flow-ui-readback": "node tests/bank-flow-ui-readback.mjs"
+    ,"acceptance:bank-flow-restart": "node tests/bank-flow-restart-readback.mjs"
   },
   "dependencies": {
     "@objectstack/spec": "17.3.0",
