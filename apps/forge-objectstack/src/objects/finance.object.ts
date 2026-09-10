@@ -396,3 +396,58 @@ export const SupplierRefund = master('forge_supplier_refund', '供应商退款',
   reviewer_id: Field.user({ label: '核销人', readonly: true }), reviewed_at: Field.datetime({ label: '核销时间', readonly: true }), review_comment: Field.textarea({ label: '核销意见', readonly: true }),
   responsible_id: owner(true), remarks: remarks(),
 }, ['code', 'order_id', 'supplier_id', 'currency', 'actual_amount', 'refund_method', 'document_status', 'finance_status', 'receipt_status', 'writeoff_status', 'application_on']);
+
+// RM-143 / DR-1062 to DR-1068: counterparty statements freeze a dated receivable or payable snapshot
+// and keep delivery, confirmation and discrepancy handling separate from the underlying ledgers.
+export const CounterpartyStatement = master('forge_counterparty_statement', '往来对账单', 'file-check-2', {
+  name: text('对账单名称', true), code: code('对账单号'), party_type: Field.select([
+    { value: 'customer', label: '客户应收' }, { value: 'supplier', label: '供应商应付' },
+  ], { label: '往来方向', ...required }),
+  customer_id: reference('forge_customer', '客户'), supplier_id: reference('forge_supplier', '供应商'),
+  period_start: Field.date({ label: '期间开始', ...required }), period_end: Field.date({ label: '期间结束', ...required }),
+  dimension: Field.select([
+    { value: 'party', label: '按往来单位' }, { value: 'contract', label: '按合同' }, { value: 'order', label: '按订单' },
+    { value: 'shipment_receipt', label: '按发货/收货' }, { value: 'invoice', label: '按发票' }, { value: 'balance', label: '按余额汇总' },
+  ], { label: '汇总维度', defaultValue: 'balance', ...required }),
+  basis: Field.select([
+    { value: 'balance', label: '余额口径' }, { value: 'invoice', label: '开票口径' },
+  ], { label: '生成依据', defaultValue: 'balance', ...required }),
+  audited_only: Field.boolean({ label: '仅纳入已审核业务', defaultValue: true }),
+  include_prepayment: Field.boolean({ label: '包含预收/预付冲抵', defaultValue: true }),
+  opening_balance: { ...amount('期初余额'), readonly: true }, period_charge: { ...amount('本期应收/应付'), readonly: true },
+  period_settlement: { ...amount('本期收款/付款'), readonly: true }, closing_balance: { ...amount('期末余额'), readonly: true },
+  line_count: Field.number({ label: '明细行数', min: 0, scale: 0, defaultValue: 0, readonly: true }),
+  currency: Field.select([{ value: 'cny', label: '人民币 (CNY)' }], { label: '币种', defaultValue: 'cny', ...required }),
+  status: { ...Field.select([
+    { value: 'draft', label: '草稿' }, { value: 'sent', label: '已发送待确认' }, { value: 'confirmed', label: '已确认' },
+    { value: 'disputed', label: '有差异' }, { value: 'closed', label: '已关闭' },
+  ], { label: '对账状态', defaultValue: 'draft' }), readonly: true },
+  recipient: text('发送对象'), sent_by: Field.user({ label: '发送人', readonly: true }), sent_at: Field.datetime({ label: '发送时间', readonly: true }),
+  confirmed_balance: { ...amount('对方确认余额'), readonly: true }, discrepancy_amount: { ...amount('差异金额'), readonly: true },
+  discrepancy_reason: Field.textarea({ label: '差异说明', readonly: true }), confirmed_by: Field.user({ label: '确认登记人', readonly: true }),
+  confirmed_at: Field.datetime({ label: '确认时间', readonly: true }), closed_by: Field.user({ label: '关闭人', readonly: true }),
+  closed_at: Field.datetime({ label: '关闭时间', readonly: true }), resolution_note: Field.textarea({ label: '差异处理说明', readonly: true }),
+  responsible_id: owner(true), remarks: remarks(),
+}, ['code', 'party_type', 'customer_id', 'supplier_id', 'period_start', 'period_end', 'dimension', 'basis', 'opening_balance', 'period_charge', 'period_settlement', 'closing_balance', 'status', 'responsible_id']);
+
+export const CounterpartyStatementLine = master('forge_counterparty_statement_line', '往来对账明细', 'list', {
+  name: text('明细名称', true), statement_id: reference('forge_counterparty_statement', '对账单', true),
+  line_no: Field.number({ label: '行号', min: 1, scale: 0, ...required }), occurred_on: Field.date({ label: '业务日期', ...required }),
+  entry_type: Field.select([
+    { value: 'receivable', label: '应收发生' }, { value: 'collection', label: '收款核销' }, { value: 'customer_prepayment_offset', label: '预收冲抵' },
+    { value: 'payable', label: '应付发生' }, { value: 'payment', label: '付款核销' }, { value: 'supplier_prepayment_offset', label: '预付冲抵' },
+  ], { label: '明细类型', ...required }),
+  direction: Field.select([{ value: 'increase', label: '增加余额' }, { value: 'decrease', label: '减少余额' }], { label: '余额方向', ...required }),
+  source_key: text('来源键', true), receivable_id: reference('forge_accounts_receivable', '应收账款'), payable_id: reference('forge_accounts_payable', '应付账款'),
+  collection_id: reference('forge_collection_allocation', '收款核销'), payment_writeoff_id: reference('forge_payment_writeoff', '付款核销'),
+  amount: amount('发生金额'), running_balance: { ...signedAmount('结余'), readonly: true }, description: text('摘要'),
+}, ['statement_id', 'line_no', 'occurred_on', 'entry_type', 'direction', 'source_key', 'amount', 'running_balance', 'description']);
+
+export const CounterpartyStatementLog = master('forge_counterparty_statement_log', '往来对账操作记录', 'history', {
+  name: text('记录名称', true), event_key: code('事件键'), statement_id: reference('forge_counterparty_statement', '对账单', true),
+  action: Field.select([
+    { value: 'generated', label: '生成' }, { value: 'sent', label: '发送' }, { value: 'confirmed', label: '确认一致' },
+    { value: 'disputed', label: '反馈差异' }, { value: 'closed', label: '差异关闭' },
+  ], { label: '动作', ...required }), from_status: text('原状态'), to_status: text('新状态'), comment: Field.textarea({ label: '说明' }),
+  occurred_at: Field.datetime({ label: '操作时间', ...required, readonly: true }), operator_id: Field.user({ label: '操作人', ...required, readonly: true }),
+}, ['event_key', 'statement_id', 'action', 'from_status', 'to_status', 'comment', 'operator_id', 'occurred_at']);
