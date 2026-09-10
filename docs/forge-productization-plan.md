@@ -1,6 +1,6 @@
 # Forge 页面产品化执行方案
 
-日期：2026-09-10。状态：P0 BOM、P1 采购连续办理、P2 项目计划与执行、P3 制造装配与交付验收已实现并完成 Forge 页面验收；P4 尚未实施。
+日期：2026-09-10。状态：P0 BOM、P1 采购连续办理、P2 项目计划与执行、P3 制造装配与交付验收、P4 财务退换货及经营分析均已实现并完成 Forge 页面验收。
 
 ## 目标
 
@@ -76,4 +76,4 @@ P0 先形成完整的页面标准和一张真实可用样板，再扩展。其�
 
 P0 已用独立端口与独立 SQLite 完成内置浏览器办理、API 对照、完整停服重启回读及 1280×800、1440×900 页面检查。证据和边界记录在 `forge-productization-p0-verification.md`。
 
-P1 已把采购订单、到货、待检与检验、采购入库收敛为连续办理页面，结果记录在 `forge-productization-p1-contract.md`。P2 已把计划树表、只读甘特、进度更新和日报回读收敛为项目计划工作台，结果记录在 `forge-productization-p2-verification.md`。P3 已移除制造交付工作台的隐式首条选择和测试式预填，并在同库贯通生产、调试、交付包、整改复验、客户确认与项目完工，结果记录在 `forge-productization-p3-verification.md`。这些结果证明对应 Forge 页面与既有业务动作可用；RISEMAP 同材料页面对照状态仍按各自验收记录保留，P4 尚未实施。
+P1 已把采购订单、到货、待检与检验、采购入库收敛为连续办理页面，结果记录在 `forge-productization-p1-contract.md`。P2 已把计划树表、只读甘特、进度更新和日报回读收敛为项目计划工作台，结果记录在 `forge-productization-p2-verification.md`。P3 已移除制造交付工作台的隐式首条选择和测试式预填，并在同库贯通生产、调试、交付包、整改复验、客户确认与项目完工，结果记录在 `forge-productization-p3-verification.md`。P4 已把财务、退换货和经营分析页面接入统一产品视觉，移除隐式首条选择及测试式预填，收起对应原始对象入口，并从空白付款表单完成创建、审批、出账、核销和同库重启回读，结果记录在 `forge-productization-p4-verification.md`。这些结果证明对应 Forge 页面与既有业务动作可用；RISEMAP 同材料页面对照状态仍按各自验收记录保留。
