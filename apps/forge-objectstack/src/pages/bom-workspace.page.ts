@@ -1,105 +1,151 @@
-const bomPageSource = `
-function App() {
-  const [state, setState] = React.useState({ loading: true, boms: [], bom: null, nodes: [], logs: [], analyses: [], analysis: null, shortageLines: [], projects: {}, customers: {}, materials: {}, error: '' });
-  const [tab, setTab] = React.useState('基础资料');
-  const [busy, setBusy] = React.useState(false);
-  const [plannedQuantity, setPlannedQuantity] = React.useState(1);
-  const query = new URLSearchParams(window.location.search);
+import { forgeProductUiCss, forgeProductUiRuntime } from './product-ui.js';
 
-  async function request(path, options) {
-    const response = await fetch('/api/v1' + path, { credentials: 'include', headers: { 'Content-Type': 'application/json' }, ...options });
-    const payload = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(payload.error?.message || payload.message || '请求失败');
+const bomCss = `
+.forge-bom .fp-bom-list-card,.forge-bom .fp-detail-card{overflow:hidden}.forge-bom .fp-version-list{display:grid;gap:8px}.forge-bom .fp-version-item{display:grid;grid-template-columns:minmax(220px,1fr) 100px 90px 120px 170px;gap:12px;align-items:center;border:1px solid var(--fp-line);border-radius:9px;padding:11px 13px;background:#fff}.forge-bom .fp-version-item.current{border-color:#a8c2f7;background:#f7faff}.forge-bom .fp-version-item button{border:0;background:transparent;color:var(--fp-primary);font-weight:620;text-align:left;padding:0}.forge-bom .fp-analysis-source{display:flex;align-items:center;gap:8px;flex-wrap:wrap;color:var(--fp-muted);font-size:12px;margin-bottom:12px}.forge-bom .fp-analysis-source strong{color:#344054}.forge-bom .fp-section-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:13px}.forge-bom .fp-section-heading h2{font-size:14px;margin:0}.forge-bom .fp-list-count{color:var(--fp-muted);font-size:12px}@media(max-width:900px){.forge-bom .fp-version-item{grid-template-columns:1fr 90px}.forge-bom .fp-version-item>*:nth-child(n+3){display:none}}
+`;
+
+const bomPageSource = `
+${forgeProductUiRuntime}
+const css=${JSON.stringify(forgeProductUiCss + bomCss)};
+function App(){
+  const pageSize=12;
+  const initialId=new URLSearchParams(window.location.search).get('id');
+  const [view,setView]=React.useState(initialId?'detail':'list');
+  const [state,setState]=React.useState({loading:true,boms:[],projects:[],bom:null,nodes:[],logs:[],analyses:[],analysis:null,shortageLines:[],project:null,customer:null,material:null,error:''});
+  const [filters,setFilters]=React.useState({search:'',type:'',status:'',project:''});
+  const [page,setPage]=React.useState(1);
+  const [tab,setTab]=React.useState('基础资料');
+  const [plannedQuantity,setPlannedQuantity]=React.useState('1');
+  const [analysisError,setAnalysisError]=React.useState('');
+  const [dialog,setDialog]=React.useState(null);
+  const [busy,setBusy]=React.useState(false);
+  const [toast,setToast]=React.useState('');
+  const [collapsed,setCollapsed]=React.useState({});
+
+  async function request(path,options){
+    const response=await fetch('/api/v1'+path,{credentials:'include',headers:{'Content-Type':'application/json'},...options});
+    const payload=await response.json().catch(()=>({}));
+    if(!response.ok)throw new Error(payload.error?.message||payload.message||'请求失败');
     return payload;
   }
-  async function load(preferredId) {
-    try {
-      const list = await request('/data/forge_bom?$top=100');
-      const boms = list.records || [];
-      const id = preferredId || query.get('id') || boms.find(item => item.status === 'active' && item.bom_type === 'project')?.id || boms[0]?.id;
-      const bom = boms.find(item => item.id === id) || (id ? (await request('/data/forge_bom/' + id)).record : null);
-      if (!bom) return setState(s => ({ ...s, loading: false, boms, error: '暂无 BOM' }));
-      const enc = encodeURIComponent(JSON.stringify({ bom_id: bom.id }));
-      const [nodeData, logData, analysisData, projectData, customerData, materialData] = await Promise.all([
-        request('/data/forge_bom_node?$filter=' + enc + '&$top=100'),
-        request('/data/forge_bom_approval_log?$filter=' + enc + '&$top=100'),
-        request('/data/forge_bom_shortage_analysis?$filter=' + enc + '&$top=100'),
-        bom.project_id ? request('/data/forge_project/' + bom.project_id) : Promise.resolve({}),
-        bom.customer_id ? request('/data/forge_customer/' + bom.customer_id) : Promise.resolve({}),
-        bom.material_id ? request('/data/forge_material/' + bom.material_id) : Promise.resolve({}),
+  async function fetchAll(object,filter){
+    const rows=[];const size=100;let skip=0;
+    for(let guard=0;guard<100;guard++){
+      const params=new URLSearchParams({$top:String(size),$skip:String(skip)});
+      if(filter)params.set('$filter',JSON.stringify(filter));
+      const payload=await request('/data/'+object+'?'+params.toString());
+      const batch=payload.records||[];rows.push(...batch);
+      if(batch.length<size)break;skip+=batch.length;
+    }
+    return rows;
+  }
+  function routeTo(id,replace=false){
+    const url=id?window.location.pathname+'?id='+encodeURIComponent(id):window.location.pathname;
+    window.history[replace?'replaceState':'pushState']({},'',url);
+    if(id){setView('detail');setTab('基础资料');loadDetail(id)}else{setView('list');loadList()}
+  }
+  async function loadList(){
+    setState(s=>({...s,loading:true,error:'',bom:null}));
+    try{const [boms,projects]=await Promise.all([fetchAll('forge_bom'),fetchAll('forge_project')]);setState(s=>({...s,loading:false,boms,projects,error:''}));}
+    catch(error){setState(s=>({...s,loading:false,error:String(error.message||error)}));}
+  }
+  async function loadDetail(id){
+    setState(s=>({...s,loading:true,error:''}));setAnalysisError('');setCollapsed({});
+    try{
+      const detail=await request('/data/forge_bom/'+id);const bom=detail.record;
+      if(!bom)throw new Error('未找到指定 BOM，记录可能已删除或当前账号无权访问');
+      const [boms,nodes,logs,analyses,projectData,customerData,materialData]=await Promise.all([
+        fetchAll('forge_bom'),fetchAll('forge_bom_node',{bom_id:id}),fetchAll('forge_bom_approval_log',{bom_id:id}),fetchAll('forge_bom_shortage_analysis',{bom_id:id}),
+        bom.project_id?request('/data/forge_project/'+bom.project_id):Promise.resolve({record:null}),
+        bom.customer_id?request('/data/forge_customer/'+bom.customer_id):Promise.resolve({record:null}),
+        bom.material_id?request('/data/forge_material/'+bom.material_id):Promise.resolve({record:null})
       ]);
-      const projects = bom.project_id ? { [bom.project_id]: projectData.record } : {};
-      const customers = bom.customer_id ? { [bom.customer_id]: customerData.record } : {};
-      const materials = bom.material_id ? { [bom.material_id]: materialData.record } : {};
-      const analyses = (analysisData.records || []).sort((a,b) => String(b.analyzed_at).localeCompare(String(a.analyzed_at)));
-      const analysis = analyses[0] || null;
-      const shortageLines = analysis ? ((await request('/data/forge_bom_shortage_line?$filter=' + encodeURIComponent(JSON.stringify({ analysis_id: analysis.id })) + '&$top=100')).records || []) : [];
-      if (analysis) setPlannedQuantity(Number(analysis.planned_quantity || 1));
-      setState({ loading: false, boms, bom, nodes: nodeData.records || [], logs: logData.records || [], analyses, analysis, shortageLines, projects, customers, materials, error: '' });
-    } catch (error) { setState(s => ({ ...s, loading: false, error: String(error.message || error) })); }
+      analyses.sort((a,b)=>String(b.analyzed_at||'').localeCompare(String(a.analyzed_at||'')));
+      const analysis=analyses[0]||null;
+      const shortageLines=analysis?await fetchAll('forge_bom_shortage_line',{analysis_id:analysis.id}):[];
+      if(analysis)setPlannedQuantity(String(analysis.planned_quantity));
+      setState({loading:false,boms,bom,nodes,logs,analyses,analysis,shortageLines,project:projectData.record||null,customer:customerData.record||null,material:materialData.record||null,error:''});
+    }catch(error){setState(s=>({...s,loading:false,bom:null,error:String(error.message||error)}));}
   }
-  React.useEffect(() => { load(); }, []);
+  React.useEffect(()=>{
+    const onPop=()=>{const id=new URLSearchParams(window.location.search).get('id');if(id){setView('detail');loadDetail(id)}else{setView('list');loadList()}};
+    window.addEventListener('popstate',onPop);if(initialId)loadDetail(initialId);else loadList();
+    return()=>window.removeEventListener('popstate',onPop);
+  },[]);
+  React.useEffect(()=>{if(!toast)return;const timer=setTimeout(()=>setToast(''),3200);return()=>clearTimeout(timer)},[toast]);
 
-  async function runAction(action, params) {
-    if (!state.bom) return;
-    setBusy(true);
-    try {
-      await request('/actions/forge_bom/' + action + '/' + state.bom.id, { method: 'POST', body: JSON.stringify({ params: params || {} }) });
-      await load(state.bom.id);
-    } catch (error) { window.alert(String(error.message || error)); }
-    finally { setBusy(false); }
+  function actionResultId(payload){return payload?.id||payload?.result?.id||payload?.value?.id||payload?.data?.id||payload?.result?.value?.id||null}
+  async function invoke(action,params,success){
+    if(!state.bom)return null;setBusy(true);
+    try{
+      const payload=await request('/actions/forge_bom/'+action+'/'+state.bom.id,{method:'POST',body:JSON.stringify({params:params||{}})});
+      const resultId=actionResultId(payload);setDialog(null);setToast(success);
+      if(action==='bom_copy_new_version'&&resultId){routeTo(resultId,true)}else await loadDetail(state.bom.id);
+      return payload;
+    }catch(error){setDialog(d=>d?({...d,error:String(error.message||error)}):d);if(!dialog)setState(s=>({...s,error:String(error.message||error)}));return null}
+    finally{setBusy(false)}
   }
-  async function analyzeShortage() {
-    const quantity = Number(plannedQuantity);
-    if (!(quantity > 0)) return window.alert('计划生产数量必须大于0');
-    await runAction('bom_analyze_shortage', { planned_quantity: quantity });
+  async function analyze(){
+    const quantity=Number(plannedQuantity);if(!(quantity>0)){setAnalysisError('计划生产数量必须大于 0');return}
+    setBusy(true);setAnalysisError('');
+    try{await request('/actions/forge_bom/bom_analyze_shortage/'+state.bom.id,{method:'POST',body:JSON.stringify({params:{planned_quantity:quantity}})});setToast('缺料分析已完成');await loadDetail(state.bom.id);setTab('缺料分析')}
+    catch(error){setAnalysisError(String(error.message||error))}
+    finally{setBusy(false)}
   }
-  function primaryAction() {
-    const bom = state.bom;
-    if (!bom) return null;
-    if (bom.status === 'draft') return <button className="primary" disabled={busy} onClick={() => runAction('bom_submit_review')}>提交评审</button>;
-    if (bom.status === 'pending_review') return <button className="primary" disabled={busy} onClick={() => { const comment = window.prompt('评审意见'); if (comment) runAction('bom_review', { decision: 'approve', comment }); }}>评审BOM</button>;
-    if (bom.status === 'active') return <button className="primary" disabled={busy} onClick={() => { const note = window.prompt('版本变更说明'); if (note) runAction('bom_copy_new_version', { change_note: note }); }}>复制到新版本</button>;
-    return null;
+  function openDialog(kind){
+    const config={review:{title:'评审 BOM',subtitle:'评审结论会改变当前版本状态',decision:'approve',comment:''},copy:{title:'复制到新版本',subtitle:'新版本将以草稿状态创建',change_note:''},invalidate:{title:'使 BOM 失效',subtitle:'失效后不能继续进行缺料分析',reason:''}}[kind];setDialog({...config,kind,error:''})
   }
-  const statusText = { draft: '草稿', pending_review: '待评审', active: '已生效', inactive: '已失效', archived: '已归档' };
-  const typeText = { standard: '标准', project: '项目', prototype: '试制' };
-  const logText = { submitted: '提交评审', approved: '评审通过', rejected: '评审退回', copied: '复制新版本', invalidated: '失效', created: '创建' };
-  const tabs = ['基础资料', 'BOM结构', '缺料分析', '版本历史', '应用/引用', '审批日志', '图纸关联'];
-  const bom = state.bom;
-  const root = state.nodes.find(node => !node.parent_id);
-  const children = state.nodes.filter(node => node.parent_id);
-  const fmtDate = value => value ? new Date(value).toLocaleString('zh-CN', { hour12: false }) : '—';
+  function confirmDialog(){
+    if(dialog.kind==='review'&&!String(dialog.comment||'').trim()){setDialog({...dialog,error:'请填写评审意见'});return}
+    if(dialog.kind==='copy'&&!String(dialog.change_note||'').trim()){setDialog({...dialog,error:'请填写版本变更说明'});return}
+    if(dialog.kind==='invalidate'&&!String(dialog.reason||'').trim()){setDialog({...dialog,error:'请填写失效原因'});return}
+    if(dialog.kind==='review')return invoke('bom_review',{decision:dialog.decision,comment:dialog.comment},dialog.decision==='approve'?'BOM 已评审通过':'BOM 已退回修改');
+    if(dialog.kind==='copy')return invoke('bom_copy_new_version',{change_note:dialog.change_note},'新版本草稿已创建');
+    if(dialog.kind==='invalidate')return invoke('bom_invalidate',{reason:dialog.reason},'BOM 已失效');
+  }
+  const statusText={draft:'草稿',pending_review:'待评审',active:'已生效',inactive:'已失效',archived:'已归档'};
+  const typeText={standard:'标准',project:'项目',prototype:'试制','标准':'标准','项目':'项目','试制':'试制'};
+  const logText={submitted:'提交评审',approved:'评审通过',rejected:'评审退回',copied:'复制新版本',invalidated:'失效',created:'创建'};
+  const nodeTypeText={root:'根节点',component:'物料',material:'物料',group:'分组',sub_bom:'子 BOM','根节点':'根节点','物料':'物料','分组':'分组','子BOM':'子 BOM'};
+  const money=value=>value===null||value===undefined||value===''?'—':'¥'+Number(value).toLocaleString('zh-CN',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const fmtDate=value=>value?new Date(value).toLocaleString('zh-CN',{hour12:false}):'—';
+  const normalized=value=>String(value||'').toLowerCase();
+  const projectById=Object.fromEntries((state.projects||[]).map(item=>[item.id,item]));
+  const applicableProjects=(state.projects||[]).filter(project=>state.boms.some(item=>item.project_id===project.id));
+  const filtered=state.boms.filter(item=>(!filters.search||(normalized(item.name).includes(normalized(filters.search))||normalized(item.code).includes(normalized(filters.search))))&&(!filters.type||item.bom_type===filters.type)&&(!filters.status||item.status===filters.status)&&(!filters.project||(filters.project==='__none__'?!item.project_id:item.project_id===filters.project)));
+  const totalPages=Math.max(1,Math.ceil(filtered.length/pageSize));const currentPage=Math.min(page,totalPages);const visible=filtered.slice((currentPage-1)*pageSize,currentPage*pageSize);
+  function changeFilter(patch){setFilters(value=>({...value,...patch}));setPage(1)}
+  function treeRows(){
+    const byParent={};state.nodes.forEach(node=>{const key=node.parent_id||'__root__';(byParent[key]||(byParent[key]=[])).push(node)});Object.values(byParent).forEach(list=>list.sort((a,b)=>Number(a.sort_order||0)-Number(b.sort_order||0)||String(a.name).localeCompare(String(b.name),'zh-CN')));
+    const rows=[];const visited=new Set();function walk(node,depth){if(visited.has(node.id))return;visited.add(node.id);const children=byParent[node.id]||[];rows.push({node,depth,hasChildren:children.length>0});if(!collapsed[node.id])children.forEach(child=>walk(child,depth+1))}
+    (byParent.__root__||[]).forEach(node=>walk(node,0));state.nodes.filter(node=>!visited.has(node.id)).forEach(node=>walk(node,0));return rows
+  }
+  function versionFamily(current){
+    if(current.family_key)return state.boms.filter(item=>item.family_key===current.family_key);
+    const ids=new Set([current.id]);let changed=true;
+    while(changed){changed=false;state.boms.forEach(item=>{if(ids.has(item.id)||ids.has(item.source_bom_id)){if(!ids.has(item.id)){ids.add(item.id);changed=true}if(item.source_bom_id&&!ids.has(item.source_bom_id)){ids.add(item.source_bom_id);changed=true}}})}
+    return state.boms.filter(item=>ids.has(item.id));
+  }
+  const tabs=['基础资料','BOM结构','缺料分析','版本历史','审批日志'];const bom=state.bom;const analysisStale=state.analysis&&Number(plannedQuantity)!==Number(state.analysis.planned_quantity);
 
-  const css = \`
-  div:has(> .forge-bom){max-width:none!important;margin:0!important}.forge-bom+*{display:none}div:has(> .forge-bom)>div:first-child:not(.forge-bom){display:none}main:has(.forge-bom)>div{padding:0!important}.forge-bom{min-height:100%;background:#f5f6f8;color:#20242b;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC',sans-serif}.crumb{height:38px;display:flex;align-items:center;gap:8px;padding:0 18px;color:#7b8492;font-size:12px;border-bottom:1px solid #e8ebef;background:#fff}.page-head{background:#fff;padding:12px 18px 0;border-bottom:1px solid #e2e6eb}.head-row{display:flex;justify-content:space-between;gap:18px}.title-line{display:flex;align-items:center;gap:8px}.title-line h1{font-size:16px;line-height:23px;margin:0;font-weight:650}.pill{font-size:11px;padding:2px 7px;border-radius:4px;background:#eef1f4;color:#606a78;white-space:nowrap}.pill.green{background:#e9f7ef;color:#16834b}.meta{display:flex;gap:7px;align-items:center;margin:5px 0 12px;color:#6e7785;font-size:12px}.dot{width:3px;height:3px;border-radius:50%;background:#aab1bb}.actions{display:flex;gap:8px;align-items:flex-start}.actions button,.tabbar button,.switcher button{font:inherit}.actions button{height:32px;border:1px solid #d8dde4;background:#fff;border-radius:4px;padding:0 12px;color:#343b46;cursor:pointer;white-space:nowrap}.actions .primary{background:#1769e0;border-color:#1769e0;color:#fff}.actions button:disabled{opacity:.55}.tabbar{display:flex;gap:26px}.tabbar button{border:0;background:none;padding:10px 1px 11px;color:#5d6674;cursor:pointer;border-bottom:2px solid transparent;font-size:13px}.tabbar button.active{color:#1769e0;border-bottom-color:#1769e0;font-weight:600}.content{display:grid;grid-template-columns:218px minmax(0,1fr);gap:14px;padding:14px 18px 36px}.side,.panel{background:#fff;border:1px solid #e2e6eb;border-radius:5px}.side{padding:10px}.side-title{font-size:12px;color:#8a93a0;margin:2px 8px 8px}.bom-item{width:100%;text-align:left;border:0;background:transparent;border-radius:4px;padding:8px 9px;cursor:pointer}.bom-item.active{background:#eaf2ff;color:#155fc7}.bom-code{font-size:11px;margin-top:3px;color:#8b94a1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.panel{padding:18px 22px;min-height:430px}.section-title{font-size:14px;font-weight:650;margin-bottom:15px;display:flex;justify-content:space-between}.grid{display:grid;grid-template-columns:1fr 1fr;column-gap:34px;row-gap:14px}.field label{display:block;color:#7b8491;font-size:12px;margin-bottom:6px}.value{min-height:32px;border:1px solid #dfe3e8;border-radius:4px;background:#fbfcfd;padding:6px 9px;font-size:13px;box-sizing:border-box}.value.link{color:#1769e0}.wide{grid-column:1/-1}.summary{display:flex;gap:28px;padding:13px 16px;margin-bottom:18px;background:#f7f9fb;border-radius:5px;font-size:13px}.summary strong{font-size:16px;margin-left:5px}.tree{border:1px solid #e1e5ea;border-radius:6px;overflow:hidden}.tree-head,.tree-row{display:grid;grid-template-columns:minmax(250px,1.5fr) 110px 105px 100px 100px;padding:10px 14px;align-items:center}.tree-head{background:#f7f8fa;color:#7b8491;font-size:12px}.tree-row{border-top:1px solid #edf0f3;font-size:13px}.tree-name.child{padding-left:28px}.key{display:inline-block;margin-left:7px;padding:1px 5px;border-radius:3px;background:#fff2dc;color:#a65b00;font-size:11px}.analysis-controls{display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid #e8ebef}.analysis-controls label{font-size:12px;color:#6e7785}.analysis-controls input{width:82px;height:32px;border:1px solid #d8dde4;border-radius:4px;padding:0 9px}.analysis-controls button{height:32px;margin-left:auto;border:0;border-radius:4px;padding:0 15px;background:#1769e0;color:#fff;cursor:pointer}.metrics{display:grid;grid-template-columns:repeat(5,minmax(110px,1fr));gap:10px;margin-bottom:14px}.metric{background:#f7f8fa;border-radius:5px;padding:13px;text-align:center}.metric strong{display:block;font-size:19px;color:#20242b}.metric.warn strong{color:#d44931}.metric span{font-size:11px;color:#7b8491}.shortage-table{overflow:auto;border:1px solid #e1e5ea;border-radius:5px}.shortage-table table{border-collapse:collapse;width:100%;min-width:980px;font-size:12px}.shortage-table th,.shortage-table td{padding:9px 10px;border-bottom:1px solid #edf0f3;text-align:left;white-space:nowrap}.shortage-table th{background:#f7f8fa;color:#6d7683;font-weight:500}.shortage-table tr.shortage{background:#fff7f5}.shortage-table td.bad{color:#d44931;font-weight:600}.analysis-time{margin-top:10px;color:#8a93a0;font-size:11px}.empty{text-align:center;color:#9ba3ae;padding:78px 20px}.timeline{position:relative;margin-left:8px}.event{display:grid;grid-template-columns:14px 160px 1fr;gap:10px;padding:0 0 22px}.event-dot{width:9px;height:9px;border-radius:50%;background:#1769e0;margin-top:5px;box-shadow:0 0 0 4px #eaf2ff}.event-title{font-weight:600}.event-note{color:#687280;font-size:13px}.notice{margin:16px 24px;padding:10px 14px;background:#fff3cd;border:1px solid #ffe49a;border-radius:5px;color:#7c5a00}.loading{padding:80px;text-align:center;color:#77808d}@media(max-width:900px){.content{grid-template-columns:1fr}.side{display:none}.grid{grid-template-columns:1fr}.wide{grid-column:auto}.metrics{grid-template-columns:1fr 1fr}.tree-head,.tree-row{grid-template-columns:1fr 80px 80px}.tree-head span:nth-child(n+4),.tree-row span:nth-child(n+4){display:none}}
-  \`;
-  if (state.loading) return <div className="forge-bom"><style>{css}</style><div className="loading">正在加载 BOM…</div></div>;
-  return <div className="forge-bom"><style>{css}</style>
-    <div className="crumb"><span>计划与方案设计</span><span>/</span><span>BOM管理</span><span>/</span><b>{bom?.name || 'BOM详情'}</b></div>
-    {state.error && <div className="notice">{state.error}</div>}
-    {bom && <>
-      <div className="page-head"><div className="head-row"><div>
-        <div className="title-line"><h1>{bom.name}</h1></div>
-        <div className="meta"><span className="pill">{typeText[bom.bom_type] || bom.bom_type}</span><span className={'pill ' + (bom.status === 'active' ? 'green' : '')}>{statusText[bom.status] || bom.status}</span><span>{bom.version}</span><span className="dot"></span><span>{bom.product_name}</span>{bom.source_bom_id && <><span className="dot"></span><span>派生自标准BOM</span></>}</div>
-      </div><div className="actions"><button onClick={() => setTab('基础资料')}>基本信息</button><button onClick={() => load(bom.id)}>刷新</button>{bom.status === 'active' && <button onClick={() => { const reason = window.prompt('失效原因'); if (reason) runAction('bom_invalidate', { reason }); }}>失效</button>}{primaryAction()}</div></div>
-      <div className="tabbar">{tabs.map(name => <button key={name} className={tab === name ? 'active' : ''} onClick={() => setTab(name)}>{name}</button>)}</div></div>
-      <div className="content"><aside className="side"><div className="side-title">BOM 版本</div>{state.boms.map(item => <button key={item.id} className={'bom-item ' + (item.id === bom.id ? 'active' : '')} onClick={() => { setTab('基础资料'); load(item.id); }}><div>{item.name}</div><div className="bom-code">{item.version} · {statusText[item.status]} · {item.code}</div></button>)}</aside>
-      <main className="panel">
-      {tab === '基础资料' && <><div className="section-title"><span>基础资料</span><span className="pill">基本信息</span></div><div className="grid">
-        <div className="field"><label>BOM编号</label><div className="value">{bom.code}</div></div><div className="field"><label>BOM名称</label><div className="value">{bom.name}</div></div>
-        <div className="field"><label>产品/设备</label><div className="value">{bom.product_name || '—'}</div></div><div className="field"><label>BOM类型</label><div className="value">{typeText[bom.bom_type]}BOM</div></div>
-        <div className="field"><label>成品物料</label><div className="value link">{state.materials[bom.material_id]?.name || '—'}</div></div><div className="field"><label>客户</label><div className="value link">{state.customers[bom.customer_id]?.name || '—'}</div></div>
-        <div className="field"><label>适用项目</label><div className="value link">{state.projects[bom.project_id]?.name || '—'}</div></div><div className="field"><label>版本与状态</label><div className="value">{bom.version} · {statusText[bom.status]}</div></div>
-        <div className="field wide"><label>备注</label><div className="value">{bom.remarks || '—'}</div></div>
-      </div></>}
-      {tab === 'BOM结构' && <><div className="section-title"><span>BOM结构</span><span>展开全部</span></div><div className="summary"><span>物料种数<strong>{bom.node_count}</strong></span><span>未税总成本<strong>¥ {Number(bom.total_cost || 0).toLocaleString('zh-CN',{minimumFractionDigits:2})}</strong></span></div><div className="tree"><div className="tree-head"><span>节点/物料</span><span>节点类型</span><span>单机用量</span><span>位号</span><span>关键件</span></div>{root && <div className="tree-row"><span className="tree-name">▾ {root.name}</span><span>根节点</span><span>1</span><span>—</span><span>—</span></div>}{children.map(node => <div className="tree-row" key={node.id}><span className="tree-name child">└ {node.name}{node.is_key_part && <i className="key">关键件</i>}</span><span>{node.node_type}</span><span>{node.quantity}</span><span>{node.position || '—'}</span><span>{node.is_key_part ? '是' : '否'}</span></div>)}</div></>}
-      {tab === '缺料分析' && <><div className="analysis-controls"><label>计划生产数量</label><input type="number" min="0.0001" step="1" value={plannedQuantity} onChange={event => setPlannedQuantity(event.target.value)}/><span className={'pill ' + (bom.status === 'active' ? 'green' : '')}>{statusText[bom.status]}</span><button disabled={busy || bom.status !== 'active'} onClick={analyzeShortage}>{state.analysis ? '重新分析' : '开始分析'}</button></div>{!state.analysis ? <div className="empty">设置计划生产数量后，点击“开始分析”<br/>系统将根据 BOM 结构和库存计算物料缺口</div> : <><div className="metrics"><div className={'metric ' + (state.analysis.kit_rate < 100 ? 'warn' : '')}><strong>{state.analysis.kit_rate}%</strong><span>齐套率</span></div><div className="metric"><strong>{state.analysis.component_count}</strong><span>采购件总数</span></div><div className={'metric ' + (state.analysis.shortage_count ? 'warn' : '')}><strong>{state.analysis.shortage_count}</strong><span>缺口项</span></div><div className="metric"><strong>{state.analysis.max_producible_quantity}</strong><span>最大可生产数</span></div><div className="metric warn"><strong>¥{Number(state.analysis.estimated_purchase_amount || 0).toLocaleString('zh-CN',{minimumFractionDigits:2})}</strong><span>预计采购金额</span></div></div><div className="shortage-table"><table><thead><tr><th>物料编码</th><th>名称</th><th>规格</th><th>型号</th><th>单位</th><th>单机用量</th><th>总需求</th><th>库存</th><th>锁定</th><th>可用</th><th>缺口</th><th>供应商</th><th>未税单价</th><th>小计</th></tr></thead><tbody>{state.shortageLines.map(line => <tr key={line.id} className={line.shortage_quantity > 0 ? 'shortage' : ''}><td>{line.item_code}</td><td>{line.name}</td><td>{line.specification}</td><td>{line.model}</td><td>{line.unit_name || '—'}</td><td>{line.required_per_unit}</td><td>{line.total_required}</td><td>{line.on_hand_quantity}</td><td>{line.reserved_quantity}</td><td>{line.available_quantity}</td><td className={line.shortage_quantity > 0 ? 'bad' : ''}>{line.shortage_quantity}</td><td>{line.supplier_id ? '已指定' : '—'}</td><td>¥{Number(line.untaxed_unit_price || 0).toLocaleString('zh-CN',{minimumFractionDigits:2})}</td><td>¥{Number(line.subtotal || 0).toLocaleString('zh-CN',{minimumFractionDigits:2})}</td></tr>)}</tbody></table></div><div className="analysis-time">分析时间：{fmtDate(state.analysis.analyzed_at)}</div></>}</>}
-      {tab === '版本历史' && <><div className="section-title">版本历史</div><div className="tree"><div className="tree-head"><span>版本</span><span>状态</span><span>物料数</span><span>成本</span><span>生效时间</span></div>{state.boms.filter(item => item.family_key === bom.family_key || item.id === bom.id || item.source_bom_id === bom.id).map(item => <div className="tree-row" key={item.id}><span>{item.version} · {item.name}</span><span>{statusText[item.status]}</span><span>{item.node_count}</span><span>¥{item.total_cost}</span><span>{fmtDate(item.effective_at)}</span></div>)}</div></>}
-      {tab === '审批日志' && <><div className="section-title">审批日志</div><div className="timeline">{state.logs.sort((a,b) => String(a.occurred_at).localeCompare(String(b.occurred_at))).map(log => <div className="event" key={log.id}><span className="event-dot"></span><span><div className="event-title">{logText[log.action] || log.action}</div><div className="event-note">{fmtDate(log.occurred_at)}</div></span><span className="event-note">{log.comment || '—'}<br/>{log.from_status} → {log.to_status}</span></div>)}</div></>}
-      {['应用/引用','图纸关联'].includes(tab) && <><div className="section-title">{tab}</div><div className="empty">该页签将按 RISEMAP 实测行为继续实现，当前不计入完成范围。</div></>}
-      </main></div></>}
-  </div>;
+  function BomListScreen(){return <div className="fp-shell"><div className="fp-list-context"><div className="fp-phase"><span className="fp-phase-index">03</span><strong>计划与方案设计</strong></div><button className="fp-button" disabled={state.loading} onClick={loadList}>{state.loading?'刷新中…':'刷新'}</button></div>{state.error&&<ForgeNotice tone="error" onClose={()=>setState(s=>({...s,error:''}))}>{state.error}</ForgeNotice>}<section className="fp-card fp-bom-list-card"><div className="fp-filterbar"><div className="fp-search"><input className="fp-input" aria-label="搜索 BOM" placeholder="搜索 BOM 名称或编号" value={filters.search} onChange={e=>changeFilter({search:e.target.value})}/></div><select className="fp-select" aria-label="BOM 类型" value={filters.type} onChange={e=>changeFilter({type:e.target.value})}><option value="">全部类型</option><option value="standard">标准 BOM</option><option value="project">项目 BOM</option><option value="prototype">试制 BOM</option></select><select className="fp-select" aria-label="BOM 状态" value={filters.status} onChange={e=>changeFilter({status:e.target.value})}><option value="">全部状态</option>{Object.entries(statusText).map(([value,label])=><option key={value} value={value}>{label}</option>)}</select><select className="fp-select" aria-label="适用项目" value={filters.project} onChange={e=>changeFilter({project:e.target.value})}><option value="">全部项目</option><option value="__none__">通用 BOM</option>{applicableProjects.map(project=><option key={project.id} value={project.id}>{project.name}</option>)}</select><button className="fp-button" onClick={()=>{setFilters({search:'',type:'',status:'',project:''});setPage(1)}}>重置</button></div>{state.loading?<ForgeLoading label="正在加载 BOM 列表"/>:<div className="fp-table-wrap"><table className="fp-table"><thead><tr><th>BOM 名称</th><th>类型</th><th>适用项目</th><th>版本</th><th>状态</th><th className="fp-number">物料数</th><th className="fp-number">未税成本</th><th>生效时间</th></tr></thead><tbody>{visible.map(item=><tr key={item.id} className="fp-row-button"><td><button className="fp-link-button" onClick={()=>routeTo(item.id)}>{item.name}</button><div className="fp-secondary">{item.code}</div></td><td><span className="fp-tag">{typeText[item.bom_type]||item.bom_type}</span></td><td>{projectById[item.project_id]?.name||'通用'}</td><td>{item.version||'—'}</td><td><ForgeStatus value={item.status} label={statusText[item.status]}/></td><td className="fp-number">{item.node_count||0}</td><td className="fp-number">{money(item.total_cost)}</td><td>{fmtDate(item.effective_at)}</td></tr>)}{!visible.length&&<tr><td colSpan="8" className="fp-empty-cell"><ForgeEmpty title="没有符合条件的 BOM" description="调整搜索词或筛选条件后再试"/></td></tr>}</tbody></table></div>}<div className="fp-pagination"><span>共 {filtered.length} 条{filtered.length!==state.boms.length?'筛选结果':''}</span><div className="fp-pagination-actions"><button className="fp-button small" disabled={currentPage<=1} onClick={()=>setPage(currentPage-1)}>上一页</button><span>{currentPage} / {totalPages}</span><button className="fp-button small" disabled={currentPage>=totalPages} onClick={()=>setPage(currentPage+1)}>下一页</button></div></div></section></div>}
+
+  function DetailView(){
+    if(state.loading)return <div className="fp-shell"><ForgeLoading label="正在加载 BOM 详情"/></div>;
+    if(!bom)return <div className="fp-shell"><ForgeNotice tone="error">{state.error||'无法读取 BOM'}</ForgeNotice><button className="fp-button" onClick={()=>routeTo(null)}>返回 BOM 列表</button></div>;
+    const versions=versionFamily(bom);
+    return <div className="fp-shell"><div className="fp-phase"><span className="fp-phase-index">03</span><button className="fp-link-button" onClick={()=>routeTo(null)}>BOM 管理</button><span>/</span><strong>{bom.name}</strong></div>{state.error&&<ForgeNotice tone="error" onClose={()=>setState(s=>({...s,error:''}))}>{state.error}</ForgeNotice>}<div className="fp-page-header"><div className="fp-heading"><div className="fp-eyebrow">{state.project?'项目 · '+state.project.name:'产品结构'}</div><div className="fp-title-row"><h1 className="fp-title">{bom.name}</h1><ForgeStatus value={bom.status} label={statusText[bom.status]}/></div><div className="fp-record-summary"><span>{bom.code}</span><span>{typeText[bom.bom_type]||bom.bom_type} BOM</span><span>{bom.version||'—'}</span><span>{bom.product_name||'未填写产品/设备'}</span></div></div><div className="fp-toolbar"><button className="fp-button" onClick={()=>routeTo(null)}>返回列表</button><button className="fp-button" disabled={busy} onClick={()=>loadDetail(bom.id)}>刷新</button>{bom.status==='active'&&<button className="fp-button danger" onClick={()=>openDialog('invalidate')}>失效</button>}{bom.status==='active'&&<button className="fp-button" onClick={()=>openDialog('copy')}>复制新版本</button>}{bom.status==='draft'&&<button className="fp-button primary" disabled={busy} onClick={()=>invoke('bom_submit_review',{},'BOM 已提交评审')}>{busy?'处理中…':'提交评审'}</button>}{bom.status==='pending_review'&&<button className="fp-button primary" onClick={()=>openDialog('review')}>评审 BOM</button>}</div></div><section className="fp-card fp-detail-card"><nav className="fp-tabs" aria-label="BOM 详情页签">{tabs.map(name=><button key={name} className={'fp-tab '+(tab===name?'active':'')} onClick={()=>setTab(name)}>{name}</button>)}</nav><div className="fp-detail-content">
+      {tab==='基础资料'&&<BasicTab/>}{tab==='BOM结构'&&<StructureTab/>}{tab==='缺料分析'&&<ShortageTab/>}{tab==='版本历史'&&<VersionTab versions={versions}/>} {tab==='审批日志'&&<LogTab/>}
+    </div></section></div>
+  }
+  function BasicTab(){return <div className="fp-detail-grid"><Detail label="BOM 编号" value={bom.code}/><Detail label="BOM 名称" value={bom.name}/><Detail label="产品 / 设备" value={bom.product_name}/><Detail label="BOM 类型" value={(typeText[bom.bom_type]||bom.bom_type)+' BOM'}/><Detail label="成品物料" value={state.material?.name} link/><Detail label="客户" value={state.customer?.name} link/><Detail label="适用项目" value={state.project?.name} link/><Detail label="版本与状态" value={bom.version+' · '+statusText[bom.status]}/><Detail label="物料数" value={bom.node_count||0}/><Detail label="未税成本" value={money(bom.total_cost)}/><Detail label="备注" value={bom.remarks} wide/></div>}
+  function Detail({label,value,link=false,wide=false}){return <div className={'fp-detail-item '+(wide?'fp-span-2':'')}><div className="fp-detail-label">{label}</div><div className={'fp-detail-value '+(link?'link':'')}>{value||value===0?value:'—'}</div></div>}
+  function StructureTab(){return <><div className="fp-section-heading"><h2>BOM 结构</h2><span className="fp-list-count">{state.nodes.length} 个节点，{bom.node_count||0} 个物料</span></div>{!state.nodes.length?<ForgeEmpty title="尚未建立 BOM 结构" description="草稿 BOM 需要先建立根节点和物料明细"/>:<div className="fp-table-wrap"><table className="fp-table"><thead><tr><th>节点 / 物料</th><th>节点类型</th><th className="fp-number">单机用量</th><th>位号</th><th>关键件</th></tr></thead><tbody>{treeRows().map(({node,depth,hasChildren})=><tr key={node.id}><td><div className="fp-tree-name"><span className="fp-tree-indent" style={{width:depth*22}}></span>{hasChildren?<button className="fp-tree-toggle" aria-label={(collapsed[node.id]?'展开':'收起')+node.name} onClick={()=>setCollapsed(value=>({...value,[node.id]:!value[node.id]}))}>{collapsed[node.id]?'›':'⌄'}</button>:<span className="fp-tree-spacer"></span>}<span>{node.name}</span>{node.is_key_part&&<span className="fp-key">关键件</span>}</div></td><td>{nodeTypeText[node.node_type]||node.node_type}</td><td className="fp-number">{node.quantity}</td><td>{node.position||'—'}</td><td>{node.is_key_part?'是':'否'}</td></tr>)}</tbody></table></div>}</>}
+  function ShortageTab(){return <><div className="fp-action-strip"><div className="fp-field"><label>计划生产数量 <span className="fp-required">*</span></label><input className="fp-input" aria-label="计划生产数量" type="number" min="0.0001" step="1" value={plannedQuantity} onChange={e=>{setPlannedQuantity(e.target.value);setAnalysisError('')}}/></div><button className="fp-button primary" disabled={busy||bom.status!=='active'} onClick={analyze}>{busy?'分析中…':state.analysis?'重新分析':'开始分析'}</button><div className="fp-action-note">仅已生效版本可分析，结果将保存为历史快照</div></div>{analysisError&&<ForgeNotice tone="error">{analysisError}</ForgeNotice>}{bom.status!=='active'&&<ForgeNotice tone="warning">当前版本为{statusText[bom.status]}，评审生效后才能进行缺料分析。</ForgeNotice>}{analysisStale&&<ForgeNotice tone="warning">输入已修改。当前结果仍基于计划数量 {state.analysis.planned_quantity}，重新分析后才会更新。</ForgeNotice>}{!state.analysis?<ForgeEmpty title="还没有缺料分析" description="设置计划生产数量后开始分析，系统会按当前库存保存一份快照"/>:<><div className="fp-analysis-source"><span>当前结果</span><strong>计划数量 {state.analysis.planned_quantity}</strong><span>·</span><span>{fmtDate(state.analysis.analyzed_at)}</span><span>·</span><span>共 {state.analyses.length} 次分析</span></div><div className="fp-metrics"><Metric label="齐套率" value={state.analysis.kit_rate+'%'} warning={Number(state.analysis.kit_rate)<100}/><Metric label="采购件总数" value={state.analysis.component_count}/><Metric label="缺口项" value={state.analysis.shortage_count} warning={Number(state.analysis.shortage_count)>0}/><Metric label="最大可生产数" value={state.analysis.max_producible_quantity}/><Metric label="预计采购金额" value={money(state.analysis.estimated_purchase_amount)} warning/></div><div className="fp-table-wrap"><table className="fp-table"><thead><tr><th>物料编码</th><th>名称 / 规格</th><th>单位</th><th className="fp-number">单机用量</th><th className="fp-number">总需求</th><th className="fp-number">可用</th><th className="fp-number">缺口</th><th className="fp-number">未税单价</th><th className="fp-number">小计</th></tr></thead><tbody>{state.shortageLines.map(line=><tr key={line.id}><td>{line.item_code}</td><td>{line.name}<div className="fp-secondary">{line.specification||line.model||'—'}</div></td><td>{line.unit_name||'—'}</td><td className="fp-number">{line.required_per_unit}</td><td className="fp-number">{line.total_required}</td><td className="fp-number">{line.available_quantity}</td><td className="fp-number" style={{color:Number(line.shortage_quantity)>0?'var(--fp-danger)':'inherit',fontWeight:Number(line.shortage_quantity)>0?650:400}}>{line.shortage_quantity}</td><td className="fp-number">{money(line.untaxed_unit_price)}</td><td className="fp-number">{money(line.subtotal)}</td></tr>)}</tbody></table></div></>}</>}
+  function Metric({label,value,warning=false}){return <div className={'fp-metric '+(warning?'warning':'')}><div className="fp-metric-label">{label}</div><div className="fp-metric-value">{value}</div></div>}
+  function VersionTab({versions}){return <><div className="fp-section-heading"><h2>版本历史</h2><span className="fp-list-count">同一版本族 {versions.length} 条记录</span></div><div className="fp-version-list">{versions.slice().sort((a,b)=>String(b.version||'').localeCompare(String(a.version||''),'zh-CN',{numeric:true})).map(item=><div key={item.id} className={'fp-version-item '+(item.id===bom.id?'current':'')}><button onClick={()=>routeTo(item.id)}>{item.version} · {item.name}<div className="fp-secondary">{item.code}</div></button><ForgeStatus value={item.status} label={statusText[item.status]}/><span>{item.node_count||0} 项</span><span>{money(item.total_cost)}</span><span>{fmtDate(item.effective_at)}</span></div>)}</div></>}
+  function LogTab(){return <><div className="fp-section-heading"><h2>审批日志</h2><span className="fp-list-count">{state.logs.length} 条记录</span></div>{!state.logs.length?<ForgeEmpty title="还没有审批记录" description="提交评审后，流转记录会显示在这里"/>:<div className="fp-timeline">{state.logs.slice().sort((a,b)=>String(b.occurred_at).localeCompare(String(a.occurred_at))).map(log=><div className="fp-event" key={log.id}><div className="fp-event-marker"><span className="fp-event-dot"></span></div><div><div className="fp-event-title">{logText[log.action]||log.action}</div><div className="fp-event-note">{fmtDate(log.occurred_at)}</div></div><div className="fp-event-note">{log.comment||'—'}<br/>{statusText[log.from_status]||log.from_status||'—'} → {statusText[log.to_status]||log.to_status||'—'}</div></div>)}</div>}</>}
+  return <div className="forge-product forge-bom"><style>{css}</style>{view==='list'?<BomListScreen/>:<DetailView/>}{toast&&<div className="fp-toast" role="status">{toast}</div>}<ForgeDialog open={!!dialog} title={dialog?.title} subtitle={dialog?.subtitle} error={dialog?.error} busy={busy} confirmLabel={dialog?.kind==='review'?(dialog.decision==='approve'?'确认通过':'确认退回'):dialog?.kind==='copy'?'创建新版本':'确认失效'} danger={dialog?.kind==='invalidate'||(dialog?.kind==='review'&&dialog.decision==='reject')} onCancel={()=>!busy&&setDialog(null)} onConfirm={confirmDialog}>{dialog?.kind==='review'&&<><div className="fp-field"><label>评审结论 <span className="fp-required">*</span></label><select className="fp-select" aria-label="评审结论" value={dialog.decision} onChange={e=>setDialog({...dialog,decision:e.target.value,error:''})}><option value="approve">同意</option><option value="reject">退回修改</option></select></div><div className="fp-field"><label>评审意见 <span className="fp-required">*</span></label><textarea className="fp-textarea" aria-label="评审意见" value={dialog.comment} onChange={e=>setDialog({...dialog,comment:e.target.value,error:''})} placeholder="说明评审依据或需要修改的内容"/></div></>}{dialog?.kind==='copy'&&<div className="fp-field"><label>版本变更说明 <span className="fp-required">*</span></label><textarea className="fp-textarea" aria-label="版本变更说明" value={dialog.change_note} onChange={e=>setDialog({...dialog,change_note:e.target.value,error:''})} placeholder="说明本次版本调整的原因和范围"/></div>}{dialog?.kind==='invalidate'&&<div className="fp-field"><label>失效原因 <span className="fp-required">*</span></label><textarea className="fp-textarea" aria-label="失效原因" value={dialog.reason} onChange={e=>setDialog({...dialog,reason:e.target.value,error:''})} placeholder="说明为什么停止使用这个版本"/></div>}</ForgeDialog></div>
 }
 export default App;
 `;
@@ -107,7 +153,7 @@ export default App;
 export const BomWorkspacePage = {
   name: 'page_bom_workspace',
   label: 'BOM管理',
-  description: '按 RISEMAP 页面结构实现的正式 BOM 工作台',
+  description: 'BOM 列表、版本、结构、评审与缺料分析工作台',
   icon: 'git-branch',
   type: 'app' as const,
   kind: 'react' as const,
