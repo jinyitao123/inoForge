@@ -31,6 +31,7 @@ export const PurchaseOrder = master('forge_purchase_order', '采购订单', 'sho
   responsible_id: owner(true), line_count: Field.number({ label: '物料数', min: 0, scale: 0, defaultValue: 0, readonly: true }),
   total_quantity: nonNegativeQuantity('采购总数量', true), total_amount: nonNegativeMoney('含税总额'),
   arrived_quantity: nonNegativeQuantity('已到货数量', true), inbound_quantity: nonNegativeQuantity('已入库数量', true),
+  returned_quantity: nonNegativeQuantity('已退货数量', true),
   status: { ...select('订单状态', [
     ['draft', '草稿'], ['pending_approval', '待审核'], ['approved', '已审核'], ['partially_arrived', '部分到货'], ['arrived', '已到货'],
     ['completed', '已完成'], ['rejected', '已驳回'], ['cancelled', '已取消'],
@@ -45,6 +46,7 @@ export const PurchaseOrderLine = master('forge_purchase_order_line', '采购订�
   specification: text('规格'), unit_name: text('单位'), quantity: positiveQuantity(),
   arrived_quantity: nonNegativeQuantity('已到货数量', true), inspected_quantity: nonNegativeQuantity('已检验数量', true),
   accepted_quantity: nonNegativeQuantity('合格数量', true), inbound_quantity: nonNegativeQuantity('已入库数量', true),
+  returned_quantity: nonNegativeQuantity('已退货数量', true),
   taxed_unit_price: nonNegativeMoney('含税单价'), untaxed_unit_price: nonNegativeMoney('不含税单价'),
   tax_rate: percentage('税率'), taxed_subtotal: nonNegativeMoney('含税小计'),
   source_bom_id: reference('forge_bom', '来源BOM'), source_analysis_line_id: reference('forge_bom_shortage_line', '来源缺料明细'),
@@ -168,3 +170,55 @@ export const PurchaseInboundApprovalLog = master('forge_purchase_inbound_approva
   action: select('动作', [['submitted', '提交审批'], ['approved', '审批通过'], ['stocked', '执行入库']]), from_status: text('原状态'), to_status: text('新状态'),
   comment: Field.textarea({ label: '意见' }), occurred_at: Field.datetime({ label: '操作时间', ...required, readonly: true }), operator_id: Field.user({ label: '操作人', ...required, readonly: true }),
 }, ['inbound_id', 'action', 'from_status', 'to_status', 'comment', 'operator_id', 'occurred_at']);
+
+// RM-022 / DR-0055 to DR-0058: return-refund and replacement share the source order,
+// but this first slice executes the observable return-refund path only.
+export const PurchaseReturn = master('forge_purchase_return', '采购退换货', 'rotate-ccw', {
+  name: text('退货名称', true), code: code('退货单号'), order_id: reference('forge_purchase_order', '关联采购订单', true),
+  supplier_id: reference('forge_supplier', '供应商', true), processing_type: select('处理方式', [['return_refund', '退货退款'], ['replacement', '换货补货']], 'return_refund'),
+  return_on: Field.date({ label: '退货日期', ...required }), expected_replenishment_on: Field.date({ label: '预计补货日期' }),
+  refund_method: select('退款方式', [['bank_transfer', '银行转账'], ['wire_transfer', '电汇'], ['cash', '现金'], ['other', '其他']], 'bank_transfer'),
+  currency: select('币种', [['cny', '人民币'], ['usd', '美元'], ['eur', '欧元']], 'cny'), exchange_rate: Field.number({ label: '汇率', min: 0.000001, scale: 6, defaultValue: 1 }),
+  reason: Field.textarea({ label: '退货原因', ...required }), warehouse_id: reference('forge_warehouse', '退货仓库', true),
+  return_address: text('退货地址'), contact_name: text('退货联系人'), contact_phone: text('联系电话'),
+  line_count: Field.number({ label: '物料数', min: 0, scale: 0, readonly: true }), total_quantity: nonNegativeQuantity('退货数量', true),
+  reference_amount: { ...nonNegativeMoney('退款/参考货值'), readonly: true }, actual_refund_amount: { ...nonNegativeMoney('实退金额'), readonly: true },
+  status: { ...select('退货状态', [['draft', '草稿'], ['pending_review', '待审批'], ['approved', '已审批'], ['warehouse_confirmed', '仓库已确认'], ['pending_refund', '待退款'], ['completed', '已完成'], ['rejected', '已驳回'], ['cancelled', '已取消']], 'draft'), readonly: true },
+  finance_status: { ...select('财务审批', [['pending', '待审批'], ['approved', '已审批'], ['rejected', '已驳回']], 'pending'), readonly: true },
+  warehouse_status: { ...select('仓库确认', [['pending', '待确认'], ['confirmed', '已确认']], 'pending'), readonly: true },
+  outbound_status: { ...select('退货出库', [['pending', '待出库'], ['outbounded', '已出库']], 'pending'), readonly: true },
+  refund_status: { ...select('供应商退款', [['pending', '待退款'], ['received', '已收款']], 'pending'), readonly: true },
+  account_id: reference('forge_fund_account', '退款收款账户'), bank_reference: text('银行流水号'),
+  submitted_by: Field.user({ label: '提交人', readonly: true }), submitted_at: Field.datetime({ label: '提交时间', readonly: true }),
+  approved_by: Field.user({ label: '审批人', readonly: true }), approved_at: Field.datetime({ label: '审批时间', readonly: true }), approval_comment: Field.textarea({ label: '审批意见', readonly: true }),
+  warehouse_confirmed_by: Field.user({ label: '仓库确认人', readonly: true }), warehouse_confirmed_at: Field.datetime({ label: '仓库确认时间', readonly: true }),
+  warehouse_comment: Field.textarea({ label: '仓库确认意见', readonly: true }), outbounded_by: Field.user({ label: '出库人', readonly: true }),
+  outbounded_at: Field.datetime({ label: '出库时间', readonly: true }), outbound_comment: Field.textarea({ label: '出库意见', readonly: true }),
+  responsible_id: owner(true), remarks: remarks(),
+}, ['code', 'order_id', 'supplier_id', 'processing_type', 'reason', 'line_count', 'total_quantity', 'reference_amount', 'status', 'return_on']);
+
+export const PurchaseReturnLine = master('forge_purchase_return_line', '采购退货明细', 'list', {
+  name: text('物料名称', true), return_id: reference('forge_purchase_return', '采购退货单', true), order_id: reference('forge_purchase_order', '采购订单', true),
+  order_line_id: reference('forge_purchase_order_line', '采购订单明细', true), supplier_id: reference('forge_supplier', '供应商', true),
+  warehouse_id: reference('forge_warehouse', '退货仓库', true), sku_id: reference('forge_material_sku', '物料规格', true), item_code: text('物料编码'),
+  model: text('型号'), specification: text('规格'), unit_name: text('单位'), requested_quantity: positiveQuantity('申请退货数量'),
+  confirmed_quantity: nonNegativeQuantity('仓库确认数量', true), outbounded_quantity: nonNegativeQuantity('已出库数量', true),
+  taxed_unit_price: nonNegativeMoney('含税单价'), reference_amount: nonNegativeMoney('参考货值'),
+  status: { ...select('明细状态', [['draft', '草稿'], ['pending_review', '待审批'], ['approved', '已审批'], ['warehouse_confirmed', '仓库已确认'], ['outbounded', '已出库'], ['rejected', '已驳回']], 'draft'), readonly: true },
+  remarks: remarks(),
+}, ['return_id', 'order_id', 'item_code', 'name', 'requested_quantity', 'confirmed_quantity', 'outbounded_quantity', 'reference_amount', 'status']);
+
+export const PurchaseReturnApprovalLog = master('forge_purchase_return_approval_log', '采购退货审批记录', 'history', {
+  name: text('记录名称', true), event_key: code('事件键'), return_id: reference('forge_purchase_return', '采购退货单', true),
+  action: select('动作', [['submitted', '提交申请'], ['approved', '财务审批通过'], ['rejected', '驳回'], ['warehouse_confirmed', '仓库确认'], ['outbounded', '退货出库'], ['refund_received', '退款到账']]),
+  from_status: text('原状态'), to_status: text('新状态'), comment: Field.textarea({ label: '意见' }),
+  occurred_at: Field.datetime({ label: '操作时间', ...required, readonly: true }), operator_id: Field.user({ label: '操作人', ...required, readonly: true }),
+}, ['return_id', 'action', 'from_status', 'to_status', 'comment', 'operator_id', 'occurred_at']);
+
+export const PurchaseReturnRefundReceipt = master('forge_purchase_return_refund_receipt', '采购退货退款流水', 'badge-dollar-sign', {
+  name: text('退款流水名称', true), code: code('退款流水号'), return_id: reference('forge_purchase_return', '采购退货单', true),
+  order_id: reference('forge_purchase_order', '采购订单', true), supplier_id: reference('forge_supplier', '供应商', true),
+  account_id: reference('forge_fund_account', '收款账户', true), received_on: Field.date({ label: '到账日期', ...required }),
+  amount: nonNegativeMoney('实退金额'), refund_method: select('退款方式', [['bank_transfer', '银行转账'], ['wire_transfer', '电汇'], ['cash', '现金'], ['other', '其他']], 'bank_transfer'),
+  bank_reference: text('银行流水号'), status: { ...select('流水状态', [['received', '已收款']], 'received'), readonly: true }, responsible_id: owner(true), remarks: remarks(),
+}, ['code', 'return_id', 'order_id', 'supplier_id', 'account_id', 'received_on', 'amount', 'refund_method', 'status']);
