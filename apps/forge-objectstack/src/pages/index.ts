@@ -21,3 +21,4 @@ export * from './counterparty-reconciliation.page.js';
 export * from './project-plan-workspace.page.js';
 export * from './bank-flow.page.js';
 export * from './opening-balance.page.js';
+export * from './bank-statement.page.js';
