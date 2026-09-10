@@ -71,3 +71,21 @@ export const CustomerDrawing = master('forge_customer_drawing', '客户图纸', 
 export const DrawingOperationLog = master('forge_drawing_operation_log', '图纸操作日志', 'history', {
   name: text('日志名称', true), event_key: code('事件编号'), drawing_id: reference('forge_drawing', '图号档案', true), related_object: text('关联对象'), related_id: text('关联记录'), action: text('动作'), actor_id: Field.user({ label: '操作人', ...required }), occurred_at: Field.datetime({ label: '操作时间', ...required }), from_status: text('原状态'), to_status: text('新状态'), comment: Field.textarea({ label: '说明' }),
 }, ['occurred_at','drawing_id','related_object','action','actor_id','from_status','to_status','comment']);
+
+// RM-079 supports forward inspection from a drawing into its business references.
+// The version snapshot is immutable: downstream documents keep the version they actually used.
+export const DrawingBusinessLink = master('forge_drawing_business_link', '图纸业务关联', 'link', {
+  name: text('关联名称', true), code: code('关联编号'), drawing_id: reference('forge_drawing', '图号档案', true), version_id: reference('forge_drawing_version', '冻结版本', true),
+  frozen_version: { ...text('冻结版本号', true), readonly: true }, link_type: select('关联类型', [['material','物料'],['bom','BOM'],['project','项目'],['purchase_order','采购订单'],['assembly_order','组装单']]),
+  material_id: reference('forge_material', '关联物料'), bom_id: reference('forge_bom', '关联BOM'), project_id: reference('forge_project', '关联项目'), purchase_order_id: reference('forge_purchase_order', '关联采购订单'), assembly_order_id: reference('forge_assembly_order', '关联组装单'),
+  target_code: { ...text('对象编号'), readonly: true }, target_name: { ...text('对象名称'), readonly: true }, purpose: Field.textarea({ label: '使用目的' }),
+  status: { ...select('关联状态', [['active','使用中'],['needs_review','待版本复核'],['replaced','已替代'],['obsolete','已解除']], 'active'), readonly: true },
+  frozen_at: Field.datetime({ label: '冻结时间', readonly: true }), frozen_by: Field.user({ label: '冻结人', readonly: true }), replaced_by_link_id: reference('forge_drawing_business_link', '替代关联'), obsolete_reason: Field.textarea({ label: '解除原因', readonly: true }), remarks: remarks(),
+}, ['drawing_id','frozen_version','link_type','target_code','target_name','status','frozen_at']);
+
+export const DrawingChangeImpact = master('forge_drawing_change_impact', '图纸变更影响', 'scan-search', {
+  name: text('影响项名称', true), change_id: reference('forge_drawing_change', '图纸变更', true), link_id: reference('forge_drawing_business_link', '来源关联', true), drawing_id: reference('forge_drawing', '图号档案', true),
+  link_type: text('影响对象类型', true), target_code: text('对象编号'), target_name: text('对象名称'), frozen_version: text('原冻结版本', true),
+  status: { ...select('处置状态', [['pending','待评估'],['adopt_new','采纳新版本'],['keep_old','保留旧版本'],['not_affected','确认不受影响'],['mitigated','已采取措施']], 'pending'), readonly: true },
+  assessment: Field.textarea({ label: '影响评估', readonly: true }), resolved_at: Field.datetime({ label: '处置时间', readonly: true }), resolved_by: Field.user({ label: '处置人', readonly: true }),
+}, ['change_id','link_type','target_code','target_name','frozen_version','status','resolved_at']);

@@ -127,6 +127,9 @@
     ,"acceptance:drawing-lifecycle": "node tests/drawing-lifecycle.integration.mjs"
     ,"acceptance:drawing-lifecycle-ui-readback": "node tests/drawing-lifecycle-ui-readback.mjs"
     ,"acceptance:drawing-lifecycle-restart": "node tests/drawing-lifecycle-restart-readback.mjs"
+    ,"acceptance:drawing-linkage": "node tests/drawing-linkage.integration.mjs"
+    ,"acceptance:drawing-linkage-ui-readback": "node tests/drawing-linkage-ui-readback.mjs"
+    ,"acceptance:drawing-linkage-restart": "node tests/drawing-linkage-restart-readback.mjs"
   },
   "dependencies": {
     "@objectstack/spec": "17.3.0",

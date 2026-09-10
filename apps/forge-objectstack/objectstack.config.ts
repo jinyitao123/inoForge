@@ -75,6 +75,8 @@ export default defineStack({
             object('drawing_releases', '图纸发布', 'forge_drawing_release', 'send'),
             object('drawing_changes', '图纸变更', 'forge_drawing_change', 'git-pull-request-arrow'),
             object('drawing_distributions', '图纸发放记录', 'forge_drawing_distribution', 'share-2'),
+            object('drawing_business_links', '图纸业务关联', 'forge_drawing_business_link', 'link'),
+            object('drawing_change_impacts', '图纸变更影响', 'forge_drawing_change_impact', 'scan-search'),
             object('customer_drawings', '客户图纸', 'forge_customer_drawing', 'file-input'),
             object('drawing_logs', '图纸操作日志', 'forge_drawing_operation_log', 'history'),
           ]),
