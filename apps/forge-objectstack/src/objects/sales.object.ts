@@ -5,7 +5,7 @@ const positiveQuantity = (label = '数量') => Field.number({ label, min: 0.0001
 const percentage = (label: string, defaultValue = 0) => Field.number({ label, min: 0, max: 100, scale: 4, defaultValue });
 const nonNegativeMoney = (label: string, scale = 4) => Field.currency({ label, precision: 18, scale, min: 0 });
 const paymentMethod = () => choice('付款方式', ['银行转账', '支付宝', '微信支付', '现金', '支票', '其他', '电汇', '承兑汇票', '在线支付', '信用证'], '银行转账');
-const revenueTrigger = () => choice('收入确认方式', ['按发货出库', '按开票', '按里程碑', '按周期', '手动确认'], '按发货出库');
+const revenueTrigger = () => choice('收入确认方式', ['按发货出库', '按开票', '按里程碑', '按验收', '按周期', '手动确认'], '按发货出库');
 
 // Runtime-observed prerequisites: RM-059 / DR-0291 to DR-0294.
 export const QuotationType = dictionary('forge_quotation_type', '报价类型');
@@ -76,7 +76,7 @@ export const SalesOrder = master('forge_sales_order', '销售订单', 'clipboard
   quotation_id: reference('forge_quotation', '来源报价单'), project_name: text('所属项目'),
   planned_delivery_on: Field.date({ label: '计划交货日期', ...required }), responsible_id: owner(true),
   use_credit: Field.boolean({ label: '使用授信额度', defaultValue: false }), payment_term: text('付款条件', true), payment_method: paymentMethod(),
-  revenue_trigger: revenueTrigger(), total_amount: nonNegativeMoney('订单含税金额'),
+  revenue_trigger: revenueTrigger(), total_amount: nonNegativeMoney('订单含税金额'), recognized_amount: nonNegativeMoney('已确认收入'),
   invoiced_amount: nonNegativeMoney('已开票金额'), shipped_amount: nonNegativeMoney('已发货金额'), collected_amount: nonNegativeMoney('已回款金额'),
   shipment_count: Field.number({ label: '发货单数', min: 0, scale: 0, defaultValue: 0, readonly: true }),
   planned_shipment_amount: nonNegativeMoney('已建发货单金额'),
@@ -129,5 +129,6 @@ export const SalesOutbound = master('forge_sales_outbound', '销售出库单', '
   after_on_hand: Field.number({ label: '出库后库存', min: 0, scale: 4, readonly: true }),
   unit_cost: { ...nonNegativeMoney('含税单位成本'), readonly: true },
   inventory_amount: { ...nonNegativeMoney('库存含税金额'), readonly: true },
+  revenue_status: { ...choice('收入确认', ['待确认', '待审批', '已审批', '已驳回'], '待确认'), readonly: true },
   status: { ...choice('出库单状态', ['草稿', '已出库', '已取消'], '已出库'), readonly: true }, responsible_id: owner(true), remarks: remarks(),
 }, ['code', 'name', 'shipment_id', 'order_id', 'warehouse_id', 'sku_id', 'outbound_on', 'quantity', 'available_quantity', 'before_on_hand', 'after_on_hand', 'inventory_amount', 'status']);
