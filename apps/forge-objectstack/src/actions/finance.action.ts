@@ -202,6 +202,36 @@ return { id, receivable_id: receivable.id, invoice_id: invoice.id, order_id: ord
 ` },
 });
 
+export const CollectionAllocationReverse = defineAction({
+  name: 'collection_allocation_reverse', label: '反核销', objectName: 'forge_collection_allocation', icon: 'rotate-ccw',
+  locations: [...locations], order: 40, visible: `record.status == 'approved'`, refreshAfter: true,
+  description: '撤回已审核收款核销，恢复应收、发票和订单余额，并把金额退回原收款流水的未分配余额。', successMessage: '收款核销已撤回',
+  params: [{ name: 'reversal_reason', label: '反核销原因', type: 'textarea', required: true }],
+  body: { language: 'js', capabilities: ['api.read', 'api.write'], source: `
+const id=ctx.recordId||(ctx.record&&ctx.record.id),allocation=ctx.record,actor=ctx.session&&ctx.session.userId,reason=String(ctx.input.reversal_reason||'').trim();
+if(ctx.recordLoadDenied===true||!id||!allocation)throw new Error('当前收款核销不存在或不可访问');if(!actor)throw new Error('无法识别当前操作人');if(allocation.status!=='approved')throw new Error('仅已审核核销可以反核销');if(!reason)throw new Error('反核销原因不能为空');
+const [receivable,invoice,order,receipt]=await Promise.all([ctx.api.object('forge_accounts_receivable').findOne({where:{id:allocation.receivable_id}}),ctx.api.object('forge_sales_invoice').findOne({where:{id:allocation.invoice_id}}),ctx.api.object('forge_sales_order').findOne({where:{id:allocation.order_id}}),ctx.api.object('forge_cash_receipt').findOne({where:{id:allocation.receipt_id}})]);if(!receivable||!invoice||!order||!receipt)throw new Error('反核销关联账目不完整');
+const links=await ctx.api.object('forge_project_sales_link').find({where:{order_id:order.id}});for(const link of links){const settled=await ctx.api.object('forge_project_settlement').find({where:{project_id:link.project_id,status:'settled'}});if(settled.length)throw new Error('订单所属项目已结算，需先执行结算调整');}
+const peers=await ctx.api.object('forge_collection_allocation').find({where:{receivable_id:receivable.id}}),later=peers.filter(x=>x.id!==id&&x.status==='approved'&&String(x.approved_at||x.created_at||'')>String(allocation.approved_at||allocation.created_at||''));if(later.length)throw new Error('请按审核时间从后向前反核销');
+const round4=v=>Math.round((Number(v)+Number.EPSILON)*10000)/10000,amount=round4(allocation.amount),arCollected=round4(Number(receivable.collected_amount||0)-amount),invoiceCollected=round4(Number(invoice.collected_amount||0)-amount),orderCollected=round4(Number(order.collected_amount||0)-amount);if(arCollected<0||invoiceCollected<0||orderCollected<0)throw new Error('当前已收金额不足以反核销');const now=new Date().toISOString();
+await ctx.api.object('forge_accounts_receivable').update({id:receivable.id,collected_amount:arCollected,outstanding_amount:round4(Number(receivable.outstanding_amount||0)+amount),status:arCollected>0?'partially_collected':'unpaid'});await ctx.api.object('forge_sales_invoice').update({id:invoice.id,collected_amount:invoiceCollected,outstanding_amount:round4(Number(invoice.outstanding_amount||0)+amount),status:'issued'});await ctx.api.object('forge_sales_order').update({id:order.id,collected_amount:orderCollected});if(allocation.contract_id){const contract=await ctx.api.object('forge_sales_contract').findOne({where:{id:allocation.contract_id}});if(contract)await ctx.api.object('forge_sales_contract').update({id:contract.id,collected_amount:round4(Number(contract.collected_amount||0)-amount)});}
+const receiptAllocated=round4(Number(receipt.allocated_amount||0)-amount),receiptUnallocated=round4(Number(receipt.unallocated_amount||0)+amount);if(receiptAllocated<0)throw new Error('收款流水已分配金额不足');await ctx.api.object('forge_cash_receipt').update({id:receipt.id,allocated_amount:receiptAllocated,unallocated_amount:receiptUnallocated,status:receiptAllocated>0?'partially_allocated':'unallocated'});await ctx.api.object('forge_collection_allocation').update({id,status:'reversed',reversed_by:actor,reversed_at:now,reversal_reason:reason});
+for(const link of links){await ctx.api.object('forge_project_sales_link').update({id:link.id,collected_amount:orderCollected});const projectLinks=await ctx.api.object('forge_project_sales_link').find({where:{project_id:link.project_id}}),projectCollected=round4(projectLinks.reduce((s,x)=>s+Number(x.id===link.id?orderCollected:x.collected_amount||0),0));await ctx.api.object('forge_project').update({id:link.project_id,collected_amount:projectCollected});}
+await ctx.api.object('forge_collection_reversal_log').insert({name:allocation.code+' 反核销',event_key:allocation.code+'-REVERSE',receipt_id:receipt.id,allocation_id:id,action:'writeoff_reversed',amount,reason,occurred_at:now,operator_id:actor});return{id,status:'reversed',receipt_id:receipt.id,amount,receivable_outstanding:round4(Number(receivable.outstanding_amount||0)+amount),receipt_unallocated:receiptUnallocated};
+` },
+});
+
+export const CashReceiptReverse = defineAction({
+  name: 'cash_receipt_reverse', label: '撤销到账', objectName: 'forge_cash_receipt', icon: 'undo-2', locations: [...locations], order: 50,
+  visible: `record.status == 'unallocated' || record.status == 'partially_allocated'`, refreshAfter: true,
+  description: '在全部分配已取消或反核销后撤销实际到账，并从原资金账户扣回同额余额。', successMessage: '收款到账已撤销',
+  params: [{ name: 'reversal_reason', label: '撤销原因', type: 'textarea', required: true }],
+  body: { language: 'js', capabilities: ['api.read', 'api.write'], source: `
+const id=ctx.recordId||(ctx.record&&ctx.record.id),receipt=ctx.record,actor=ctx.session&&ctx.session.userId,reason=String(ctx.input.reversal_reason||'').trim();if(ctx.recordLoadDenied===true||!id||!receipt)throw new Error('当前收款流水不存在或不可访问');if(!actor)throw new Error('无法识别当前操作人');if(!['unallocated','partially_allocated'].includes(receipt.status))throw new Error('仅无有效分配的收款流水可以撤销');if(!reason)throw new Error('撤销原因不能为空');
+const allocations=await ctx.api.object('forge_collection_allocation').find({where:{receipt_id:id}});if(allocations.some(x=>['pending_review','approved'].includes(x.status))||Number(receipt.allocated_amount||0)>0)throw new Error('请先取消分配或反核销');const account=await ctx.api.object('forge_fund_account').findOne({where:{id:receipt.account_id}}),amount=Number(receipt.amount||0);if(!account)throw new Error('收款账户不存在');const current=account.current_balance==null?Number(account.opening_balance||0):Number(account.current_balance);if(current+0.0001<amount)throw new Error('资金账户余额不足，无法撤销到账');const now=new Date().toISOString();await ctx.api.object('forge_fund_account').update({id:account.id,current_balance:Math.round((current-amount+Number.EPSILON)*10000)/10000});await ctx.api.object('forge_cash_receipt').update({id,status:'reversed',allocated_amount:0,unallocated_amount:0,reversed_by:actor,reversed_at:now,reversal_reason:reason});await ctx.api.object('forge_collection_reversal_log').insert({name:receipt.code+' 撤销到账',event_key:receipt.code+'-REVERSE',receipt_id:id,allocation_id:null,action:'receipt_reversed',amount,reason,occurred_at:now,operator_id:actor});return{id,status:'reversed',amount,account_id:account.id,account_balance:Math.round((current-amount+Number.EPSILON)*10000)/10000};
+` },
+});
+
 export const ProjectSettle = defineAction({
   name: 'project_settle', label: '项目结算', objectName: 'forge_project', icon: 'chart-no-axes-combined',
   locations: [...locations], order: 90, visible: `record.status == 'completed'`, refreshAfter: true,

@@ -100,6 +100,9 @@
     ,"acceptance:revenue-recognition": "node tests/revenue-recognition.integration.mjs"
     ,"acceptance:revenue-recognition-ui-readback": "node tests/revenue-recognition-ui-readback.mjs"
     ,"acceptance:revenue-recognition-restart": "node tests/revenue-recognition-restart-readback.mjs"
+    ,"acceptance:collection-reversal": "node tests/collection-reversal.integration.mjs"
+    ,"acceptance:collection-reversal-ui-readback": "node tests/collection-reversal-ui-readback.mjs"
+    ,"acceptance:collection-reversal-restart": "node tests/collection-reversal-restart-readback.mjs"
   },
   "dependencies": {
     "@objectstack/spec": "17.3.0",
