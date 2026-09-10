@@ -13,3 +13,4 @@ export * from './project-timesheet-cost.page.js';
 export * from './project-expense-cost.page.js';
 export * from './purchase-payment.page.js';
 export * from './supplier-refund.page.js';
+export * from './customer-prepayment.page.js';
