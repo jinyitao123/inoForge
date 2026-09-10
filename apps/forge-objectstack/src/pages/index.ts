@@ -18,3 +18,4 @@ export * from './purchase-return.page.js';
 export * from './revenue-recognition.page.js';
 export * from './invoice-reversal.page.js';
 export * from './counterparty-reconciliation.page.js';
+export * from './project-plan-workspace.page.js';
