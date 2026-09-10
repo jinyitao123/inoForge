@@ -15,3 +15,5 @@ export * from './purchase-payment.page.js';
 export * from './supplier-refund.page.js';
 export * from './customer-prepayment.page.js';
 export * from './purchase-return.page.js';
+export * from './revenue-recognition.page.js';
+export * from './invoice-reversal.page.js';

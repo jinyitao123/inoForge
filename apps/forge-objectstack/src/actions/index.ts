@@ -16,3 +16,4 @@ export * from './prepayment.action.js';
 export * from './customer-prepayment.action.js';
 export * from './purchase-return.action.js';
 export * from './purchase-replacement.action.js';
+export * from './revenue-recognition.action.js';
