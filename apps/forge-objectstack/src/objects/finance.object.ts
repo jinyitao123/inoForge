@@ -115,9 +115,11 @@ export const CashReceipt = master('forge_cash_receipt', '收款流水', 'badge-d
   unallocated_amount: { ...amount('未分配金额'), readonly: true },
   status: { ...Field.select([
     { value: 'unallocated', label: '待分配' }, { value: 'partially_allocated', label: '部分分配' },
-    { value: 'pending_review', label: '待审核' }, { value: 'allocated', label: '已分配' },
+    { value: 'pending_review', label: '待审核' }, { value: 'allocated', label: '已分配' }, { value: 'reversed', label: '已撤销' },
   ], { label: '分配状态', defaultValue: 'unallocated' }), readonly: true },
-  counterpart_reference: text('对方流水号'), responsible_id: owner(true), remarks: remarks(),
+  counterpart_reference: text('对方流水号'), reversed_by: Field.user({ label: '撤销人', readonly: true }),
+  reversed_at: Field.datetime({ label: '撤销时间', readonly: true }), reversal_reason: Field.textarea({ label: '撤销原因', readonly: true }),
+  responsible_id: owner(true), remarks: remarks(),
 }, ['code', 'customer_id', 'received_on', 'payment_method', 'account_id', 'amount', 'allocated_amount', 'unallocated_amount', 'status']);
 
 export const CollectionAllocation = master('forge_collection_allocation', '收款核销', 'badge-check', {
@@ -127,10 +129,20 @@ export const CollectionAllocation = master('forge_collection_allocation', '收�
   customer_id: reference('forge_customer', '客户', true), allocated_on: Field.date({ label: '分配日期', ...required }),
   amount: amount('核销金额'), status: { ...Field.select([
     { value: 'pending_review', label: '待审核' }, { value: 'approved', label: '已审核' },
-    { value: 'cancelled', label: '已取消' },
+    { value: 'cancelled', label: '已取消' }, { value: 'reversed', label: '已反核销' },
   ], { label: '核销状态', defaultValue: 'pending_review' }), readonly: true },
-  approved_at: { ...Field.datetime({ label: '审核时间' }), readonly: true }, responsible_id: owner(true), remarks: remarks(),
+  approved_at: { ...Field.datetime({ label: '审核时间' }), readonly: true }, reversed_by: Field.user({ label: '反核销人', readonly: true }),
+  reversed_at: Field.datetime({ label: '反核销时间', readonly: true }), reversal_reason: Field.textarea({ label: '反核销原因', readonly: true }),
+  responsible_id: owner(true), remarks: remarks(),
 }, ['code', 'receipt_id', 'receivable_id', 'customer_id', 'order_id', 'allocated_on', 'amount', 'status', 'responsible_id']);
+
+export const CollectionReversalLog = master('forge_collection_reversal_log', '收款撤销记录', 'history', {
+  name: text('记录名称', true), event_key: code('事件键'), receipt_id: reference('forge_cash_receipt', '收款流水', true),
+  allocation_id: reference('forge_collection_allocation', '收款核销'), action: Field.select([
+    { value: 'writeoff_reversed', label: '反核销' }, { value: 'receipt_reversed', label: '撤销到账' },
+  ], { label: '动作', ...required }), amount: amount('金额'), reason: Field.textarea({ label: '原因', ...required }),
+  occurred_at: Field.datetime({ label: '操作时间', ...required, readonly: true }), operator_id: Field.user({ label: '操作人', ...required, readonly: true }),
+}, ['receipt_id', 'allocation_id', 'action', 'amount', 'reason', 'operator_id', 'occurred_at']);
 
 export const CustomerPrepayment = master('forge_customer_prepayment', '客户预收款', 'landmark', {
   name: text('预收款名称', true), code: code('预收款编号'), customer_id: reference('forge_customer', '客户', true),
