@@ -103,6 +103,9 @@
     ,"acceptance:collection-reversal": "node tests/collection-reversal.integration.mjs"
     ,"acceptance:collection-reversal-ui-readback": "node tests/collection-reversal-ui-readback.mjs"
     ,"acceptance:collection-reversal-restart": "node tests/collection-reversal-restart-readback.mjs"
+    ,"acceptance:payment-reversal": "node tests/payment-reversal.integration.mjs"
+    ,"acceptance:payment-reversal-ui-readback": "node tests/payment-reversal-ui-readback.mjs"
+    ,"acceptance:payment-reversal-restart": "node tests/payment-reversal-restart-readback.mjs"
   },
   "dependencies": {
     "@objectstack/spec": "17.3.0",
