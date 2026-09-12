@@ -27,5 +27,6 @@ export * from './subcontract-workspace.page.js';
 export * from './subcontract-issue.page.js';
 export * from './subcontract-receipt.page.js';
 export * from './subcontract-ncr.page.js';
+export * from './subcontract-reconciliation.page.js';
 export * from './subcontract-reconciliation-recovery-status.page.js';
 export * from './navigation-recovery-status.page.js';
