@@ -95,7 +95,8 @@ export default defineStack({
             page('drawing_workspace', '图纸管理', 'page_drawing_workspace', 'ruler'),
           ]),
           group('subcontract_management', '委外管理', [
-            page('subcontract_workspace', '委外看板与订单', 'page_subcontract_workspace', 'layout-dashboard'),
+            page('subcontract_dashboard', '委外看板', 'page_subcontract_dashboard', 'layout-dashboard'),
+            page('subcontract_workspace', '委外订单', 'page_subcontract_workspace', 'clipboard-list'),
             page('subcontract_issues', '委外发料', 'page_subcontract_issue_workspace', 'package-minus'),
             page('subcontract_receipts', '委外回厂', 'page_subcontract_receipt_workspace', 'package-check'),
             page('subcontract_ncr', '委外不合格处理', 'page_subcontract_ncr_workspace', 'triangle-alert'),
