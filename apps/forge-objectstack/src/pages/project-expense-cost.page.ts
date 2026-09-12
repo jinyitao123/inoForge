@@ -1,4 +1,4 @@
-import { forgeProductUiCss } from './product-ui.js';
+import { forgeProductUiCss, forgeProductUiRuntime } from './product-ui.js';
 
 const projectExpenseCostSource = `
 function App(){
@@ -23,15 +23,15 @@ function App(){
     {data.error&&<div className="notice">{data.error}</div>}
     <div className="cards"><div className="card"><span className="pill">费用申请</span><div className="kpi">{projectExpenses.length}</div><div className="muted">当前项目</div></div><div className="card"><span className="pill">待审核</span><div className="kpi">{pending}</div><div className="muted">等待审批</div></div><div className="card"><span className="pill">已通过费用</span><div className="kpi">{money(approvedTotal)}</div><div className="muted">报销单口径</div></div><div className="card"><span className="pill">成本池</span><div className="kpi">{money(expenseCosts.reduce((sum,x)=>sum+Number(x.allocated_amount||0),0))}</div><div className="muted">逐项可追溯</div></div></div>
     <div className="card"><h2>填报项目费用</h2><div className="form">
-      <div className="field"><label>项目 *</label><select aria-label="费用项目" value={form.project_id} onChange={event=>{const next=data.projects.find(x=>x.id===event.target.value);setForm({...form,project_id:event.target.value,beneficiary_id:''});}}><option value="">请选择</option>{data.projects.map(x=><option key={x.id} value={x.id}>{x.code} · {x.name}</option>)}</select></div>
-      <div className="field"><label>报销人 *</label><select aria-label="费用报销人" value={form.beneficiary_id} onChange={event=>setForm({...form,beneficiary_id:event.target.value})}><option value="">请选择</option>{members.map(x=><option key={x.id} value={x.user_id}>{x.name} · {x.member_duty==='manager'?'项目经理':'项目成员'}</option>)}</select></div>
+      <div className="field"><label>项目 *</label><ForgeSelectControl aria-label="费用项目" value={form.project_id} onChange={event=>{const next=data.projects.find(x=>x.id===event.target.value);setForm({...form,project_id:event.target.value,beneficiary_id:''});}}><option value="">请选择</option>{data.projects.map(x=><option key={x.id} value={x.id}>{x.code} · {x.name}</option>)}</ForgeSelectControl></div>
+      <div className="field"><label>报销人 *</label><ForgeSelectControl aria-label="费用报销人" value={form.beneficiary_id} onChange={event=>setForm({...form,beneficiary_id:event.target.value})}><option value="">请选择</option>{members.map(x=><option key={x.id} value={x.user_id}>{x.name} · {x.member_duty==='manager'?'项目经理':'项目成员'}</option>)}</ForgeSelectControl></div>
       <div className="field"><label>报销单号 *</label><input aria-label="报销单号" value={form.code} onChange={event=>setForm({...form,code:event.target.value})}/></div>
       <div className="field"><label>费用标题 *</label><input aria-label="费用标题" value={form.name} onChange={event=>setForm({...form,name:event.target.value})}/></div>
-      <div className="field"><label>报销类型 *</label><select aria-label="报销类型" value={form.claim_type} onChange={event=>setForm({...form,claim_type:event.target.value})}><option value="">请选择</option><option value="self">本人报销</option><option value="on_behalf">代人报销</option></select></div>
-      <div className="field"><label>供应商</label><select aria-label="费用供应商" value={form.supplier_id} onChange={event=>setForm({...form,supplier_id:event.target.value})}><option value="">不关联供应商</option>{data.suppliers.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select></div>
-      <div className="field"><label>期望付款日期</label><input aria-label="期望付款日期" type="date" value={form.expected_payment_on} onChange={event=>setForm({...form,expected_payment_on:event.target.value})}/></div>
-      <div className="field"><label>费用类别 *</label><select aria-label="费用类别" value={form.category} onChange={event=>setForm({...form,category:event.target.value})}><option value="">请选择</option>{Object.entries(categories).map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></div>
-      <div className="field"><label>发生日期 *</label><input aria-label="费用发生日期" type="date" value={form.occurred_on} onChange={event=>setForm({...form,occurred_on:event.target.value})}/></div>
+      <div className="field"><label>报销类型 *</label><ForgeSelectControl aria-label="报销类型" value={form.claim_type} onChange={event=>setForm({...form,claim_type:event.target.value})}><option value="">请选择</option><option value="self">本人报销</option><option value="on_behalf">代人报销</option></ForgeSelectControl></div>
+      <div className="field"><label>供应商</label><ForgeSelectControl aria-label="费用供应商" value={form.supplier_id} onChange={event=>setForm({...form,supplier_id:event.target.value})}><option value="">不关联供应商</option>{data.suppliers.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</ForgeSelectControl></div>
+      <div className="field"><label>期望付款日期</label><ForgeDateInput aria-label="期望付款日期"  value={form.expected_payment_on} onChange={event=>setForm({...form,expected_payment_on:event.target.value})}/></div>
+      <div className="field"><label>费用类别 *</label><ForgeSelectControl aria-label="费用类别" value={form.category} onChange={event=>setForm({...form,category:event.target.value})}><option value="">请选择</option>{Object.entries(categories).map(([value,label])=><option key={value} value={value}>{label}</option>)}</ForgeSelectControl></div>
+      <div className="field"><label>发生日期 *</label><ForgeDateInput aria-label="费用发生日期"  value={form.occurred_on} onChange={event=>setForm({...form,occurred_on:event.target.value})}/></div>
       <div className="field"><label>金额 *</label><input aria-label="费用金额" value={form.amount} onChange={event=>setForm({...form,amount:event.target.value})}/></div>
       <div className="field"><label>费用说明 *</label><textarea aria-label="费用说明" value={form.description} onChange={event=>setForm({...form,description:event.target.value})}/></div>
       <div className="field"><label>票据编号</label><input aria-label="票据编号" value={form.invoice_reference} onChange={event=>setForm({...form,invoice_reference:event.target.value})}/></div>
@@ -42,6 +42,8 @@ function App(){
     <div className="card"><h2>项目外部成本池</h2><div className="table"><table><thead><tr><th>成本编号</th><th>来源费用项</th><th>成本类型</th><th>发生日期</th><th>已归集金额</th><th>状态</th></tr></thead><tbody>{expenseCosts.map(cost=><tr key={cost.id}><td>{cost.code}</td><td>{data.lines.find(x=>x.id===cost.source_id)?.name||cost.source_id}</td><td>{costTypes[cost.cost_type]||cost.cost_type}</td><td>{cost.occurred_on}</td><td>{money(cost.allocated_amount)}</td><td><span className="pill">{status[cost.status]||cost.status}</span></td></tr>)}</tbody></table></div></div>
   </div></div>;
 }
-export default App;`;
+export default App;
+${forgeProductUiRuntime}
+`;
 
 export const ProjectExpenseCostPage = { name: 'page_project_expense_cost', label: '项目费用与成本归集', description: '制造、差旅、委外与其他项目费用的填报、审批和成本归集', icon: 'hand-coins', type: 'app' as const, kind: 'react' as const, source: projectExpenseCostSource };

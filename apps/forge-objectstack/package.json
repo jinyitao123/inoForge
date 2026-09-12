@@ -13,6 +13,7 @@
     "build": "objectstack build",
     "validate": "objectstack validate",
     "typecheck": "tsc --noEmit",
+    "acceptance:console-controls": "node tests/console-controls.static.mjs",
     "acceptance:master-data": "node tests/master-data.integration.mjs",
     "acceptance:sales": "node tests/sales-foundation.integration.mjs",
     "acceptance:sales-workflow": "node tests/sales-workflow.integration.mjs",
