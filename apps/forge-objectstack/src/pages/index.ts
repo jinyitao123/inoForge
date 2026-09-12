@@ -28,6 +28,7 @@ export * from './subcontract-issue.page.js';
 export * from './subcontract-receipt.page.js';
 export * from './subcontract-stock.page.js';
 export * from './subcontract-undelivered.page.js';
+export * from './subcontract-trace.page.js';
 export * from './subcontract-ncr.page.js';
 export * from './subcontract-reconciliation.page.js';
 export * from './subcontract-reconciliation-report.page.js';
