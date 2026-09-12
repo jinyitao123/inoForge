@@ -1,6 +1,6 @@
 # RISEMAP 菜单复刻挽回台账
 
-更新于 2026-09-12。基线为 Forge `main` 提交 `54e5e0f` 与已保存的 RISEMAP 181 个菜单入口清单。本轮只整理 Forge 主导航与信息架构，不删除已有对象、Action、页面或数据，不修改线上 RISEMAP 数据，也不把入口可见写成业务闭环通过。当前主线冻结审计见 `docs/forge-main-product-audit-20260912.md`。
+更新于 2026-09-12。基线为 Forge `main` 提交 `5640199` 与已保存的 RISEMAP 181 个菜单入口清单。本轮只整理 Forge 主导航与信息架构，不删除已有对象、Action、页面或数据，不修改线上 RISEMAP 数据，也不把入口可见写成业务闭环通过。当前主线冻结审计见 `docs/forge-main-product-audit-20260912.md`。
 
 ## 事实
 
