@@ -133,6 +133,9 @@
     ,"acceptance:drawing-multi-distribution": "node tests/drawing-multi-distribution.integration.mjs"
     ,"acceptance:drawing-multi-distribution-ui-readback": "node tests/drawing-multi-distribution-ui-readback.mjs"
     ,"acceptance:drawing-multi-distribution-restart": "node tests/drawing-multi-distribution-restart-readback.mjs"
+    ,"acceptance:customer-drawing-files": "node tests/customer-drawing-files.integration.mjs"
+    ,"acceptance:customer-drawing-files-ui-readback": "node tests/customer-drawing-files-ui-readback.mjs"
+    ,"acceptance:customer-drawing-files-restart": "node tests/customer-drawing-files-restart-readback.mjs"
   },
   "dependencies": {
     "@objectstack/spec": "17.3.0",
