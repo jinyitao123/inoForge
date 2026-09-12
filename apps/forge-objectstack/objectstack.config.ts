@@ -105,6 +105,7 @@ export default defineStack({
             object('subcontract_suppliers', '委外供应商', 'forge_subcontract_supplier_profile', 'factory'),
             page('subcontract_stock', '委外库存', 'page_subcontract_stock', 'warehouse'),
             page('subcontract_undelivered', '委外未交', 'page_subcontract_undelivered', 'list-todo'),
+            page('subcontract_trace', '批次追溯', 'page_subcontract_trace', 'search-check'),
           ]),
         ],
       },
