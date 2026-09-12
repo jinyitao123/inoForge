@@ -103,7 +103,7 @@ export default defineStack({
             page('subcontract_reconciliation', '委外对账', 'page_subcontract_reconciliation', 'file-check-2'),
             page('subcontract_reconciliation_report', '委外对账单', 'page_subcontract_reconciliation_report', 'file-chart-column'),
             object('subcontract_suppliers', '委外供应商', 'forge_subcontract_supplier_profile', 'factory'),
-            object('subcontract_stock', '委外库存', 'forge_subcontract_stock_balance', 'warehouse'),
+            page('subcontract_stock', '委外库存', 'page_subcontract_stock', 'warehouse'),
           ]),
         ],
       },
