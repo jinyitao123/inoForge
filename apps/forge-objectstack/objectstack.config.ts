@@ -106,6 +106,7 @@ export default defineStack({
             page('subcontract_stock', '委外库存', 'page_subcontract_stock', 'warehouse'),
             page('subcontract_undelivered', '委外未交', 'page_subcontract_undelivered', 'list-todo'),
             page('subcontract_trace', '批次追溯', 'page_subcontract_trace', 'search-check'),
+            page('subcontract_inbound_report', '委外进货', 'page_subcontract_inbound_report', 'package-search'),
           ]),
         ],
       },
