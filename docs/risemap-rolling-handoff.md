@@ -6,6 +6,8 @@
 
 Forge 当前实现与验证覆盖以 `docs/forge-verification-matrix.md` 为唯一汇总；本表保留 RISEMAP 取证和同输入业务进度。
 
+2026-09-12 完成 Console 业务页控件统一：27 个受影响路由中的 101 个原生下拉和 47 个原生日期/日期时间输入已迁移为页面内控件；源码及构建产物门禁同时禁止 `select`、`date`、`datetime-local` 与 `window.alert/confirm/prompt`。内置浏览器逐页确认 27 个路由可渲染，并在银行流水与银行对账页核对了下拉和日历的展开、选择、Enter、Escape 与焦点返回。多选控件沿用页面内列表框语义；文件上传仍由浏览器文件选择器承接。
+
 ## 状态定义
 
 | 状态 | 含义 |
