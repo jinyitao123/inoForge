@@ -130,6 +130,9 @@
     ,"acceptance:drawing-linkage": "node tests/drawing-linkage.integration.mjs"
     ,"acceptance:drawing-linkage-ui-readback": "node tests/drawing-linkage-ui-readback.mjs"
     ,"acceptance:drawing-linkage-restart": "node tests/drawing-linkage-restart-readback.mjs"
+    ,"acceptance:drawing-multi-distribution": "node tests/drawing-multi-distribution.integration.mjs"
+    ,"acceptance:drawing-multi-distribution-ui-readback": "node tests/drawing-multi-distribution-ui-readback.mjs"
+    ,"acceptance:drawing-multi-distribution-restart": "node tests/drawing-multi-distribution-restart-readback.mjs"
   },
   "dependencies": {
     "@objectstack/spec": "17.3.0",
