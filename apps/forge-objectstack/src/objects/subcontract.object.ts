@@ -120,6 +120,51 @@ export const SubcontractStockLedger = master('forge_subcontract_stock_ledger', '
   source_object: text('来源对象', true), source_id: text('来源记录 ID', true), source_line_id: text('来源明细 ID'), responsible_id: owner(true), remarks: remarks(),
 }, ['code','occurred_at','supplier_id','order_id','sku_id','direction','movement_type','quantity','before_on_hand','after_on_hand','source_object','source_id']);
 
+// RM-086: supplier-side material returns stay in a pending inbound document
+// until the source warehouse confirms the physical receipt.
+export const SubcontractReturn = master('forge_subcontract_return', '委外退料单', 'undo-2', {
+  name: text('退料单名称', true), code: code('退料单号'), order_id: reference('forge_subcontract_order', '关联委外订单', true),
+  supplier_id: reference('forge_supplier', '委外供应商', true), return_on: Field.date({ label: '退料日期', ...required }),
+  handler_id: Field.user({ label: '经办人', ...required }), warehouse_id: reference('forge_warehouse', '入库仓库', true),
+  reason: select('退料原因', [['excess_material','余料退回'],['engineering_change','工程变更'],['usable_scrap','可用废料回收'],['wrong_material','错发退回'],['other','其他']], 'excess_material'),
+  line_count: Field.number({ label: '物料种数', min: 0, scale: 0, defaultValue: 0, readonly: true }),
+  total_quantity: quantity('退料数量', true), total_amount: money('退料金额', true),
+  status: select('退料状态', [['draft','草稿'],['pending_inbound','待入库'],['stocked','已入库'],['cancelled','已作废']], 'draft'),
+  inbound_id: reference('forge_subcontract_return_inbound', '关联入库单'), confirmed_by: Field.user({ label: '确认人', readonly: true }),
+  confirmed_at: Field.datetime({ label: '确认时间', readonly: true }), stocked_by: Field.user({ label: '入库人', readonly: true }),
+  stocked_at: Field.datetime({ label: '入库时间', readonly: true }), responsible_id: owner(true), remarks: remarks(),
+}, ['code','supplier_id','order_id','return_on','reason','line_count','total_quantity','total_amount','status','inbound_id']);
+
+export const SubcontractReturnLine = master('forge_subcontract_return_line', '委外退料明细', 'list', {
+  name: text('物料名称', true), return_id: reference('forge_subcontract_return', '退料单', true), order_id: reference('forge_subcontract_order', '委外订单', true),
+  plan_id: reference('forge_subcontract_material_plan', '发料计划', true), sku_id: reference('forge_material_sku', '物料规格', true), warehouse_id: reference('forge_warehouse', '入库仓库', true),
+  item_code: text('物料编号', true), specification: text('规格'), unit_name: text('单位', true), available_quantity: quantity('可退余量', true),
+  requested_quantity: Field.number({ label: '退料数量', min: 0.0001, scale: 4, ...required }), confirmed_quantity: quantity('已确认退料', true),
+  batch_number: text('退料批次'), unit_cost: money('单位成本', true), amount: money('退料金额', true),
+  status: select('明细状态', [['draft','草稿'],['pending_inbound','待入库'],['stocked','已入库'],['cancelled','已取消']], 'draft'), remarks: remarks(),
+}, ['return_id','order_id','item_code','name','specification','available_quantity','requested_quantity','confirmed_quantity','unit_cost','amount','status']);
+
+export const SubcontractReturnInbound = master('forge_subcontract_return_inbound', '委外退料待入库单', 'package-plus', {
+  name: text('入库单名称', true), code: code('退料入库单号'), return_id: reference('forge_subcontract_return', '委外退料单', true),
+  order_id: reference('forge_subcontract_order', '委外订单', true), supplier_id: reference('forge_supplier', '委外供应商', true), warehouse_id: reference('forge_warehouse', '入库仓库', true),
+  total_quantity: quantity('待入库数量', true), total_amount: money('退料金额', true), status: select('入库状态', [['pending','待入库'],['stocked','已入库'],['cancelled','已取消']], 'pending'),
+  created_by: Field.user({ label: '生成人', readonly: true }), created_at_business: Field.datetime({ label: '生成时间', readonly: true }),
+  stocked_by: Field.user({ label: '入库人', readonly: true }), stocked_at: Field.datetime({ label: '入库时间', readonly: true }), remarks: remarks(),
+}, ['code','return_id','supplier_id','warehouse_id','total_quantity','total_amount','status']);
+
+export const SubcontractReturnInboundLine = master('forge_subcontract_return_inbound_line', '委外退料入库明细', 'list', {
+  name: text('物料名称', true), inbound_id: reference('forge_subcontract_return_inbound', '退料入库单', true), return_line_id: reference('forge_subcontract_return_line', '退料明细', true),
+  order_id: reference('forge_subcontract_order', '委外订单', true), plan_id: reference('forge_subcontract_material_plan', '发料计划', true), sku_id: reference('forge_material_sku', '物料规格', true), warehouse_id: reference('forge_warehouse', '入库仓库', true),
+  item_code: text('物料编号', true), specification: text('规格'), unit_name: text('单位', true), quantity: quantity('入库数量', true), batch_number: text('批次号'),
+  unit_cost: money('单位成本', true), amount: money('入库金额', true), status: select('明细状态', [['pending','待入库'],['stocked','已入库'],['cancelled','已取消']], 'pending'),
+}, ['inbound_id','return_line_id','item_code','name','quantity','unit_cost','amount','warehouse_id','status']);
+
+export const SubcontractReturnLog = master('forge_subcontract_return_log', '委外退料操作记录', 'history', {
+  name: text('记录名称', true), return_id: reference('forge_subcontract_return', '退料单', true),
+  action: select('操作', [['created','保存草稿'],['confirmed','确认退料'],['stocked','完成入库']]), from_status: text('原状态'), to_status: text('新状态'),
+  comment: Field.textarea({ label: '说明' }), occurred_at: Field.datetime({ label: '操作时间', ...required, readonly: true }), operator_id: Field.user({ label: '操作人', ...required, readonly: true }),
+}, ['return_id','action','from_status','to_status','comment','operator_id','occurred_at']);
+
 export const SubcontractIssueLog = master('forge_subcontract_issue_log', '委外发料操作记录', 'history', {
   name: text('记录名称', true), issue_id: reference('forge_subcontract_issue', '委外发料单', true),
   action: select('操作', [['submitted','提交审核'],['approved','审核通过'],['rejected','审核驳回'],['issued','确认出库'],['signed','供应商签收']]),
