@@ -99,6 +99,7 @@ export default defineStack({
             page('subcontract_workspace', '委外订单', 'page_subcontract_workspace', 'clipboard-list'),
             page('subcontract_issues', '委外发料', 'page_subcontract_issue_workspace', 'package-minus'),
             page('subcontract_receipts', '委外回厂', 'page_subcontract_receipt_workspace', 'package-check'),
+            page('subcontract_returns', '委外退料', 'page_subcontract_return_workspace', 'undo-2'),
             page('subcontract_ncr', '委外不合格处理', 'page_subcontract_ncr_workspace', 'triangle-alert'),
             page('subcontract_reconciliation', '委外对账', 'page_subcontract_reconciliation', 'file-check-2'),
             page('subcontract_reconciliation_report', '委外对账单', 'page_subcontract_reconciliation_report', 'file-chart-column'),
