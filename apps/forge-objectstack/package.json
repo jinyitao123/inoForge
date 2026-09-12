@@ -157,6 +157,7 @@
     ,"acceptance:subcontract-reconciliation-restart": "node tests/subcontract-reconciliation-readback.mjs"
     ,"acceptance:subcontract-reconciliation-blocks": "node tests/subcontract-reconciliation-blocks.integration.mjs"
     ,"acceptance:subcontract-one-db-restart": "node tests/subcontract-one-db-restart-readback.mjs"
+    ,"acceptance:subcontract-one-db-chain": "node tests/subcontract-one-db-chain.integration.mjs"
   },
   "dependencies": {
     "@objectstack/spec": "17.3.0",
