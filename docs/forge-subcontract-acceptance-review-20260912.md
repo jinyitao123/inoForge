@@ -39,6 +39,7 @@
 9. 在主线端口 `4443` 的内置浏览器打开“委外退料”，选择 `SC-ORDER-001`，填写 `RET-BROWSER-20260912-001`、数量 `1` 和退料原因，保存为草稿；页面显示草稿记录并提示“退料草稿已保存”。
 10. 点击“确认退料”并确认弹窗；页面显示待入库 KPI 为 `1`，生成 `RIN-RET-BROWSER-20260912-001`，且弹窗明确确认退料阶段不扣减库存。
 11. 点击“确认入库”并确认弹窗；页面显示待入库 KPI 清零、已入库 KPI 为 `1`，退料结果为“已入库”，并提示委外库存已回写。完整停服后从同一 SQLite 重启，再运行 `pnpm acceptance:subcontract-return-browser-readback`，回读退料单、待入库单、明细、委外库存和退料流水均一致。
+12. 在当前 `main` 上用独立端口 `4450` 和全新 SQLite `/tmp/forge-subcontract-main-rerun-20260912-v2.sqlite` 重跑 `pnpm acceptance:subcontract-one-db-chain`，连续阶段 `order → issue → supplier_signoff → receipt → inbound_confirm → ncr_disposition → reconciliation → payable` 全部通过；随后完整停服、同库重启，运行 `pnpm acceptance:subcontract-one-db-restart` 按原单据 ID 回读通过。该次复跑只更新 Forge 本地证据，不改变 RISEMAP 数据。
 
 ## RISEMAP 对照边界
 
