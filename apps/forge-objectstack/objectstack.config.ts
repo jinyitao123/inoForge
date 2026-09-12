@@ -6,117 +6,84 @@ import * as pages from './src/pages/index.js';
 const object = (id: string, label: string, objectName: string, icon?: string) => ({
   id, type: 'object' as const, label, objectName, ...(icon ? { icon } : {}),
 });
-
 const group = (id: string, label: string, children: NavigationItemInput[], icon?: string) => ({
   id, type: 'group' as const, label, children, expanded: true, ...(icon ? { icon } : {}),
 });
-
 const page = (id: string, label: string, pageName: string, icon?: string) => ({
   id, type: 'page' as const, label, pageName, ...(icon ? { icon } : {}),
 });
 
 export default defineStack({
-  manifest: {
-    id: 'forge', namespace: 'forge', version: '0.1.0', type: 'app', name: 'Forge',
-    engines: { protocol: '>=17.3.0 <18' },
-  },
-  objects: Object.values(objects),
-  actions: Object.values(actions),
-  pages: Object.values(pages),
+  manifest: { id: 'forge', namespace: 'forge', version: '0.1.0', type: 'app', name: 'Forge', engines: { protocol: '>=17.3.0 <18' } },
+  objects: Object.values(objects), actions: Object.values(actions), pages: Object.values(pages),
   apps: [{
     name: 'forge', label: 'Forge', icon: 'factory', active: true, isDefault: true,
     areas: [
       {
-        id: 'demand_initiation', label: '客户需求与立项', icon: 'flag',
+        id: 'workbench', label: '工作台', icon: 'layout-dashboard',
         navigation: [
-          group('customer_context', '客户与需求', [
-            object('customers', '客户', 'forge_customer', 'building-2'),
-            object('contacts', '联系人', 'forge_contact', 'contact'),
-            object('contact_channels', '联系方式', 'forge_contact_channel', 'phone'),
+          group('workbench_tasks', '工作台', [
+            page('workbench_subcontract_tasks', '委外待办', 'page_subcontract_dashboard', 'factory'),
+            page('workbench_project_tasks', '项目任务', 'page_project_plan_workspace', 'list-checks'),
           ]),
-          group('project_initiation', '项目立项', [
-            object('projects', '项目中心', 'forge_project', 'briefcase-business'),
-            object('project_members', '项目团队', 'forge_project_member', 'users'),
-            object('project_types', '项目类型', 'forge_project_type', 'tags'),
+          group('workbench_guides', '引导与指南', [
+            page('workbench_subcontract_guide', '委外管理上手指南', 'page_subcontract_guide', 'circle-help'),
           ]),
         ],
       },
       {
-        id: 'commercial_order', label: '报价合同与订单', icon: 'file-signature',
+        id: 'supply_chain', label: '供应链', icon: 'boxes',
         navigation: [
-          group('commercial_flow', '商务单据', [
-            object('quotations', '销售报价', 'forge_quotation', 'file-text'),
-            object('sales_contracts', '销售合同', 'forge_sales_contract', 'scroll-text'),
-            object('sales_orders', '销售订单', 'forge_sales_order', 'clipboard-list'),
-            object('project_sales_links', '项目订单关联', 'forge_project_sales_link', 'link'),
+          group('arrival_inspection', '到货检验', [
+            object('arrival_notices', '到货通知', 'forge_purchase_arrival_notice', 'package-search'),
+            page('arrival_registration', '到货登记', 'page_purchase_arrival_workspace', 'package-check'),
+            page('pending_inspection', '待检验库存', 'page_pending_inspection_workspace', 'clipboard-clock'),
+            page('inspection_orders', '检验单', 'page_purchase_inspection_workspace', 'clipboard-check'),
           ]),
-          group('commercial_settings', '商务配置', [
-            object('quotation_types', '报价类型', 'forge_quotation_type'),
-            object('quotation_issuers', '报价主体', 'forge_quotation_issuer', 'landmark'),
-            object('contract_types', '合同类型', 'forge_contract_type'),
+          group('base_records', '基础资料', [
+            object('materials', '物料管理', 'forge_material', 'package'),
+            page('bom', 'BOM管理', 'page_bom_workspace', 'git-branch'),
+            object('suppliers', '供应商管理', 'forge_supplier', 'truck'),
+            object('warehouses', '仓库管理', 'forge_warehouse', 'warehouse'),
           ]),
-        ],
-      },
-      {
-        id: 'plan_design', label: '计划与方案设计', icon: 'drafting-compass',
-        navigation: [
-          group('project_planning', '项目计划与执行', [
-            page('project_plan_workspace', '项目计划与执行', 'page_project_plan_workspace', 'calendar-range'),
-          ]),
-          group('design_bom', '方案与 BOM', [
-            page('bom_workspace', 'BOM管理', 'page_bom_workspace', 'git-branch'),
-            object('bom_nodes', 'BOM结构明细', 'forge_bom_node', 'network'),
-            object('bom_approval_logs', 'BOM审批日志', 'forge_bom_approval_log', 'history'),
-          ]),
-          group('drawing_change', '图纸与工程变更', [
-            page('drawing_workspace', '图纸与工程变更', 'page_drawing_workspace', 'ruler'),
-            object('drawing_versions', '图纸版本', 'forge_drawing_version', 'files'),
-            object('drawing_reviews', '图纸评审', 'forge_drawing_review', 'clipboard-check'),
-            object('drawing_releases', '图纸发布', 'forge_drawing_release', 'send'),
-            object('drawing_changes', '图纸变更', 'forge_drawing_change', 'git-pull-request-arrow'),
-            object('drawing_distributions', '图纸发放记录', 'forge_drawing_distribution', 'share-2'),
-            object('drawing_distribution_recipients', '图纸发放接收对象', 'forge_drawing_distribution_recipient', 'users'),
-            object('drawing_business_links', '图纸业务关联', 'forge_drawing_business_link', 'link'),
-            object('drawing_change_impacts', '图纸变更影响', 'forge_drawing_change_impact', 'scan-search'),
-            object('customer_drawings', '客户图纸', 'forge_customer_drawing', 'file-input'),
-            object('drawing_logs', '图纸操作日志', 'forge_drawing_operation_log', 'history'),
-          ]),
-        ],
-      },
-      {
-        id: 'procurement_readiness', label: '采购与物料齐套', icon: 'shopping-cart',
-        navigation: [
-          group('material_readiness', '物料齐套', [
-            object('shortage_analyses', '缺料分析', 'forge_bom_shortage_analysis', 'chart-no-axes-column-increasing'),
-            object('shortage_lines', '缺料明细', 'forge_bom_shortage_line', 'list'),
-          ]),
-          group('procurement_flow', '采购执行', [
+          group('purchasing', '采购管理', [
             page('purchase_orders', '采购订单', 'page_purchase_order_workspace', 'shopping-cart'),
-            object('purchase_order_lines', '采购订单明细', 'forge_purchase_order_line', 'list'),
             page('purchase_returns', '采购退换货', 'page_purchase_return', 'rotate-ccw'),
-            object('purchase_return_lines', '采购退货明细', 'forge_purchase_return_line', 'list'),
-            object('purchase_return_logs', '退货审批记录', 'forge_purchase_return_approval_log', 'history'),
-            object('purchase_return_refunds', '退货退款流水', 'forge_purchase_return_refund_receipt', 'badge-dollar-sign'),
-            object('purchase_arrival_notices', '到货通知', 'forge_purchase_arrival_notice', 'package-search'),
-            object('purchase_arrival_notice_lines', '到货通知明细', 'forge_purchase_arrival_notice_line', 'list'),
-            page('purchase_receipts', '到货登记', 'page_purchase_arrival_workspace', 'package-check'),
-            object('purchase_receipt_lines', '到货登记明细', 'forge_purchase_receipt_line', 'list'),
-            page('pending_inspections', '待检验库存', 'page_pending_inspection_workspace', 'clipboard-clock'),
-            page('purchase_inspections', '检验单', 'page_purchase_inspection_workspace', 'clipboard-check'),
-            page('purchase_inbounds', '采购入库', 'page_purchase_inbound_workspace', 'package-plus'),
-            object('purchase_inbound_lines', '采购入库明细', 'forge_purchase_inbound_line', 'list'),
-            object('purchase_inbound_approval_logs', '入库审批记录', 'forge_purchase_inbound_approval_log', 'history'),
           ]),
-          group('supplier_records', '供应商', [
-            object('suppliers', '供应商档案', 'forge_supplier', 'truck'),
-            object('supplier_banks', '银行账户', 'forge_supplier_bank_account', 'landmark'),
+          group('inbound_management', '入库管理', [
+            page('purchase_inbound', '采购入库', 'page_purchase_inbound_workspace', 'package-plus'),
+            object('opening_inbound', '期初入库', 'forge_opening_inbound', 'package-plus'),
+          ]),
+          group('inventory_management', '库存管理', [
+            page('inventory_ncr', '不合格处理', 'page_subcontract_ncr_workspace', 'triangle-alert'),
+            object('inventory_balances', '库存余额', 'forge_inventory_balance', 'boxes'),
+            object('inventory_flow', '库存流水', 'forge_inventory_ledger', 'book-open'),
+          ]),
+          group('outbound_management', '出库管理', [
+            object('sales_outbound', '销售直接出库', 'forge_sales_outbound', 'truck'),
           ]),
         ],
       },
       {
-        id: 'manufacturing', label: '制造与装配', icon: 'factory',
+        id: 'sales', label: '销售', icon: 'trending-up',
         navigation: [
-          group('assembly_operations', '组装业务管理', [
+          group('sales_operations', '销售业务', [
+            object('sales_contracts', '框架销售合同', 'forge_sales_contract', 'scroll-text'),
+            object('sales_orders', '销售订单', 'forge_sales_order', 'clipboard-list'),
+            object('sales_shipments', '销售发货单', 'forge_sales_shipment', 'package-check'),
+            page('collection_flow', '收款流水', 'page_customer_prepayment', 'badge-dollar-sign'),
+          ]),
+          group('crm', 'CRM客户管理', [
+            object('customers', '客户管理', 'forge_customer', 'building-2'),
+            object('contacts', '联系人管理', 'forge_contact', 'contact'),
+            object('quotations', '销售报价', 'forge_quotation', 'file-text'),
+          ]),
+        ],
+      },
+      {
+        id: 'production', label: '生产', icon: 'factory',
+        navigation: [
+          group('assembly', '组装业务管理', [
             page('assembly_orders', '组装单', 'page_production_assembly_workspace', 'factory'),
             page('assembly_shortages', '缺料待办', 'page_production_shortage_workspace', 'triangle-alert'),
             page('production_issues', '领料单', 'page_production_material_workspace', 'package-minus'),
@@ -125,98 +92,90 @@ export default defineStack({
             page('disassembly_orders', '拆解单', 'page_production_disassembly_workspace', 'unplug'),
             page('replacement_orders', '换件单', 'page_production_replacement_workspace', 'replace'),
           ]),
-          group('subcontract_operations', '委外管理', [
-            page('subcontract_workspace', '委外看板与订单', 'page_subcontract_workspace', 'factory'),
-            page('subcontract_issue_workspace', '委外发料', 'page_subcontract_issue_workspace', 'package-minus'),
-            page('subcontract_receipt_workspace', '委外回厂验收', 'page_subcontract_receipt_workspace', 'package-check'),
-            page('subcontract_ncr_workspace', '委外不合格处理', 'page_subcontract_ncr_workspace', 'triangle-alert'),
-            object('subcontract_ncr_inbounds', '委外特采入库单', 'forge_subcontract_ncr_inbound', 'package-plus'),
-            object('subcontract_ncr_logs', '委外 NCR 操作记录', 'forge_subcontract_ncr_log', 'history'),
-            object('subcontract_supplier_profiles', '委外供应商', 'forge_subcontract_supplier_profile', 'factory'),
-            object('subcontract_outbounds', '委外出库单', 'forge_subcontract_outbound', 'truck'),
-            object('subcontract_inbounds', '委外待入库单', 'forge_subcontract_inbound', 'package-plus'),
-            object('subcontract_stock_balances', '委外厂库存', 'forge_subcontract_stock_balance', 'warehouse'),
-            object('subcontract_stock_ledgers', '委外库存流水', 'forge_subcontract_stock_ledger', 'book-open'),
-            object('subcontract_receipt_consumptions', '回厂材料耗用', 'forge_subcontract_receipt_consumption', 'boxes'),
-            object('subcontract_order_lines', '委外订单加工件', 'forge_subcontract_order_line', 'list'),
-            object('subcontract_material_plans', '委外发料计划', 'forge_subcontract_material_plan', 'boxes'),
-            object('subcontract_order_approval_logs', '委外订单审核记录', 'forge_subcontract_order_approval_log', 'history'),
+          group('drawings', '图纸管理', [
+            page('drawing_workspace', '图纸总览与业务办理', 'page_drawing_workspace', 'ruler'),
           ]),
-          group('material_stock', '物料与库存', [
-            object('opening_inbounds', '期初入库', 'forge_opening_inbound', 'package-plus'),
-            object('inventory_balances', '库存余额', 'forge_inventory_balance', 'boxes'),
-            object('inventory_ledgers', '库存流水', 'forge_inventory_ledger', 'book-open'),
+          group('subcontracting', '委外管理', [
+            page('subcontract_guide', '委外管理上手指南', 'page_subcontract_guide', 'circle-help'),
+            page('subcontract_dashboard', '委外看板', 'page_subcontract_dashboard', 'layout-dashboard'),
+            page('subcontract_orders', '委外订单', 'page_subcontract_orders', 'clipboard-list'),
+            page('subcontract_issues', '委外发料', 'page_subcontract_issue_workspace', 'package-minus'),
+            page('subcontract_receipts', '委外回厂', 'page_subcontract_receipt_workspace', 'package-check'),
+            page('subcontract_returns', '委外退料', 'page_subcontract_returns', 'undo-2'),
+            page('subcontract_reconciliation', '委外对账', 'page_subcontract_reconciliation', 'file-check-2'),
+            page('subcontract_suppliers', '委外供应商', 'page_subcontract_suppliers', 'factory'),
+            page('subcontract_stock', '委外库存', 'page_subcontract_stock', 'warehouse'),
+            page('subcontract_trace', '批次追溯', 'page_subcontract_trace', 'scan-search'),
+            page('subcontract_undelivered', '委外未交', 'page_subcontract_undelivered', 'clock-alert'),
+            page('subcontract_receipts_report', '委外进货', 'page_subcontract_receipts_report', 'chart-no-axes-column'),
+            page('subcontract_statement', '委外对账单', 'page_subcontract_statement_report', 'receipt-text'),
           ]),
         ],
       },
       {
-        id: 'shipping_site', label: '发运与现场交付', icon: 'truck',
+        id: 'projects', label: '项目', icon: 'briefcase-business',
         navigation: [
-          group('shipping_flow', '发运执行', [
-            object('sales_shipments', '销售发货单', 'forge_sales_shipment', 'package-check'),
-            object('sales_outbounds', '销售出库单', 'forge_sales_outbound', 'truck'),
+          group('project_management', '项目管理', [
+            object('project_center', '项目中心', 'forge_project', 'briefcase-business'),
+            page('project_tasks', '任务管理', 'page_project_plan_workspace', 'list-checks'),
+            page('project_timesheet', '工时管理', 'page_project_timesheet_cost', 'clock-3'),
+            page('project_expenses', '项目费用', 'page_project_expense_cost', 'hand-coins'),
+            page('project_delivery', '交付与验收 · Forge 扩展', 'page_delivery_acceptance_workspace', 'badge-check'),
           ]),
         ],
       },
       {
-        id: 'integration_acceptance', label: '集成调试与验收', icon: 'badge-check',
-        navigation: [
-          group('acceptance_context', '项目上下文', [
-            page('delivery_acceptance_workspace', '调试与交付验收', 'page_delivery_acceptance_workspace', 'badge-check'),
-          ]),
-        ],
+        id: 'administration', label: '行政', icon: 'users',
+        navigation: [group('administration_scope', '当前恢复范围', [page('administration_status', '行政功能范围', 'page_administration_scope', 'users')])],
       },
       {
-        id: 'invoice_collection', label: '开票回款', icon: 'wallet-cards',
+        id: 'finance', label: '财务', icon: 'wallet-cards',
         navigation: [
-          group('sales_finance', '销售财务', [
-            page('bank_flow', '统一银行流水', 'page_bank_flow', 'landmark'),
+          group('funds', '资金管理', [
+            page('bank_flow', '资金流水', 'page_bank_flow', 'landmark'),
+            page('collections', '收款管理', 'page_customer_prepayment', 'badge-dollar-sign'),
+            page('payments', '付款管理', 'page_purchase_payment', 'send-horizontal'),
+            page('refunds', '退款申请', 'page_supplier_refund', 'undo-2'),
             page('bank_statement', '银行文件与余额对账', 'page_bank_statement', 'file-check-2'),
-            page('finance_adjustments', '财务冲销', 'page_invoice_reversal', 'undo-2'),
+          ]),
+          group('business_confirmation', '业务确认', [
             page('revenue_recognition', '销售收入确认', 'page_revenue_recognition', 'badge-dollar-sign'),
-            page('customer_prepayment', '收款管理', 'page_customer_prepayment', 'badge-dollar-sign'),
-            page('customer_refunds', '退款申请', 'page_supplier_refund', 'undo-2'),
-            page('collection_settlement_workspace', '开票回款与项目结算', 'page_collection_settlement_workspace', 'wallet-cards'),
+            page('counterparty_reconciliation', '对账单', 'page_counterparty_reconciliation', 'file-check-2'),
+            page('finance_adjustments', '调整与冲销', 'page_invoice_reversal', 'undo-2'),
           ]),
-          group('purchase_finance', '采购财务', [
-            page('purchase_payment', '付款管理', 'page_purchase_payment', 'send-horizontal'),
-            page('supplier_refunds', '退款申请', 'page_supplier_refund', 'undo-2'),
-          ]),
-          group('counterparty_reconciliation', '往来对账', [
+          group('finance_opening', '期初与结算', [
             page('opening_balance', '期初往来账与对冲', 'page_opening_balance', 'book-open-check'),
-            page('counterparty_reconciliation_center', '对账中心', 'page_counterparty_reconciliation', 'file-check-2'),
+            page('collection_settlement', '开票回款与项目结算', 'page_collection_settlement_workspace', 'wallet-cards'),
           ]),
         ],
       },
       {
-        id: 'project_close', label: '结项经营复盘', icon: 'chart-no-axes-combined',
-        navigation: [
-          group('close_context', '项目上下文', [
-            page('close_settlement_workspace', '项目结算工作台', 'page_collection_settlement_workspace', 'chart-no-axes-combined'),
-            page('project_operating_analysis', '项目经营分析', 'page_project_operating_analysis', 'chart-no-axes-combined'),
-            page('project_timesheet_cost', '项目工时与人工成本', 'page_project_timesheet_cost', 'clock-3'),
-            page('project_expense_cost', '项目费用与成本归集', 'page_project_expense_cost', 'hand-coins'),
-          ]),
-        ],
+        id: 'reports', label: '报表', icon: 'chart-no-axes-combined',
+        navigation: [group('business_reports', '报表', [
+          page('project_analysis', '项目统计', 'page_project_operating_analysis', 'chart-no-axes-combined'),
+          page('reports_status', '其他报表范围', 'page_reports_scope', 'chart-no-axes-column'),
+        ])],
       },
       {
-        id: 'master_support', label: '基础资料与配置', icon: 'database',
+        id: 'system', label: '系统', icon: 'settings',
         navigation: [
-          group('material_records', '物料主数据', [
-            object('materials', '物料', 'forge_material', 'package'),
-            object('material_skus', '规格与价格', 'forge_material_sku', 'boxes'),
-            object('material_categories', '物料分类', 'forge_material_category'),
-            object('units', '计量单位', 'forge_unit'),
+          group('system_scope', '系统设置', [page('system_status', '系统功能范围', 'page_system_scope', 'settings')]),
+          group('material_settings', '业务设置 · 商品管理', [
+            object('material_categories', '物料分组', 'forge_material_category', 'tags'),
+            object('units', '计量单位', 'forge_unit', 'ruler'),
           ]),
-          group('warehouse_records', '仓库配置', [
-            object('warehouses', '仓库', 'forge_warehouse', 'warehouse'),
-            object('warehouse_types', '仓库类型', 'forge_warehouse_type'),
+          group('partner_settings', '业务设置 · 客户与供应商', [
+            object('customer_categories', '客户分类', 'forge_customer_category', 'tags'),
+            object('customer_levels', '客户级别', 'forge_customer_level', 'badge-check'),
+            object('supplier_categories', '供应商分类', 'forge_supplier_category', 'tags'),
+            object('supplier_levels', '供应商级别', 'forge_supplier_level', 'badge-check'),
           ]),
-          group('partner_settings', '往来单位配置', [
-            object('customer_categories', '客户分类', 'forge_customer_category'),
-            object('customer_levels', '客户级别', 'forge_customer_level'),
-            object('supplier_categories', '供应商分类', 'forge_supplier_category'),
-            object('supplier_levels', '供应商级别', 'forge_supplier_level'),
+          group('inventory_settings', '业务设置 · 库存管理', [object('warehouse_types', '仓库类型', 'forge_warehouse_type', 'warehouse')]),
+          group('project_settings', '业务设置 · 项目管理', [object('project_types', '项目类型', 'forge_project_type', 'tags')]),
+          group('sales_settings', '业务设置 · 采购销售', [
+            object('quotation_types', '报价类型', 'forge_quotation_type', 'file-text'),
+            object('quotation_issuers', '报价主体', 'forge_quotation_issuer', 'landmark'),
+            object('contract_types', '合同类型', 'forge_contract_type', 'scroll-text'),
           ]),
         ],
       },
