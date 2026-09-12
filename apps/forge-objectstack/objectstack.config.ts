@@ -125,6 +125,13 @@ export default defineStack({
             page('disassembly_orders', '拆解单', 'page_production_disassembly_workspace', 'unplug'),
             page('replacement_orders', '换件单', 'page_production_replacement_workspace', 'replace'),
           ]),
+          group('subcontract_operations', '委外管理', [
+            page('subcontract_workspace', '委外看板与订单', 'page_subcontract_workspace', 'factory'),
+            object('subcontract_supplier_profiles', '委外供应商', 'forge_subcontract_supplier_profile', 'factory'),
+            object('subcontract_order_lines', '委外订单加工件', 'forge_subcontract_order_line', 'list'),
+            object('subcontract_material_plans', '委外发料计划', 'forge_subcontract_material_plan', 'boxes'),
+            object('subcontract_order_approval_logs', '委外订单审核记录', 'forge_subcontract_order_approval_log', 'history'),
+          ]),
           group('material_stock', '物料与库存', [
             object('opening_inbounds', '期初入库', 'forge_opening_inbound', 'package-plus'),
             object('inventory_balances', '库存余额', 'forge_inventory_balance', 'boxes'),

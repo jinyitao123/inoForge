@@ -13,6 +13,7 @@ export * from './finance.object.js';
 export * from './bank-flow.object.js';
 export * from './opening-balance.object.js';
 export * from './bank-statement.object.js';
+export * from './subcontract.object.js';
 export * from './project.object.js';
 export * from './production.object.js';
 export * from './delivery.object.js';
