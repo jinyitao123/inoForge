@@ -160,6 +160,7 @@
     ,"acceptance:subcontract-one-db-chain": "node tests/subcontract-one-db-chain.integration.mjs"
     ,"acceptance:subcontract-return": "node tests/subcontract-return.integration.mjs"
     ,"acceptance:subcontract-return-restart": "node tests/subcontract-return-restart-readback.mjs"
+    ,"acceptance:subcontract-return-browser-readback": "node tests/subcontract-return-browser-readback.mjs"
   },
   "dependencies": {
     "@objectstack/spec": "17.3.0",
