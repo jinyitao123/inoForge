@@ -139,6 +139,9 @@
     ,"acceptance:subcontract-order": "node tests/subcontract-order.integration.mjs"
     ,"acceptance:subcontract-order-ui-readback": "node tests/subcontract-order-ui-readback.mjs"
     ,"acceptance:subcontract-order-restart": "node tests/subcontract-order-restart-readback.mjs"
+    ,"acceptance:subcontract-issue": "node tests/subcontract-issue.integration.mjs"
+    ,"acceptance:subcontract-issue-ui-readback": "node tests/subcontract-issue-ui-readback.mjs"
+    ,"acceptance:subcontract-issue-restart": "node tests/subcontract-issue-restart-readback.mjs"
   },
   "dependencies": {
     "@objectstack/spec": "17.3.0",

@@ -63,3 +63,64 @@ export const SubcontractOrderApprovalLog = master('forge_subcontract_order_appro
   from_status: text('原状态'), to_status: text('新状态'), comment: Field.textarea({ label: '审核意见' }),
   occurred_at: Field.datetime({ label: '操作时间', ...required, readonly: true }), operator_id: Field.user({ label: '操作人', ...required, readonly: true }),
 }, ['order_id','action','from_status','to_status','comment','operator_id','occurred_at']);
+
+// RISEMAP /subcontract/issues and the warehouse-role guide. Approval reserves
+// source stock; physical dispatch converts that reservation into two auditable
+// movements: source-warehouse outbound and supplier-side subcontract stock inbound.
+export const SubcontractIssue = master('forge_subcontract_issue', '委外发料单', 'package-minus', {
+  name: text('发料单名称', true), code: code('发料单号'), order_id: reference('forge_subcontract_order', '关联委外订单', true),
+  supplier_id: reference('forge_supplier', '发往供应商', true), issue_type: select('发料类型', [['normal','正常发料'],['overconsumption','超耗补料']], 'normal'),
+  issue_on: Field.date({ label: '发料日期', ...required }), handler_id: Field.user({ label: '经办人', ...required }),
+  warehouse_id: reference('forge_warehouse', '来源仓库', true), line_count: Field.number({ label: '物料种数', min: 0, scale: 0, defaultValue: 0, readonly: true }),
+  total_quantity: quantity('发料数量', true), status: select('发料状态', [['draft','草稿'],['pending_approval','待审核'],['ready_to_issue','待发料'],['rejected','已驳回'],['issued','已发出'],['signed','已签收'],['cancelled','已取消']], 'draft'),
+  outbound_id: reference('forge_subcontract_outbound', '关联委外出库单'),
+  submitted_by: Field.user({ label: '提交人', readonly: true }), submitted_at: Field.datetime({ label: '提交时间', readonly: true }),
+  reviewed_by: Field.user({ label: '审核人', readonly: true }), reviewed_at: Field.datetime({ label: '审核时间', readonly: true }), review_note: Field.textarea({ label: '审核意见', readonly: true }),
+  issued_by: Field.user({ label: '出库人', readonly: true }), issued_at: Field.datetime({ label: '实际发出时间', readonly: true }),
+  signed_by: Field.user({ label: '签收登记人', readonly: true }), signed_at: Field.datetime({ label: '供应商签收时间', readonly: true }), sign_note: Field.textarea({ label: '签收说明', readonly: true }),
+  responsible_id: owner(true), remarks: remarks(),
+}, ['code','supplier_id','order_id','issue_type','warehouse_id','issue_on','handler_id','line_count','total_quantity','status','outbound_id']);
+
+export const SubcontractIssueLine = master('forge_subcontract_issue_line', '委外发料明细', 'list', {
+  name: text('物料名称', true), issue_id: reference('forge_subcontract_issue', '委外发料单', true), order_id: reference('forge_subcontract_order', '委外订单', true),
+  plan_id: reference('forge_subcontract_material_plan', '发料计划', true), order_line_id: reference('forge_subcontract_order_line', '用于加工件', true),
+  sku_id: reference('forge_material_sku', '物料规格', true), warehouse_id: reference('forge_warehouse', '来源仓库', true),
+  item_code: text('物料编号', true), specification: text('规格'), unit_name: text('单位', true),
+  planned_quantity: quantity('订单计划数量', true), remaining_snapshot: quantity('创建时待发数量', true), issue_quantity: Field.number({ label: '本次发料', min: 0.0001, scale: 4, ...required }),
+  batch_number: text('追溯批次'), reserved_quantity: quantity('已锁定数量', true), outbounded_quantity: quantity('已出库数量', true),
+  unit_cost: money('出库单位成本', true), inventory_amount: money('出库金额', true),
+  status: select('明细状态', [['draft','草稿'],['reserved','已锁定'],['outbounded','已出库'],['signed','已签收'],['cancelled','已取消']], 'draft'), remarks: remarks(),
+}, ['issue_id','order_id','item_code','name','specification','warehouse_id','planned_quantity','remaining_snapshot','issue_quantity','batch_number','reserved_quantity','outbounded_quantity','status']);
+
+export const SubcontractOutbound = master('forge_subcontract_outbound', '委外出库单', 'truck', {
+  name: text('出库单名称', true), code: code('出库单号'), issue_id: reference('forge_subcontract_issue', '委外发料单', true),
+  order_id: reference('forge_subcontract_order', '委外订单', true), supplier_id: reference('forge_supplier', '委外供应商', true),
+  warehouse_id: reference('forge_warehouse', '出库仓库', true), total_quantity: quantity('出库数量', true),
+  status: select('出库状态', [['pending','待出库'],['outbounded','已出库']], 'pending'),
+  outbounded_by: Field.user({ label: '出库人', readonly: true }), outbounded_at: Field.datetime({ label: '出库时间', readonly: true }), remarks: remarks(),
+}, ['code','issue_id','order_id','supplier_id','warehouse_id','total_quantity','status','outbounded_at']);
+
+export const SubcontractStockBalance = master('forge_subcontract_stock_balance', '委外厂库存', 'warehouse', {
+  name: text('委外库存名称', true), balance_key: code('委外库存键'), supplier_id: reference('forge_supplier', '委外供应商', true),
+  order_id: reference('forge_subcontract_order', '委外订单', true), sku_id: reference('forge_material_sku', '物料规格', true),
+  cumulative_issued_quantity: quantity('累计已发', true), backflushed_quantity: quantity('倒冲耗用', true), returned_quantity: quantity('累计退料', true),
+  on_hand_quantity: quantity('在外余量', true), unit_cost: money('最近发料成本', true), inventory_value: money('在外库存金额', true),
+  last_movement_at: Field.datetime({ label: '最近变动时间', readonly: true }),
+}, ['supplier_id','order_id','sku_id','cumulative_issued_quantity','backflushed_quantity','returned_quantity','on_hand_quantity','unit_cost','inventory_value','last_movement_at']);
+
+export const SubcontractStockLedger = master('forge_subcontract_stock_ledger', '委外库存流水', 'book-open', {
+  name: text('流水名称', true), code: code('流水号'), supplier_id: reference('forge_supplier', '委外供应商', true),
+  order_id: reference('forge_subcontract_order', '委外订单', true), sku_id: reference('forge_material_sku', '物料规格', true),
+  direction: select('变动方向', [['inbound','入委外仓'],['outbound','出委外仓']]),
+  movement_type: select('流水类型', [['issue_inbound','委外发料入仓'],['backflush','回厂倒冲'],['material_return','余料退回']]),
+  quantity: Field.number({ label: '变动数量', min: 0.0001, scale: 4, ...required }), before_on_hand: quantity('变动前在外'), after_on_hand: quantity('变动后在外'),
+  unit_cost: money('单位成本'), amount: money('金额'), occurred_at: Field.datetime({ label: '发生时间', ...required }),
+  source_object: text('来源对象', true), source_id: text('来源记录 ID', true), source_line_id: text('来源明细 ID'), responsible_id: owner(true), remarks: remarks(),
+}, ['code','occurred_at','supplier_id','order_id','sku_id','direction','movement_type','quantity','before_on_hand','after_on_hand','source_object','source_id']);
+
+export const SubcontractIssueLog = master('forge_subcontract_issue_log', '委外发料操作记录', 'history', {
+  name: text('记录名称', true), issue_id: reference('forge_subcontract_issue', '委外发料单', true),
+  action: select('操作', [['submitted','提交审核'],['approved','审核通过'],['rejected','审核驳回'],['issued','确认出库'],['signed','供应商签收']]),
+  from_status: text('原状态'), to_status: text('新状态'), comment: Field.textarea({ label: '说明' }),
+  occurred_at: Field.datetime({ label: '操作时间', ...required, readonly: true }), operator_id: Field.user({ label: '操作人', ...required, readonly: true }),
+}, ['issue_id','action','from_status','to_status','comment','operator_id','occurred_at']);

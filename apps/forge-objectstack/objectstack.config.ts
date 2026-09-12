@@ -127,7 +127,11 @@ export default defineStack({
           ]),
           group('subcontract_operations', '委外管理', [
             page('subcontract_workspace', '委外看板与订单', 'page_subcontract_workspace', 'factory'),
+            page('subcontract_issue_workspace', '委外发料', 'page_subcontract_issue_workspace', 'package-minus'),
             object('subcontract_supplier_profiles', '委外供应商', 'forge_subcontract_supplier_profile', 'factory'),
+            object('subcontract_outbounds', '委外出库单', 'forge_subcontract_outbound', 'truck'),
+            object('subcontract_stock_balances', '委外厂库存', 'forge_subcontract_stock_balance', 'warehouse'),
+            object('subcontract_stock_ledgers', '委外库存流水', 'forge_subcontract_stock_ledger', 'book-open'),
             object('subcontract_order_lines', '委外订单加工件', 'forge_subcontract_order_line', 'list'),
             object('subcontract_material_plans', '委外发料计划', 'forge_subcontract_material_plan', 'boxes'),
             object('subcontract_order_approval_logs', '委外订单审核记录', 'forge_subcontract_order_approval_log', 'history'),
