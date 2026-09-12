@@ -24,3 +24,4 @@ export * from './finance-adjustment.action.js';
 export * from './bank-flow.action.js';
 export * from './opening-balance.action.js';
 export * from './bank-statement.action.js';
+export * from './subcontract.action.js';
