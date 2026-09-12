@@ -190,3 +190,34 @@ export const SubcontractReceiptLog = master('forge_subcontract_receipt_log', '�
   from_status: text('原状态'), to_status: text('新状态'), comment: Field.textarea({ label: '说明' }),
   occurred_at: Field.datetime({ label: '操作时间', ...required, readonly: true }), operator_id: Field.user({ label: '操作人', ...required, readonly: true }),
 }, ['receipt_id','action','from_status','to_status','comment','operator_id','occurred_at']);
+
+// RM-087/RM-093: production-side settlement freezes eligible receipt batches
+// before handing an approved payable to the finance payment flow.
+export const SubcontractReconciliation = master('forge_subcontract_reconciliation', '委外对账单', 'file-check-2', {
+  name: text('对账单名称', true), code: code('委外对账单号'), supplier_id: reference('forge_supplier', '供应商', true),
+  period_start: Field.date({ label: '账期开始', ...required }), period_end: Field.date({ label: '账期结束', ...required }),
+  generation_dimension: select('生成维度', [['receipt_batch','按回厂批次'],['order','按委外订单'],['supplier','按供应商']], 'receipt_batch'),
+  processing_amount: money('加工费'), replenishment_amount: money('补料费用'), deduction_amount: money('扣款'), refund_amount: money('退款'),
+  payable_amount: money('应付金额'), line_count: Field.number({ label: '费用行数', min: 0, scale: 0, defaultValue: 0, readonly: true }),
+  status: select('对账状态', [['pending_confirmation','待确认'],['confirmed','已确认'],['payable_generated','已生成应付'],['voided','已作废']], 'pending_confirmation'),
+  payable_id: reference('forge_accounts_payable', '关联应付'), confirmed_by: Field.user({ label: '确认人', readonly: true }),
+  confirmed_at: Field.datetime({ label: '确认时间', readonly: true }), confirmation_note: Field.textarea({ label: '确认说明', readonly: true }),
+  payable_generated_by: Field.user({ label: '应付生成人', readonly: true }), payable_generated_at: Field.datetime({ label: '应付生成时间', readonly: true }),
+  responsible_id: owner(true), remarks: remarks(),
+}, ['code','supplier_id','period_start','period_end','generation_dimension','processing_amount','replenishment_amount','deduction_amount','refund_amount','payable_amount','status','payable_id','responsible_id']);
+
+export const SubcontractReconciliationLine = master('forge_subcontract_reconciliation_line', '委外对账费用明细', 'list', {
+  name: text('费用明细名称', true), reconciliation_id: reference('forge_subcontract_reconciliation', '委外对账单', true),
+  supplier_id: reference('forge_supplier', '供应商', true), order_id: reference('forge_subcontract_order', '委外订单', true),
+  receipt_id: reference('forge_subcontract_receipt', '回厂单', true), receipt_line_id: reference('forge_subcontract_receipt_line', '回厂明细', true),
+  fee_type: select('费用类型', [['processing','加工费'],['replenishment','补料费用'],['deduction','损耗赔偿'],['refund','退款']], 'processing'),
+  occurred_on: Field.date({ label: '业务日期', ...required }), quantity: quantity('数量'), unit_price: money('单价'), amount: money('金额'),
+  source_status_snapshot: text('来源状态快照'), source_key: code('来源唯一键'), description: text('费用说明'), responsible_id: owner(true), remarks: remarks(),
+}, ['reconciliation_id','supplier_id','order_id','receipt_id','receipt_line_id','fee_type','occurred_on','quantity','unit_price','amount','source_status_snapshot','source_key','description']);
+
+export const SubcontractReconciliationLog = master('forge_subcontract_reconciliation_log', '委外对账操作记录', 'history', {
+  name: text('记录名称', true), reconciliation_id: reference('forge_subcontract_reconciliation', '委外对账单', true),
+  action: select('操作', [['generated','生成'],['confirmed','确认锁定'],['payable_generated','生成应付'],['voided','作废']], 'generated'),
+  from_status: text('原状态'), to_status: text('新状态'), comment: Field.textarea({ label: '说明' }),
+  occurred_at: Field.datetime({ label: '操作时间', ...required, readonly: true }), operator_id: Field.user({ label: '操作人', ...required, readonly: true }),
+}, ['reconciliation_id','action','from_status','to_status','comment','operator_id','occurred_at']);
