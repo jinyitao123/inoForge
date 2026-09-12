@@ -34,7 +34,7 @@ export const SubcontractOrder = master('forge_subcontract_order', '委外订单'
   payment_term: text('付款条件', true), line_count: Field.number({ label: '加工件行数', min: 0, scale: 0, defaultValue: 0, readonly: true }),
   total_quantity: quantity('加工件总数量', true), processing_amount: money('加工费总额', true),
   issue_planned_quantity: quantity('计划发料数量', true), issued_quantity: quantity('已发料数量', true),
-  received_quantity: quantity('已回厂数量', true), reconciled_amount: money('已对账金额', true),
+  received_quantity: quantity('已回厂数量', true), backflushed_quantity: quantity('已倒冲耗用', true), overconsumption_quantity: quantity('累计超耗', true), reconciled_amount: money('已对账金额', true),
   status: { ...select('订单状态', [['draft','草稿'],['pending_approval','待审核'],['approved','已审核'],['rejected','已驳回'],['in_progress','进行中'],['completed','已完工'],['reconciled','已对账'],['cancelled','已取消']], 'draft'), readonly: true },
   submitted_at: Field.datetime({ label: '提交时间', readonly: true }), submitted_by: Field.user({ label: '提交人', readonly: true }),
   approved_at: Field.datetime({ label: '审核时间', readonly: true }), approved_by: Field.user({ label: '审核人', readonly: true }),
@@ -54,7 +54,7 @@ export const SubcontractMaterialPlan = master('forge_subcontract_material_plan',
   order_line_id: reference('forge_subcontract_order_line', '用于加工件', true), sku_id: reference('forge_material_sku', '物料规格', true),
   item_code: text('物料编号', true), specification: text('规格'), planned_quantity: Field.number({ label: '计划发料', min: 0.0001, scale: 4, ...required }),
   standard_quantity: Field.number({ label: '标准应耗', min: 0.0001, scale: 4, ...required }), unit_name: text('单位', true),
-  issued_quantity: quantity('已发料', true), returned_quantity: quantity('已退料', true), remarks: remarks(),
+  issued_quantity: quantity('已发料', true), backflushed_quantity: quantity('已倒冲耗用', true), overconsumption_quantity: quantity('累计超耗', true), returned_quantity: quantity('已退料', true), remarks: remarks(),
 }, ['order_id','order_line_id','item_code','name','specification','planned_quantity','standard_quantity','unit_name','issued_quantity','returned_quantity']);
 
 export const SubcontractOrderApprovalLog = master('forge_subcontract_order_approval_log', '委外订单审核记录', 'history', {
@@ -124,3 +124,62 @@ export const SubcontractIssueLog = master('forge_subcontract_issue_log', '委外
   from_status: text('原状态'), to_status: text('新状态'), comment: Field.textarea({ label: '说明' }),
   occurred_at: Field.datetime({ label: '操作时间', ...required, readonly: true }), operator_id: Field.user({ label: '操作人', ...required, readonly: true }),
 }, ['issue_id','action','from_status','to_status','comment','operator_id','occurred_at']);
+
+// Live RISEMAP /subcontract/receives and /subcontract/receives/new, plus the
+// V1.2.3 community release notes. Submission records inspection quantities,
+// consumes supplier-side material by BOM (including overconsumption), updates
+// order progress and creates a pending warehouse inbound for qualified output.
+export const SubcontractReceipt = master('forge_subcontract_receipt', '委外回厂单', 'package-check', {
+  name: text('回厂单名称', true), code: code('回厂记录号'), order_id: reference('forge_subcontract_order', '关联委外订单', true),
+  supplier_id: reference('forge_supplier', '外协厂商', true), receipt_on: Field.date({ label: '回厂日期', ...required }),
+  inspector_id: Field.user({ label: '质检员', ...required }), warehouse_id: reference('forge_warehouse', '待入库仓库', true),
+  line_count: Field.number({ label: '加工件种数', min: 0, scale: 0, defaultValue: 0, readonly: true }), total_received_quantity: quantity('本次回厂', true),
+  qualified_quantity: quantity('合格数量', true), defective_quantity: quantity('不良数量', true), yield_rate: Field.number({ label: '本次良率（%）', min: 0, max: 100, scale: 4, readonly: true }),
+  standard_material_quantity: quantity('BOM 标准耗用', true), actual_material_quantity: quantity('材料实际耗用', true), overconsumption_quantity: quantity('本次超耗', true),
+  settlement_amount: money('本次可结算加工费', true), status: select('回厂状态', [['draft','草稿'],['pending_inbound','待入库'],['inspection_exception','不良待处理'],['stocked','已入库'],['cancelled','已作废']], 'draft'),
+  inbound_id: reference('forge_subcontract_inbound', '关联入库单'), submitted_by: Field.user({ label: '提交人', readonly: true }), submitted_at: Field.datetime({ label: '提交时间', readonly: true }),
+  responsible_id: owner(true), remarks: remarks(),
+}, ['code','supplier_id','order_id','receipt_on','inspector_id','total_received_quantity','qualified_quantity','defective_quantity','yield_rate','settlement_amount','status','inbound_id']);
+
+export const SubcontractReceiptLine = master('forge_subcontract_receipt_line', '委外回厂加工件', 'list', {
+  name: text('物料名称', true), receipt_id: reference('forge_subcontract_receipt', '委外回厂单', true), order_id: reference('forge_subcontract_order', '委外订单', true),
+  order_line_id: reference('forge_subcontract_order_line', '委外加工件', true), sku_id: reference('forge_material_sku', '物料规格', true),
+  warehouse_id: reference('forge_warehouse', '待入库仓库', true), item_code: text('物料编号', true), specification: text('规格'), unit_name: text('单位', true),
+  ordered_quantity: quantity('订单数量', true), remaining_snapshot: quantity('创建时未回数量', true), received_quantity: Field.number({ label: '本次回厂', min: 0.0001, scale: 4, ...required }),
+  qualified_quantity: quantity('合格数量', true), defective_quantity: quantity('不良数量', true), batch_number: text('批次号'),
+  processing_unit_price: money('加工单价', true), settlement_amount: money('可结算加工费', true),
+  status: select('明细状态', [['draft','草稿'],['pending_inbound','待入库'],['inspection_exception','不良待处理'],['stocked','已入库'],['cancelled','已作废']], 'draft'), remarks: remarks(),
+}, ['receipt_id','order_id','item_code','name','specification','ordered_quantity','remaining_snapshot','received_quantity','qualified_quantity','defective_quantity','processing_unit_price','settlement_amount','warehouse_id','batch_number','status']);
+
+export const SubcontractReceiptConsumption = master('forge_subcontract_receipt_consumption', '委外回厂材料耗用', 'boxes', {
+  name: text('材料名称', true), receipt_id: reference('forge_subcontract_receipt', '委外回厂单', true), order_id: reference('forge_subcontract_order', '委外订单', true),
+  receipt_line_id: reference('forge_subcontract_receipt_line', '回厂加工件', true), plan_id: reference('forge_subcontract_material_plan', '委外发料计划', true),
+  sku_id: reference('forge_material_sku', '材料规格', true), item_code: text('材料编号', true), specification: text('规格'), unit_name: text('单位', true),
+  standard_quantity: quantity('本批 BOM 标准耗用', true), actual_quantity: Field.number({ label: '本批实际耗用', min: 0, scale: 4, ...required }),
+  overconsumption_quantity: quantity('本批超耗', true), unit_cost: money('材料单位成本', true), amount: money('材料耗用金额', true),
+  status: select('耗用状态', [['draft','草稿'],['backflushed','已倒冲'],['cancelled','已取消']], 'draft'), remarks: remarks(),
+}, ['receipt_id','order_id','receipt_line_id','item_code','name','specification','standard_quantity','actual_quantity','overconsumption_quantity','unit_cost','amount','status']);
+
+export const SubcontractInbound = master('forge_subcontract_inbound', '委外待入库单', 'package-plus', {
+  name: text('入库单名称', true), code: code('委外入库单号'), receipt_id: reference('forge_subcontract_receipt', '委外回厂单', true),
+  order_id: reference('forge_subcontract_order', '委外订单', true), supplier_id: reference('forge_supplier', '委外供应商', true),
+  warehouse_id: reference('forge_warehouse', '入库仓库', true), total_quantity: quantity('待入库良品', true),
+  processing_amount: money('良品加工费', true), valuation_status: select('计价状态', [['processing_only','仅核定加工费'],['fully_costed','完整成本已核定']], 'processing_only'),
+  status: select('入库状态', [['pending','待入库'],['stocked','已入库'],['cancelled','已取消']], 'pending'),
+  created_by: Field.user({ label: '生成人', readonly: true }), created_at_business: Field.datetime({ label: '生成时间', readonly: true }),
+  stocked_by: Field.user({ label: '入库人', readonly: true }), stocked_at: Field.datetime({ label: '入库时间', readonly: true }), remarks: remarks(),
+}, ['code','receipt_id','order_id','supplier_id','warehouse_id','total_quantity','processing_amount','valuation_status','status']);
+
+export const SubcontractInboundLine = master('forge_subcontract_inbound_line', '委外待入库明细', 'list', {
+  name: text('物料名称', true), inbound_id: reference('forge_subcontract_inbound', '委外入库单', true), receipt_line_id: reference('forge_subcontract_receipt_line', '回厂加工件', true),
+  order_line_id: reference('forge_subcontract_order_line', '委外加工件', true), sku_id: reference('forge_material_sku', '物料规格', true), warehouse_id: reference('forge_warehouse', '入库仓库', true),
+  item_code: text('物料编号', true), specification: text('规格'), unit_name: text('单位', true), qualified_quantity: quantity('待入库良品', true),
+  batch_number: text('批次号'), processing_unit_price: money('加工单价', true), processing_amount: money('良品加工费', true), status: select('明细状态', [['pending','待入库'],['stocked','已入库'],['cancelled','已取消']], 'pending'),
+}, ['inbound_id','item_code','name','specification','qualified_quantity','processing_unit_price','processing_amount','warehouse_id','batch_number','status']);
+
+export const SubcontractReceiptLog = master('forge_subcontract_receipt_log', '委外回厂操作记录', 'history', {
+  name: text('记录名称', true), receipt_id: reference('forge_subcontract_receipt', '委外回厂单', true),
+  action: select('操作', [['submitted','提交回厂'],['inbound_created','生成待入库'],['exception_recorded','登记不良'],['stocked','完成入库'],['cancelled','作废']]),
+  from_status: text('原状态'), to_status: text('新状态'), comment: Field.textarea({ label: '说明' }),
+  occurred_at: Field.datetime({ label: '操作时间', ...required, readonly: true }), operator_id: Field.user({ label: '操作人', ...required, readonly: true }),
+}, ['receipt_id','action','from_status','to_status','comment','operator_id','occurred_at']);
