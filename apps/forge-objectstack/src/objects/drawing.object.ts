@@ -55,11 +55,21 @@ export const DrawingDistribution = master('forge_drawing_distribution', '图纸�
   name: text('发放主题', true), code: code('发放单号'), drawing_id: reference('forge_drawing', '图号档案', true), version_id: reference('forge_drawing_version', '发放版本'),
   purpose: select('用途', [['procurement','采购下发'],['subcontracting','外协加工'],['production','内部生产'],['quality','质检确认'],['service','售后支持'],['project','项目同步'],['other','其他']]),
   recipient_type: select('接收类型', [['department','内部部门'],['person','内部人员'],['supplier','供应商'],['customer','客户']]), recipient_name: text('接收对象', true),
+  multi_recipient: Field.boolean({ label: '多对象接收', defaultValue: false }), require_all_confirmation: Field.boolean({ label: '需要全部确认', defaultValue: true }), cc_names: text('抄送对象'),
   method: select('发放方式', [['system','系统发送'],['email','邮件发送'],['print','导出打印'],['manual','手工传递'],['purchase_order','采购单附带']]),
   require_confirmation: Field.boolean({ label: '要求确认', defaultValue: true }), require_receipt: Field.boolean({ label: '要求回执', defaultValue: false }), receipt_due_on: Field.date({ label: '回执截止日期' }), receipt_requirement: Field.textarea({ label: '回执要求说明' }), restrict_download: Field.boolean({ label: '限制下载', defaultValue: false }), add_watermark: Field.boolean({ label: '加水印', defaultValue: false }), watermark_text: text('水印文字'),
   status: { ...select('发放状态', [['draft','草稿'],['pending','待发放'],['sent','已发放'],['cancelled','已取消']], 'draft'), readonly: true }, confirmation_status: { ...select('确认状态', [['pending','待确认'],['partial','部分已确认'],['confirmed','全部已确认']], 'pending'), readonly: true }, receipt_status: { ...select('回执状态', [['not_required','无需回执'],['pending','待回执'],['received','已回执']], 'not_required'), readonly: true },
+  recipient_count: Field.number({ label: '接收对象数', min: 0, scale: 0, defaultValue: 0, readonly: true }), confirmed_count: Field.number({ label: '已确认数', min: 0, scale: 0, defaultValue: 0, readonly: true }), confirmation_required_count: Field.number({ label: '确认达标数', min: 0, scale: 0, defaultValue: 0, readonly: true }), confirmation_satisfied: Field.boolean({ label: '确认要求已满足', defaultValue: false, readonly: true }), receipt_count: Field.number({ label: '已回执数', min: 0, scale: 0, defaultValue: 0, readonly: true }),
   sent_at: Field.datetime({ label: '发放时间', readonly: true }), confirmed_at: Field.datetime({ label: '确认时间', readonly: true }), remarks: remarks(),
 }, ['code','drawing_id','version_id','recipient_name','recipient_type','method','status','confirmation_status','receipt_status','sent_at']);
+
+// RM-078 exposes multi-recipient delivery and an optional all-recipient confirmation threshold.
+export const DrawingDistributionRecipient = master('forge_drawing_distribution_recipient', '图纸发放接收对象', 'users', {
+  name: text('接收对象', true), code: code('接收编号'), distribution_id: reference('forge_drawing_distribution', '发放单', true),
+  recipient_type: select('接收类型', [['department','内部部门'],['person','内部人员'],['supplier','供应商'],['customer','客户']]), organization: text('所属单位或部门'), contact: text('联系方式'),
+  confirmation_status: { ...select('确认状态', [['pending','待确认'],['confirmed','已确认'],['not_required','无需确认']], 'pending'), readonly: true }, receipt_status: { ...select('回执状态', [['pending','待回执'],['received','已回执'],['not_required','无需回执']], 'not_required'), readonly: true },
+  confirmed_at: Field.datetime({ label: '确认时间', readonly: true }), confirmed_by: Field.user({ label: '确认人', readonly: true }), receipt_note: Field.textarea({ label: '回执说明', readonly: true }), remarks: remarks(),
+}, ['distribution_id','name','recipient_type','organization','confirmation_status','receipt_status','confirmed_at']);
 
 export const CustomerDrawing = master('forge_customer_drawing', '客户图纸', 'file-input', {
   name: text('图纸名称', true), code: code('客户图号'), customer_id: reference('forge_customer', '客户名称', true), version: { ...text('版本'), defaultValue: 'V1' },
