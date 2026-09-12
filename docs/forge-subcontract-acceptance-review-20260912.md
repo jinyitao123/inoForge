@@ -40,6 +40,8 @@
 10. 点击“确认退料”并确认弹窗；页面显示待入库 KPI 为 `1`，生成 `RIN-RET-BROWSER-20260912-001`，且弹窗明确确认退料阶段不扣减库存。
 11. 点击“确认入库”并确认弹窗；页面显示待入库 KPI 清零、已入库 KPI 为 `1`，退料结果为“已入库”，并提示委外库存已回写。完整停服后从同一 SQLite 重启，再运行 `pnpm acceptance:subcontract-return-browser-readback`，回读退料单、待入库单、明细、委外库存和退料流水均一致。
 12. 在当前 `main` 上用独立端口 `4450` 和全新 SQLite `/tmp/forge-subcontract-main-rerun-20260912-v2.sqlite` 重跑 `pnpm acceptance:subcontract-one-db-chain`，连续阶段 `order → issue → supplier_signoff → receipt → inbound_confirm → ncr_disposition → reconciliation → payable` 全部通过；随后完整停服、同库重启，运行 `pnpm acceptance:subcontract-one-db-restart` 按原单据 ID 回读通过。该次复跑只更新 Forge 本地证据，不改变 RISEMAP 数据。
+13. 在分支 `codex/subcontract-signoff-context` 的独立端口 `4453` 和独立 SQLite 上构造真实本地材料 `SC-ORDER-001 / SI-SIGNOFF-CONTEXT-001`，订单上下文显示“当前下一步：待供应商签收”，发料行显示“等待供应商签收”，入口携带具体 `issue_id` 进入签收列表并只显示该单据。
+14. 使用内置浏览器打开“登记签收”对话框，填写“供应商已确认收货 6 张，包装完好”并提交；页面反馈“供应商签收已登记，未自动开始加工”。API 回读为发料单 `signed`、委外订单仍为 `in_progress` 且已发数量为 `6`；完整停服后使用同一 SQLite 重启，API 再次回读相同状态。
 
 ## RISEMAP 对照边界
 
@@ -60,6 +62,16 @@
 质量审查：已覆盖草稿不动库存、超量阻断、确认后待入库、入库后余额/累计/流水、同一 SQLite 停服重启回读，以及内置浏览器列表和新建表单。尚未覆盖 RISEMAP 线上成功写入、真实多角色账号和赔偿扣款联动。
 
 三方结论：**RM-086 可作为 Forge 受控本地样板纳入委外基线，但不能宣称 RISEMAP 行为已完全复刻，也不能单独触发向其他业务域推广。**
+
+## RM-0481 供应商签收上下文修补
+
+产品审查：已发出但尚未签收的发料单是委外订单的当前岗位任务，订单上下文必须把它排在回厂验收之前，并显示当前单据、状态、结果和下一步。入口不能只带订单而重新打开“新建发料单”，否则用户会丢失当前办理对象。
+
+工程审查：复用现有 `subcontract_issue_sign` Action 和 `issued → signed` 状态；订单上下文增加 `issued` 派生阻断与具体 `issue_id` 跳转，发料页按该 ID 聚焦当前发料单。没有新增对象、库存写入或线上数据迁移。
+
+质量审查：已覆盖订单上下文、具体发料单列表、签收对话框、真实浏览器提交、API 状态回读及同一 SQLite 停服重启回读。RISEMAP 当前线上签收写入、真实外部供应商账号和多角色权限仍未证明。
+
+三方结论：**该修补通过本地产品连续性门禁，可合并到委外样板；供应商签收的 RISEMAP 对齐仍保持待复核，不得扩展为权限或跨域推广结论。**
 
 ## 推广判定
 
