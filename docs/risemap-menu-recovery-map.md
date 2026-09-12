@@ -1,6 +1,6 @@
 # RISEMAP 菜单复刻挽回台账
 
-更新于 2026-09-12。基线为 Forge `main` 提交 `9552ec4` 与已保存的 RISEMAP 181 个菜单入口清单。本轮只整理 Forge 主导航与信息架构，不删除已有对象、Action、页面或数据，不修改线上 RISEMAP 数据，也不把入口可见写成业务闭环通过。当前主线冻结审计见 `docs/forge-main-product-audit-20260912.md`。
+更新于 2026-09-12。基线为 Forge `main` 提交 `22fdf28` 与已保存的 RISEMAP 181 个菜单入口清单。本轮只整理 Forge 主导航与信息架构，不删除已有对象、Action、页面或数据，不修改线上 RISEMAP 数据，也不把入口可见写成业务闭环通过。当前主线冻结审计见 `docs/forge-main-product-audit-20260912.md`。
 
 ## 事实
 
@@ -45,7 +45,7 @@
 
 ## 本轮验证
 
-- `pnpm typecheck`、`pnpm validate`、`pnpm build` 均通过；当前验证统计为 154 个对象、39 个页面和 191 个 Action。该统计只作工程盘点，不作为产品完成度。
+- `pnpm typecheck`、`pnpm validate`、`pnpm build` 均通过；当前验证统计为 154 个对象、40 个页面和 191 个 Action。该统计只作工程盘点，不作为产品完成度。
 - 在端口 `4398` 使用独立 `.objectstack/menu-ia-20260912.sqlite` 启动 Console，登录后侧栏按顺序显示九类一级菜单。
 - 首次浏览器检查发现空区域会被 Console 隐藏；加入明确标注“待复刻”的状态页后，完整停服并从同一 SQLite 重启，工作台和行政均可见。
 - 浏览器已展开生产下的组装业务管理、图纸管理、委外管理；委外看板与委外订单分别可加载，订单页列表职责独立可见。
