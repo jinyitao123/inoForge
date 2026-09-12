@@ -299,9 +299,9 @@ export const InvoiceReversalLog = master('forge_invoice_reversal_log', '发票�
 
 export const AccountsPayable = master('forge_accounts_payable', '应付账款', 'hand-coins', {
   name: text('应付名称', true), code: code('应付编号'), source_type: Field.select([
-    { value: 'purchase_inbound', label: '采购入库' }, { value: 'purchase_invoice', label: '进项发票' }, { value: 'opening_balance', label: '期初应付' },
+  { value: 'purchase_inbound', label: '采购入库' }, { value: 'purchase_invoice', label: '进项发票' }, { value: 'subcontract_reconciliation', label: '委外对账' }, { value: 'opening_balance', label: '期初应付' },
   ], { label: '应付来源', ...required }),
-  inbound_id: reference('forge_purchase_inbound', '采购入库单'), invoice_id: reference('forge_purchase_invoice', '进项发票'),
+  inbound_id: reference('forge_purchase_inbound', '采购入库单'), invoice_id: reference('forge_purchase_invoice', '进项发票'), reconciliation_id: reference('forge_subcontract_reconciliation', '委外对账单'),
   order_id: reference('forge_purchase_order', '采购订单'), supplier_id: reference('forge_supplier', '供应商', true),
   recognized_on: Field.date({ label: '确认日期', ...required }), due_on: Field.date({ label: '到期日期' }),
   original_amount: amount('应付原值'), paid_amount: { ...amount('已付款金额'), readonly: true },
