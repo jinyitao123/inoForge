@@ -45,3 +45,15 @@ export const SubcontractWorkspacePage = {
   name: 'page_subcontract_workspace', label: '委外管理', description: '委外供应商能力、订单草稿、提交审核与执行入口',
   icon: 'factory', type: 'app' as const, kind: 'react' as const, source: subcontractSource,
 };
+
+export const SubcontractOrdersPage = {
+  name: 'page_subcontract_orders', label: '委外订单', description: '委外订单列表、创建、提交与审核',
+  icon: 'clipboard-list', type: 'app' as const, kind: 'react' as const,
+  source: subcontractSource.replace("useState('看板')", "useState('委外订单')"),
+};
+
+export const SubcontractSuppliersPage = {
+  name: 'page_subcontract_suppliers', label: '委外供应商', description: '委外供应商能力、联系人、默认仓库与结算准备',
+  icon: 'factory', type: 'app' as const, kind: 'react' as const,
+  source: subcontractSource.replace("useState('看板')", "useState('委外供应商')"),
+};
