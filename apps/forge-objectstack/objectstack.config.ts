@@ -140,14 +140,12 @@ export default defineStack({
           ]),
           group('business_confirmation', '业务确认', [
             page('revenue_recognition', '销售收入确认', 'page_revenue_recognition', 'badge-dollar-sign'),
+            page('counterparty_reconciliation', '对账中心', 'page_counterparty_reconciliation', 'file-check-2'),
+            page('bank_statement', '银行余额对账', 'page_bank_statement', 'file-check-2'),
           ]),
           group('invoice_management', '发票管理', [
             page('finance_adjustments', '财务冲销', 'page_invoice_reversal', 'receipt-text'),
             page('collection_settlement', '开票与结算', 'page_collection_settlement_workspace', 'wallet-cards'),
-          ]),
-          group('reconciliation_management', '对账单', [
-            page('counterparty_reconciliation', '对账中心', 'page_counterparty_reconciliation', 'file-check-2'),
-            page('bank_statement', '银行余额对账', 'page_bank_statement', 'file-check-2'),
           ]),
         ],
       },
@@ -160,6 +158,10 @@ export default defineStack({
       },
       {
         id: 'system', label: '系统', icon: 'settings', navigation: [
+          group('system_settings', '系统设置', [
+            page('system_recovery_status', '系统设置复刻状态', 'page_workspace_recovery_status', 'settings'),
+          ]),
+          group('business_settings', '业务设置', [
           group('material_settings', '商品管理', [
             object('material_skus', '规格与价格', 'forge_material_sku', 'boxes'),
             object('material_categories', '物料分类', 'forge_material_category', 'tags'),
@@ -181,6 +183,7 @@ export default defineStack({
           ]),
           group('project_settings', '项目管理', [
             object('project_types', '项目类型', 'forge_project_type', 'tags'),
+          ]),
           ]),
         ],
       },
