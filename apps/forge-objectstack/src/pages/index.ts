@@ -25,3 +25,4 @@ export * from './opening-balance.page.js';
 export * from './bank-statement.page.js';
 export * from './subcontract-workspace.page.js';
 export * from './subcontract-issue.page.js';
+export * from './subcontract-receipt.page.js';

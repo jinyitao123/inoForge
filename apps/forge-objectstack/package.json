@@ -142,6 +142,9 @@
     ,"acceptance:subcontract-issue": "node tests/subcontract-issue.integration.mjs"
     ,"acceptance:subcontract-issue-ui-readback": "node tests/subcontract-issue-ui-readback.mjs"
     ,"acceptance:subcontract-issue-restart": "node tests/subcontract-issue-restart-readback.mjs"
+    ,"acceptance:subcontract-receipt": "node tests/subcontract-receipt.integration.mjs"
+    ,"acceptance:subcontract-receipt-ui-readback": "node tests/subcontract-receipt-ui-readback.mjs"
+    ,"acceptance:subcontract-receipt-restart": "node tests/subcontract-receipt-restart-readback.mjs"
   },
   "dependencies": {
     "@objectstack/spec": "17.3.0",
