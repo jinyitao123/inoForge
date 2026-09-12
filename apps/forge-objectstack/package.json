@@ -150,6 +150,10 @@
     ,"acceptance:subcontract-inbound-browser-fixture": "node tests/subcontract-inbound-browser-fixture.mjs"
     ,"acceptance:subcontract-inbound-ui-readback": "node tests/subcontract-inbound-ui-readback.mjs"
     ,"acceptance:subcontract-inbound-restart": "node tests/subcontract-inbound-restart-readback.mjs"
+    ,"acceptance:subcontract-ncr": "node tests/subcontract-ncr.integration.mjs"
+    ,"acceptance:subcontract-ncr-browser-fixture": "node tests/subcontract-ncr-browser-fixture.mjs"
+    ,"acceptance:subcontract-ncr-ui-readback": "node tests/subcontract-ncr-ui-readback.mjs"
+    ,"acceptance:subcontract-ncr-restart": "node tests/subcontract-ncr-restart-readback.mjs"
   },
   "dependencies": {
     "@objectstack/spec": "17.3.0",
