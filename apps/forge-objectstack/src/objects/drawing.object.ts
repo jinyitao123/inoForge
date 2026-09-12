@@ -75,6 +75,10 @@ export const CustomerDrawing = master('forge_customer_drawing', '客户图纸', 
   name: text('图纸名称', true), code: code('客户图号'), customer_id: reference('forge_customer', '客户名称', true), version: { ...text('版本'), defaultValue: 'V1' },
   contact: text('联系人'), contract_number: text('合同号'), order_number: text('订单号'), received_on: Field.date({ label: '接收日期' }), valid_until: Field.date({ label: '有效期' }),
   confidentiality: select('保密等级', [['general','一般'],['confidential','机密'],['top_secret','绝密']], 'general'), usage_scope: select('使用范围', [['project_only','仅限本项目'],['cross_project','可跨项目使用'],['named_people','仅限指定人员']], 'project_only'),
+  customer_original_files: Field.file({ label: '客户原图', multiple: true, description: 'RISEMAP RM-080：不限格式，可直接上传压缩包。' }),
+  pdf_file: Field.file({ label: 'PDF 文件', accept: ['application/pdf', '.pdf'], description: 'RISEMAP RM-080：仅支持一个 PDF 文件。' }),
+  technical_requirement_file: Field.file({ label: '技术要求', accept: ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', '.pdf', '.doc', '.docx'], description: 'RISEMAP RM-080：支持一个 PDF、DOC 或 DOCX 文件。' }),
+  other_attachment_file: Field.file({ label: '其他附件', accept: ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'image/*', 'application/zip', '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.jpg', '.jpeg', '.png', '.zip', '.rar', '.7z'], description: 'RISEMAP RM-080：支持一个 PDF、Word、Excel、图片或压缩包。' }),
   internal_drawing_id: reference('forge_drawing', '关联内部图号'), status: select('状态', [['valid','有效'],['invalid','作废'],['expired','已过期']], 'valid'), remarks: remarks(),
 }, ['code','name','customer_id','confidentiality','usage_scope','version','status','received_on']);
 
