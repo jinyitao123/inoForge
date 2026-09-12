@@ -12,6 +12,7 @@ RISEMAP 基线：已保存的当前页面证据 RM-087、RM-093，以及委外�
 | 一级区域 | 委外入口位于“生产 → 委外管理” | `objectstack.config.ts` 位于“生产 → 委外管理” | 结构一致 |
 | 看板待办入口 | RM-082 的进行中、待发料、待回厂、待对账指标可点击进入对应业务入口 | Forge 四个指标卡均可点击；待对账进入 `page_subcontract_reconciliation`，待发料/待回厂进入对应岗位页 | 行为已补齐；实际样本数量仍随数据库状态变化 |
 | 发料状态入口 | RM-084 的全部发料单、待审核、待发料、待签收指标可筛选列表 | Forge 四个指标卡直接驱动状态筛选，点击后保持选中态并可恢复全部 | 浏览器已验证；真实发料样本的状态数量仍随数据库状态变化 |
+| 委外库存入口 | RM-089 独立“委外厂库存”工作台，支持供应商/物料视角、账龄筛选、超 30 天入口和“去发料” | `page_subcontract_stock` 独立业务页面；原 `forge_subcontract_stock_balance` 对象保留为数据底座 | 浏览器已验证入口、视角、账龄筛选和去发料路径；账龄起算口径仍是 Forge 工程推断 |
 | 委外结算入口 | RM-087 独立“委外对账”入口 | `page_subcontract_reconciliation` 独立页面 | 结构一致 |
 | 结果报表入口 | RM-093 独立“委外对账单”结果页 | `page_subcontract_reconciliation_report` 独立页面 | 结构一致 |
 | 待办聚合维度 | 待对账池按供应商、订单、回厂批次聚合 | Forge 按可结算回厂批次列出供应商、订单、批次、良品数量和加工费 | 结构一致；聚合细节仍待同材料复核 |
@@ -40,12 +41,13 @@ Forge：
 - 订单上下文：`apps/forge-objectstack/src/pages/subcontract-workspace.page.ts`
 - 委外对账池：`apps/forge-objectstack/src/pages/subcontract-reconciliation.page.ts`
 - 结果报表：`apps/forge-objectstack/src/pages/subcontract-reconciliation-report.page.ts`
+- 委外库存工作台：`apps/forge-objectstack/src/pages/subcontract-stock.page.ts`
 - 状态动作：`apps/forge-objectstack/src/actions/subcontract-reconciliation.action.ts`、`subcontract-ncr.action.ts`、`subcontract.action.ts`
 - 浏览器和重启证据：`docs/forge-subcontract-acceptance-review-20260912.md`、`docs/forge-subcontract-reconciliation-slice.md`及 `apps/forge-objectstack/tests/subcontract-*.mjs`
 
 ## 对照结论
 
-1. 页面信息架构已经按 RISEMAP 的生产/委外入口拆分，待办池和结果报表没有再合并成单一技术对象页面。
+1. 页面信息架构已经按 RISEMAP 的生产/委外入口拆分，委外库存、待办池和结果报表没有再直接暴露为单一技术对象页面。
 2. Forge 已证明一条真实回厂批次从订单上下文经过 NCR 阻断、质量处置、对账和应付的连续业务路径。
 3. 目前只能把字段结构、入口关系和已实际办理的 Forge 行为列为已证明；不能把 RISEMAP 只读页面推断出的供应商确认、部分结算、差异关闭和付款关系写成已复刻。
 4. 视觉差异属于 ObjectStack Console 承载差异，不作为当前功能阻断；错误状态、来源丢失、异常绕过和无法进入下一岗位仍是阻断。
