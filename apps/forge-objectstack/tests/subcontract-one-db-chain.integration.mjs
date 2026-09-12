@@ -68,8 +68,8 @@ const reconciliation = await invoke(api, 'forge_supplier', 'subcontract_reconcil
   period_start: '2026-09-01', period_end: '2026-09-12',
   receipt_ids_json: JSON.stringify([receiptReport.ids.receipt]),
 });
-await invoke(api, 'forge_subcontract_reconciliation', 'subcontract_reconciliation_confirm', reconciliation.id, { note: '回厂、NCR 处置和加工费来源已复核' });
-const payableResult = await invoke(api, 'forge_subcontract_reconciliation', 'subcontract_reconciliation_generate_payable', reconciliation.id, { note: '委外对账确认后生成应付' });
+await invoke(api, 'forge_subcontract_reconciliation', 'subcontract_reconciliation_confirm', reconciliation.id, { confirmation_note: '回厂、NCR 处置和加工费来源已复核' });
+const payableResult = await invoke(api, 'forge_subcontract_reconciliation', 'subcontract_reconciliation_generate_payable', reconciliation.id);
 
 const [finalNcr, finalReceipt, finalReconciliation, finalPayables] = await Promise.all([
   find(api, 'forge_subcontract_ncr', { id: ncr.id }),
