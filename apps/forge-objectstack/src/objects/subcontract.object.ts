@@ -35,6 +35,7 @@ export const SubcontractOrder = master('forge_subcontract_order', '委外订单'
   total_quantity: quantity('加工件总数量', true), processing_amount: money('加工费总额', true),
   issue_planned_quantity: quantity('计划发料数量', true), issued_quantity: quantity('已发料数量', true),
   received_quantity: quantity('已回厂数量', true), backflushed_quantity: quantity('已倒冲耗用', true), overconsumption_quantity: quantity('累计超耗', true), reconciled_amount: money('已对账金额', true),
+  ncr_concession_quantity: quantity('NCR 特采数量', true), ncr_return_quantity: quantity('NCR 退货数量', true), ncr_scrap_quantity: quantity('NCR 报废数量', true), ncr_rework_quantity: quantity('NCR 返工数量', true),
   status: { ...select('订单状态', [['draft','草稿'],['pending_approval','待审核'],['approved','已审核'],['rejected','已驳回'],['in_progress','进行中'],['completed','已完工'],['reconciled','已对账'],['cancelled','已取消']], 'draft'), readonly: true },
   submitted_at: Field.datetime({ label: '提交时间', readonly: true }), submitted_by: Field.user({ label: '提交人', readonly: true }),
   approved_at: Field.datetime({ label: '审核时间', readonly: true }), approved_by: Field.user({ label: '审核人', readonly: true }),
@@ -46,7 +47,8 @@ export const SubcontractOrderLine = master('forge_subcontract_order_line', '委�
   item_code: text('物料编号', true), specification: text('规格'), process_type: text('加工类型', true),
   quantity: Field.number({ label: '数量', min: 0.0001, scale: 4, ...required }), unit_name: text('单位', true),
   unit_price: money('加工单价'), subtotal: money('加工小计', true), expected_delivery_on: Field.date({ label: '期望交期' }),
-  drawing_number: text('图纸号'), received_good_quantity: quantity('已回良品', true), received_bad_quantity: quantity('已回不良品', true), remarks: remarks(),
+  drawing_number: text('图纸号'), received_good_quantity: quantity('已回良品', true), received_bad_quantity: quantity('已回不良品', true),
+  ncr_concession_quantity: quantity('NCR 特采数量', true), ncr_return_quantity: quantity('NCR 退货数量', true), ncr_scrap_quantity: quantity('NCR 报废数量', true), ncr_rework_quantity: quantity('NCR 返工数量', true), remarks: remarks(),
 }, ['order_id','item_code','name','specification','process_type','quantity','unit_name','unit_price','subtotal','expected_delivery_on','drawing_number']);
 
 export const SubcontractMaterialPlan = master('forge_subcontract_material_plan', '委外发料计划', 'boxes', {
@@ -135,8 +137,9 @@ export const SubcontractReceipt = master('forge_subcontract_receipt', '委外回
   inspector_id: Field.user({ label: '质检员', ...required }), warehouse_id: reference('forge_warehouse', '待入库仓库', true),
   line_count: Field.number({ label: '加工件种数', min: 0, scale: 0, defaultValue: 0, readonly: true }), total_received_quantity: quantity('本次回厂', true),
   qualified_quantity: quantity('合格数量', true), defective_quantity: quantity('不良数量', true), yield_rate: Field.number({ label: '本次良率（%）', min: 0, max: 100, scale: 4, readonly: true }),
+  ncr_count: Field.number({ label: '关联 NCR 数量', min: 0, scale: 0, defaultValue: 0, readonly: true }), ncr_resolved_count: Field.number({ label: '已处置 NCR 数量', min: 0, scale: 0, defaultValue: 0, readonly: true }),
   standard_material_quantity: quantity('BOM 标准耗用', true), actual_material_quantity: quantity('材料实际耗用', true), overconsumption_quantity: quantity('本次超耗', true),
-  settlement_amount: money('本次可结算加工费', true), status: select('回厂状态', [['draft','草稿'],['pending_inbound','待入库'],['inspection_exception','不良待处理'],['stocked','已入库'],['cancelled','已作废']], 'draft'),
+  settlement_amount: money('本次可结算加工费', true), status: select('回厂状态', [['draft','草稿'],['pending_inbound','待入库'],['inspection_exception','不良待处理'],['stocked','已入库'],['ncr_resolved','不良已处置'],['cancelled','已作废']], 'draft'),
   inbound_id: reference('forge_subcontract_inbound', '关联入库单'), submitted_by: Field.user({ label: '提交人', readonly: true }), submitted_at: Field.datetime({ label: '提交时间', readonly: true }),
   responsible_id: owner(true), remarks: remarks(),
 }, ['code','supplier_id','order_id','receipt_on','inspector_id','total_received_quantity','qualified_quantity','defective_quantity','yield_rate','settlement_amount','status','inbound_id']);
@@ -147,6 +150,7 @@ export const SubcontractReceiptLine = master('forge_subcontract_receipt_line', '
   warehouse_id: reference('forge_warehouse', '待入库仓库', true), item_code: text('物料编号', true), specification: text('规格'), unit_name: text('单位', true),
   ordered_quantity: quantity('订单数量', true), remaining_snapshot: quantity('创建时未回数量', true), received_quantity: Field.number({ label: '本次回厂', min: 0.0001, scale: 4, ...required }),
   qualified_quantity: quantity('合格数量', true), defective_quantity: quantity('不良数量', true), batch_number: text('批次号'),
+  ncr_id: reference('forge_subcontract_ncr', '关联 NCR'),
   processing_unit_price: money('加工单价', true), settlement_amount: money('可结算加工费', true),
   status: select('明细状态', [['draft','草稿'],['pending_inbound','待入库'],['inspection_exception','不良待处理'],['stocked','已入库'],['cancelled','已作废']], 'draft'), remarks: remarks(),
 }, ['receipt_id','order_id','item_code','name','specification','ordered_quantity','remaining_snapshot','received_quantity','qualified_quantity','defective_quantity','processing_unit_price','settlement_amount','warehouse_id','batch_number','status']);
