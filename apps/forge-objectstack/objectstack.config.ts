@@ -116,7 +116,11 @@ export default defineStack({
           group('project_management', '项目管理', [
             object('projects', '项目中心', 'forge_project', 'briefcase-business'),
             page('project_plan_workspace', '任务管理', 'page_project_plan_workspace', 'calendar-range'),
+            page('project_operating_analysis', '项目分析中心', 'page_project_operating_analysis', 'chart-no-axes-combined'),
             page('project_timesheet_cost', '工时管理', 'page_project_timesheet_cost', 'clock-3'),
+            page('project_settings', '项目配置中心', 'page_project_settings', 'sliders-horizontal'),
+          ]),
+          group('project_execution_and_cost', '项目执行与成本', [
             page('delivery_acceptance_workspace', '交付验收', 'page_delivery_acceptance_workspace', 'badge-check'),
             page('project_expense_cost', '项目费用与成本', 'page_project_expense_cost', 'hand-coins'),
           ]),
