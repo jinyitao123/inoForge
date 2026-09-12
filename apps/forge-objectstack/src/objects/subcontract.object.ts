@@ -157,25 +157,28 @@ export const SubcontractReceiptConsumption = master('forge_subcontract_receipt_c
   sku_id: reference('forge_material_sku', '材料规格', true), item_code: text('材料编号', true), specification: text('规格'), unit_name: text('单位', true),
   standard_quantity: quantity('本批 BOM 标准耗用', true), actual_quantity: Field.number({ label: '本批实际耗用', min: 0, scale: 4, ...required }),
   overconsumption_quantity: quantity('本批超耗', true), unit_cost: money('材料单位成本', true), amount: money('材料耗用金额', true),
-  status: select('耗用状态', [['draft','草稿'],['backflushed','已倒冲'],['cancelled','已取消']], 'draft'), remarks: remarks(),
+  status: select('耗用状态', [['draft','草稿'],['pending_backflush','待倒冲'],['backflushed','已倒冲'],['cancelled','已取消']], 'draft'), remarks: remarks(),
 }, ['receipt_id','order_id','receipt_line_id','item_code','name','specification','standard_quantity','actual_quantity','overconsumption_quantity','unit_cost','amount','status']);
 
 export const SubcontractInbound = master('forge_subcontract_inbound', '委外待入库单', 'package-plus', {
   name: text('入库单名称', true), code: code('委外入库单号'), receipt_id: reference('forge_subcontract_receipt', '委外回厂单', true),
   order_id: reference('forge_subcontract_order', '委外订单', true), supplier_id: reference('forge_supplier', '委外供应商', true),
   warehouse_id: reference('forge_warehouse', '入库仓库', true), total_quantity: quantity('待入库良品', true),
-  processing_amount: money('良品加工费', true), valuation_status: select('计价状态', [['processing_only','仅核定加工费'],['fully_costed','完整成本已核定']], 'processing_only'),
+  processing_amount: money('良品加工费', true), material_amount: money('实际材料成本', true), inventory_amount: money('成品入库金额', true),
+  valuation_status: select('计价状态', [['processing_only','仅核定加工费'],['fully_costed','完整成本已核定']], 'processing_only'),
   status: select('入库状态', [['pending','待入库'],['stocked','已入库'],['cancelled','已取消']], 'pending'),
   created_by: Field.user({ label: '生成人', readonly: true }), created_at_business: Field.datetime({ label: '生成时间', readonly: true }),
   stocked_by: Field.user({ label: '入库人', readonly: true }), stocked_at: Field.datetime({ label: '入库时间', readonly: true }), remarks: remarks(),
-}, ['code','receipt_id','order_id','supplier_id','warehouse_id','total_quantity','processing_amount','valuation_status','status']);
+}, ['code','receipt_id','order_id','supplier_id','warehouse_id','total_quantity','processing_amount','material_amount','inventory_amount','valuation_status','status']);
 
 export const SubcontractInboundLine = master('forge_subcontract_inbound_line', '委外待入库明细', 'list', {
   name: text('物料名称', true), inbound_id: reference('forge_subcontract_inbound', '委外入库单', true), receipt_line_id: reference('forge_subcontract_receipt_line', '回厂加工件', true),
   order_line_id: reference('forge_subcontract_order_line', '委外加工件', true), sku_id: reference('forge_material_sku', '物料规格', true), warehouse_id: reference('forge_warehouse', '入库仓库', true),
   item_code: text('物料编号', true), specification: text('规格'), unit_name: text('单位', true), qualified_quantity: quantity('待入库良品', true),
-  batch_number: text('批次号'), processing_unit_price: money('加工单价', true), processing_amount: money('良品加工费', true), status: select('明细状态', [['pending','待入库'],['stocked','已入库'],['cancelled','已取消']], 'pending'),
-}, ['inbound_id','item_code','name','specification','qualified_quantity','processing_unit_price','processing_amount','warehouse_id','batch_number','status']);
+  batch_number: text('批次号'), processing_unit_price: money('加工单价', true), processing_amount: money('良品加工费', true),
+  material_amount: money('实际材料成本', true), unit_cost: money('成品单位成本', true), inventory_amount: money('成品入库金额', true),
+  before_on_hand: quantity('入库前库存'), after_on_hand: quantity('入库后库存'), status: select('明细状态', [['pending','待入库'],['stocked','已入库'],['cancelled','已取消']], 'pending'),
+}, ['inbound_id','item_code','name','specification','qualified_quantity','processing_unit_price','processing_amount','material_amount','unit_cost','inventory_amount','warehouse_id','batch_number','status']);
 
 export const SubcontractReceiptLog = master('forge_subcontract_receipt_log', '委外回厂操作记录', 'history', {
   name: text('记录名称', true), receipt_id: reference('forge_subcontract_receipt', '委外回厂单', true),
