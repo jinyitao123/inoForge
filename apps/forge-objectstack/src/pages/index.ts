@@ -37,3 +37,4 @@ export * from './subcontract-reconciliation.page.js';
 export * from './subcontract-reconciliation-report.page.js';
 export * from './subcontract-reconciliation-recovery-status.page.js';
 export * from './navigation-recovery-status.page.js';
+export * from './feature-gap-status.page.js';
