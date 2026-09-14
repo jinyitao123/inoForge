@@ -25,9 +25,9 @@ async function ensureStockBalance(skuId,minimumAvailable){
   return (await find('forge_inventory_balance',{balance_key:key}))[0];
 }
 
-const boms=await find('forge_bom',{status:'active'}),bom=boms.find(x=>x.bom_type==='project')||boms[0];assert.ok(bom,'active BOM required');ids.bom=bom.id;
+const boms=await find('forge_bom',{status:'active'}),bomCandidates=await Promise.all(boms.map(async candidate=>({...candidate,nodes:(await find('forge_bom_node',{bom_id:candidate.id})).filter(x=>x.parent_id&&x.sku_id)}))),selectedBom=bomCandidates.sort((a,b)=>b.nodes.length-a.nodes.length)[0],bom=selectedBom;assert.ok(bom&&bom.nodes.length>=4,'active BOM with four leaf materials required');ids.bom=bom.id;
 const warehouse=(await find('forge_warehouse'))[0];assert.ok(warehouse);ids.warehouse=warehouse.id;
-const nodes=(await find('forge_bom_node',{bom_id:bom.id})).filter(x=>x.parent_id&&x.sku_id);assert.equal(nodes.length,4);
+const nodes=bom.nodes;assert.equal(nodes.length,4);
 const skuById=Object.fromEntries(await Promise.all(nodes.map(async x=>[x.sku_id,await read('forge_material_sku',x.sku_id)])));
 const materialBySku=Object.fromEntries(await Promise.all(nodes.map(async x=>{const sku=skuById[x.sku_id];return[x.sku_id,await read('forge_material',sku.material_id)];})));
 const minimumByCode={'RM-PLC-1215C':3,'RM-HMI-700':3,'RM-PSU-24V10A':4,'RM-CAB-800':3};
