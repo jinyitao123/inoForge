@@ -7,6 +7,8 @@ assert.equal(inboundReport.passed, true, 'procurement inbound acceptance must pa
 const api = await connect();
 const cases = [];
 const ids = { ...inboundReport.ids };
+const stamp = new Date().toISOString().replace(/[-:TZ.]/g, '').slice(0, 14);
+const invoiceNumber = '3200' + stamp.slice(2, 14) + '02';
 const read = async (object, id) => {
   const response = await api.request(`/data/${object}/${id}`);
   assert.equal(response.status, 200, `${object}/${id} read`);
@@ -35,7 +37,7 @@ await test('recognizes an unpaid payable when an inbound-trigger order is stocke
 });
 
 await test('rejects an invoice due date before its issue date without changing the payable', async () => {
-  const response = await invoke({ code: 'PINV-RM-20260909-DATE', invoice_number: '32002609090001', invoice_on: '2026-09-09', due_on: '2026-09-08' });
+  const response = await invoke({ code: 'PINV-RM-' + stamp + '-DATE', invoice_number: '3200' + stamp.slice(2, 14) + '01', invoice_on: '2026-09-09', due_on: '2026-09-08' });
   assert.equal(response.status, 400, JSON.stringify(response.value));
   assert.match(response.value.error.message, /不得早于开票日期/);
   assert.equal((await find('forge_purchase_invoice', { inbound_id: ids.inbound })).length, 0);
@@ -44,7 +46,7 @@ await test('rejects an invoice due date before its issue date without changing t
 
 await test('registers an exact inbound-valued purchase invoice and links the existing payable', async () => {
   const response = await invoke({
-    code: 'PINV-RM-20260909-001', invoice_number: '32002609090001', invoice_on: '2026-09-09', due_on: '2026-10-09',
+    code: 'PINV-RM-' + stamp + '-001', invoice_number: invoiceNumber, invoice_on: '2026-09-09', due_on: '2026-10-09',
     remarks: '采购进项发票与应付待复核切片验收。',
   });
   assert.equal(response.status, 200, JSON.stringify(response.value));
@@ -53,7 +55,7 @@ await test('registers an exact inbound-valued purchase invoice and links the exi
   const invoice = await read('forge_purchase_invoice', ids.invoice);
   assert.deepEqual({ inbound_id: invoice.inbound_id, order_id: invoice.order_id, invoice_number: invoice.invoice_number,
     total: invoice.total_amount, tax_rate: invoice.tax_rate, due_on: invoice.due_on, status: invoice.status },
-  { inbound_id: ids.inbound, order_id: ids.order, invoice_number: '32002609090001', total: 6800,
+  { inbound_id: ids.inbound, order_id: ids.order, invoice_number: invoiceNumber, total: 6800,
     tax_rate: 13, due_on: '2026-10-09', status: 'normal' });
   const lines = await find('forge_purchase_invoice_line', { invoice_id: ids.invoice });
   assert.equal(lines.length, 1); ids.invoiceLine = lines[0].id;
@@ -67,7 +69,7 @@ await test('registers an exact inbound-valued purchase invoice and links the exi
 });
 
 await test('rejects a second effective invoice for the same purchase inbound', async () => {
-  const response = await invoke({ code: 'PINV-RM-20260909-REPEAT', invoice_number: '32002609090002', invoice_on: '2026-09-09', due_on: '2026-10-09' });
+  const response = await invoke({ code: 'PINV-RM-' + stamp + '-REPEAT', invoice_number: '3200' + stamp.slice(2, 14) + '03', invoice_on: '2026-09-09', due_on: '2026-10-09' });
   assert.equal(response.status, 400, JSON.stringify(response.value));
   assert.match(response.value.error.message, /已经登记有效进项发票/);
   assert.equal((await find('forge_purchase_invoice', { inbound_id: ids.inbound })).length, 1);
@@ -76,7 +78,7 @@ await test('rejects a second effective invoice for the same purchase inbound', a
 
 await mkdir('.objectstack/acceptance', { recursive: true });
 const report = {
-  recordedAt: new Date().toISOString(), kind: 'local-purchase-invoice-payable-acceptance', ids, cases,
+  recordedAt: new Date().toISOString(), kind: 'local-purchase-invoice-payable-acceptance', ids, cases, invoiceNumber,
   passed: cases.every(testCase => testCase.status === 'passed'),
   runtime: { url: process.env.FORGE_URL || 'http://localhost:4336', database: '.objectstack/procurement-finance.sqlite' },
   observedBoundary: 'An inbound-trigger purchase order recognizes one unpaid payable when accepted stock is posted. Registering one exact-valued purchase invoice links that payable without changing its outstanding amount.',

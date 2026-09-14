@@ -8,6 +8,7 @@ assert.equal(shipment.passed, true, 'sales shipment acceptance must pass before 
 assert.equal(outbound.passed, true, 'sales outbound acceptance must pass before finance verification');
 const api = await connect();
 const cases = [], ids = { order: shipment.ids.order, orderLine: shipment.ids.orderLine };
+const stamp = new Date().toISOString().replace(/[-:TZ.]/g, '').slice(0, 14);
 const read = async (object, id) => (await api.request(`/data/${object}/${id}`)).value.record;
 const find = async (object, where) => {
   const query = new URLSearchParams({ $filter: JSON.stringify(where), $top: '20' });
@@ -34,7 +35,7 @@ try {
 } catch {}
 
 await test('issues an invoice only for shipped quantity and creates matching receivable', async () => {
-  const response = await invoke({ code: 'INV-CONVERT-20260909-001', invoice_on: '2026-09-09', due_on: '2026-10-09', quantity: 1, remarks: '销售开票与应收最小闭环验收。' });
+  const response = await invoke({ code: 'INV-CONVERT-' + stamp + '-001', invoice_on: '2026-09-09', due_on: '2026-10-09', quantity: 1, remarks: '销售开票与应收最小闭环验收。' });
   assert.equal(response.status, 200, JSON.stringify(response.value));
   const result = resultOf(response); ids.invoice = result.id; ids.receivable = result.receivable_id;
   assert.ok(ids.invoice && ids.receivable, 'invoice and receivable ids');
@@ -61,7 +62,7 @@ await test('rolls invoiced quantity and amount back to the order', async () => {
 await test('accepts the remaining shipped quantity when the order reaches shipped status', async () => {
   await api.request(`/data/forge_sales_order_line/${ids.orderLine}`, 'PATCH', { shipped_quantity: 2 });
   await api.request(`/data/forge_sales_order/${ids.order}`, 'PATCH', { status: 'shipped', shipped_amount: 243200 });
-  const response = await invoke({ code: 'INV-CONVERT-20260909-FINAL', invoice_on: '2026-09-09', due_on: '2026-10-09', quantity: 1 });
+  const response = await invoke({ code: 'INV-CONVERT-' + stamp + '-FINAL', invoice_on: '2026-09-09', due_on: '2026-10-09', quantity: 1 });
   assert.equal(response.status, 200, JSON.stringify(response.value));
   const result = resultOf(response), finalInvoiceId = result.id, finalReceivableId = result.receivable_id;
   assert.deepEqual({ total_amount: (await read('forge_sales_invoice', finalInvoiceId)).total_amount,
@@ -76,7 +77,7 @@ await test('accepts the remaining shipped quantity when the order reaches shippe
 });
 
 await test('rejects invoicing beyond shipped uninvoiced quantity without extra ledger rows', async () => {
-  const response = await invoke({ code: 'INV-CONVERT-20260909-OVER', invoice_on: '2026-09-09', due_on: '2026-10-09', quantity: 1 });
+  const response = await invoke({ code: 'INV-CONVERT-' + stamp + '-OVER', invoice_on: '2026-09-09', due_on: '2026-10-09', quantity: 1 });
   assert.equal(response.status, 400, JSON.stringify(response.value));
   assert.match(response.value.error.message, /超过已发货未开票数量/);
   assert.equal((await find('forge_sales_invoice', { order_id: ids.order })).length, 1);
@@ -86,7 +87,7 @@ await test('rejects invoicing beyond shipped uninvoiced quantity without extra l
 await test('rejects a due date before invoice date', async () => {
   await api.request(`/data/forge_sales_order_line/${ids.orderLine}`, 'PATCH', { invoiced_quantity: 0 });
   await api.request(`/data/forge_sales_order/${ids.order}`, 'PATCH', { invoiced_amount: 0 });
-  const response = await invoke({ code: 'INV-CONVERT-20260909-DATE', invoice_on: '2026-09-09', due_on: '2026-09-08', quantity: 1 });
+  const response = await invoke({ code: 'INV-CONVERT-' + stamp + '-DATE', invoice_on: '2026-09-09', due_on: '2026-09-08', quantity: 1 });
   assert.equal(response.status, 400, JSON.stringify(response.value));
   assert.match(response.value.error.message, /不得早于开票日期/);
   await api.request(`/data/forge_sales_order_line/${ids.orderLine}`, 'PATCH', { invoiced_quantity: 1 });
@@ -96,7 +97,7 @@ await test('rejects a due date before invoice date', async () => {
 await test('rejects cumulative invoice amount beyond the order total', async () => {
   await api.request(`/data/forge_sales_order_line/${ids.orderLine}`, 'PATCH', { invoiced_quantity: 0 });
   await api.request(`/data/forge_sales_order/${ids.order}`, 'PATCH', { invoiced_amount: 243200 });
-  const response = await invoke({ code: 'INV-CONVERT-20260909-AMOUNT', invoice_on: '2026-09-09', due_on: '2026-10-09', quantity: 1 });
+  const response = await invoke({ code: 'INV-CONVERT-' + stamp + '-AMOUNT', invoice_on: '2026-09-09', due_on: '2026-10-09', quantity: 1 });
   assert.equal(response.status, 400, JSON.stringify(response.value));
   assert.match(response.value.error.message, /累计开票金额不得超过订单含税金额/);
   assert.equal((await find('forge_sales_invoice', { order_id: ids.order })).length, 1);

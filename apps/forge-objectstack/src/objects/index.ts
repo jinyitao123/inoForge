@@ -17,4 +17,5 @@ export * from './subcontract.object.js';
 export * from './subcontract-ncr.object.js';
 export * from './project.object.js';
 export * from './production.object.js';
+export * from './production-prerequisite.object.js';
 export * from './delivery.object.js';

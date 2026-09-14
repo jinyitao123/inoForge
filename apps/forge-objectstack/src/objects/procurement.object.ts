@@ -10,6 +10,20 @@ const nonNegativeQuantity = (label: string, readonly = false) => Field.number({ 
 const nonNegativeMoney = (label: string, scale = 4) => Field.currency({ label, precision: 18, scale, min: 0 });
 const percentage = (label: string, defaultValue = 13) => Field.number({ label, min: 0, max: 100, scale: 4, defaultValue });
 
+// RISEMAP purchase basic data supplies the enabled payment conditions used by
+// purchase and subcontract orders. Business documents keep the readable name
+// as a snapshot while this record controls whether a new order may submit.
+export const PaymentCondition = master('forge_payment_condition', '付款条件', 'calendar-clock', {
+  name: text('付款条件名称', true), code: code('付款条件编码'),
+  settlement_basis: select('起算节点', [
+    ['order_approved', '订单审核通过'], ['goods_received', '到货验收'], ['inventory_inbound', '确认入库'], ['invoice_received', '收到发票'],
+  ], 'inventory_inbound'),
+  payment_days: Field.number({ label: '账期（天）', min: 0, scale: 0, defaultValue: 30 }),
+  description: Field.textarea({ label: '条款说明' }),
+  status: select('状态', [['active', '启用'], ['inactive', '停用']], 'active'),
+  remarks: remarks(),
+}, ['code', 'name', 'settlement_basis', 'payment_days', 'status', 'description']);
+
 // RM-021 / DR-0048 to DR-0050. The order is the commercial source for later arrival, inspection and inbound work.
 export const PurchaseOrder = master('forge_purchase_order', '采购订单', 'shopping-cart', {
   name: text('订单名称', true), code: code('采购订单号'), supplier_id: reference('forge_supplier', '供应商', true),
@@ -20,7 +34,7 @@ export const PurchaseOrder = master('forge_purchase_order', '采购订单', 'sho
   bom_id: reference('forge_bom', '关联BOM'), shortage_analysis_id: reference('forge_bom_shortage_analysis', '缺料分析快照'),
   project_id: reference('forge_project', '关联项目'), warehouse_id: reference('forge_warehouse', '目标仓库'),
   expected_arrival_on: Field.date({ label: '期望到货日期', ...required }), order_on: Field.date({ label: '下单日期' }),
-  payment_term: text('付款条件', true), payment_method: select('付款方式', [
+  payment_condition_id: reference('forge_payment_condition', '付款条件配置'), payment_term: text('付款条件', true), payment_method: select('付款方式', [
     ['bank_transfer', '银行转账'], ['wire_transfer', '电汇'], ['bank_acceptance', '承兑汇票'],
     ['online_payment', '在线支付'], ['cash', '现金'], ['other', '其他'],
   ], 'bank_transfer'),

@@ -48,15 +48,16 @@ export const SalesInvoiceLine = master('forge_sales_invoice_line', '销项发票
 // RM-133 lists receivables independently from invoices so cash allocation can be added later without rewriting invoice history.
 export const AccountsReceivable = master('forge_accounts_receivable', '应收账款', 'wallet-cards', {
   name: text('应收名称', true), code: code('应收编号'), source_type: Field.select([
-    { value: 'sales_invoice', label: '销项发票' }, { value: 'opening_balance', label: '期初应收' },
+    { value: 'sales_invoice', label: '销项发票' }, { value: 'service_settlement', label: '服务结算' }, { value: 'opening_balance', label: '期初应收' },
   ], { label: '应收来源', defaultValue: 'sales_invoice', ...required }), invoice_id: reference('forge_sales_invoice', '销项发票'),
+  service_settlement_id: reference('forge_service_settlement', '服务结算单'),
   order_id: reference('forge_sales_order', '销售订单'), contract_id: reference('forge_sales_contract', '销售合同'),
   customer_id: reference('forge_customer', '客户', true), recognized_on: Field.date({ label: '确认日期', ...required }),
   due_on: Field.date({ label: '到期日期', ...required }), original_amount: amount('应收原值'),
   collected_amount: { ...amount('已核销金额'), readonly: true }, offset_amount: { ...amount('已对冲金额'), defaultValue: 0, readonly: true }, red_reversed_amount: { ...amount('已红冲金额'), defaultValue: 0, readonly: true }, outstanding_amount: { ...amount('应收余额'), readonly: true },
   historical_contract_no: text('历史合同编号'), invoice_marker: Field.select([{ value: 'invoiced', label: '已开票' }, { value: 'not_invoiced', label: '未开票' }, { value: 'unknown', label: '不详' }], { label: '历史开票标记', defaultValue: 'unknown' }),
   status: { ...receivableStatus(), readonly: true }, responsible_id: owner(true), remarks: remarks(),
-}, ['code', 'source_type', 'customer_id', 'invoice_id', 'order_id', 'recognized_on', 'due_on', 'original_amount', 'collected_amount', 'offset_amount', 'red_reversed_amount', 'outstanding_amount', 'status', 'responsible_id']);
+}, ['code', 'source_type', 'customer_id', 'invoice_id', 'service_settlement_id', 'order_id', 'recognized_on', 'due_on', 'original_amount', 'collected_amount', 'offset_amount', 'red_reversed_amount', 'outstanding_amount', 'status', 'responsible_id']);
 
 // RM-139 and DR-0172 to DR-0176 separate business evidence from finance approval.
 // This first executable slice closes shipment and invoice triggers; the remaining methods stay explicit metadata until their source schedules exist.

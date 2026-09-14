@@ -9,6 +9,13 @@ const api = await connect();
 const cases = [];
 const ids = { ...planReport.ids };
 
+if (!ids.browserTask) {
+  const response = await api.request(`/actions/forge_project_plan/project_plan_add_work_item/${ids.plan}`, 'POST', { params: { item_type: 'task', name: '确认项目范围与边界', parent_id: ids.phase, owner_id: ids.manager, planned_start_on: '2026-09-10', planned_end_on: '2026-09-12', predecessor_ids: [ids.task], weight: 20, critical_path: true, planned_deliverable: '项目范围与边界确认' } });
+  assert.equal(response.status, 200, JSON.stringify(response.value));
+  const created = response.value?.result ?? response.value?.data?.result ?? response.value?.data ?? response.value;
+  ids.browserTask = created.id;
+}
+
 async function test(name, run) {
   try { await run(); cases.push({ name, status: 'passed' }); console.log(`PASS ${name}`); }
   catch (error) { cases.push({ name, status: 'failed', error: error.message }); console.error(`FAIL ${name}: ${error.message}`); }

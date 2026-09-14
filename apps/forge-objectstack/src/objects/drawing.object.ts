@@ -38,18 +38,19 @@ export const DrawingReview = master('forge_drawing_review', '图纸评审', 'cli
 
 export const DrawingRelease = master('forge_drawing_release', '图纸发布', 'send', {
   name: text('发布主题', true), code: code('发布单号'), drawing_id: reference('forge_drawing', '图号档案', true), version_id: reference('forge_drawing_version', '发布版本', true),
-  release_scope: select('发布范围', [['internal','内部'],['project','项目'],['procurement','采购'],['production','生产'],['supplier','供应商'],['customer','客户']]), major_change: Field.boolean({ label: '重大变更', defaultValue: false }), impact_summary: Field.textarea({ label: '影响说明' }),
+  release_scope: select('发布范围', [['internal','内部'],['project','项目'],['procurement','采购'],['production','生产'],['supplier','供应商'],['customer','客户']]), major_change: Field.boolean({ label: '重大变更', defaultValue: false }), suggested_effective_on: Field.date({ label: '建议生效日期' }), impact_summary: Field.textarea({ label: '影响说明' }),
   status: { ...select('状态', [['draft','草稿'],['pending','待审核'],['approved','已审核'],['released','已发布'],['cancelled','已取消']], 'draft'), readonly: true },
-  submitted_at: Field.datetime({ label: '提交时间', readonly: true }), approved_at: Field.datetime({ label: '审核时间', readonly: true }), released_at: Field.datetime({ label: '发布时间', readonly: true }), remarks: remarks(),
-}, ['code','drawing_id','version_id','release_scope','major_change','status','released_at']);
+  submitted_at: Field.datetime({ label: '提交时间', readonly: true }), approved_at: Field.datetime({ label: '审核时间', readonly: true }), released_at: Field.datetime({ label: '发布时间', readonly: true }), cancelled_at: Field.datetime({ label: '取消时间', readonly: true }), cancelled_by: Field.user({ label: '取消人', readonly: true }), cancel_reason: Field.textarea({ label: '取消原因', readonly: true }), remarks: remarks(),
+}, ['code','drawing_id','version_id','release_scope','major_change','suggested_effective_on','status','released_at']);
 
 export const DrawingChange = master('forge_drawing_change', '图纸变更', 'git-pull-request-arrow', {
   name: text('变更主题', true), code: code('变更单号'), drawing_id: reference('forge_drawing', '图号档案', true), source_version_id: reference('forge_drawing_version', '原生效版本', true), target_version_id: reference('forge_drawing_version', '变更后版本'),
   change_type: select('变更类型', [['design','设计'],['process','工艺'],['material','材料'],['specification','规格'],['customer','客户'],['procurement_substitution','采购替代'],['urgent','紧急'],['temporary','临时']]),
+  change_level: select('变更等级', [['minor','一般变更'],['major','重大变更']], 'minor'), urgent: Field.boolean({ label: '紧急变更', defaultValue: false }),
   reason: Field.textarea({ label: '变更原因', ...required }), affects_bom: Field.boolean({ label: '影响BOM', defaultValue: false }), affects_procurement: Field.boolean({ label: '影响采购', defaultValue: false }), affects_production: Field.boolean({ label: '影响生产', defaultValue: false }), affects_inventory: Field.boolean({ label: '影响库存', defaultValue: false }), affects_quality: Field.boolean({ label: '影响质量', defaultValue: false }), affects_project: Field.boolean({ label: '影响项目', defaultValue: false }), impact_advice: Field.textarea({ label: '影响处理建议' }),
   status: { ...select('状态', [['draft','草稿'],['pending','待审批'],['approved','已批准'],['implementing','实施中'],['completed','已完成'],['rejected','已驳回'],['cancelled','已取消']], 'draft'), readonly: true },
   submitted_at: Field.datetime({ label: '提交时间', readonly: true }), approved_at: Field.datetime({ label: '批准时间', readonly: true }), completed_at: Field.datetime({ label: '完成时间', readonly: true }), remarks: remarks(),
-}, ['code','name','drawing_id','change_type','source_version_id','target_version_id','status']);
+}, ['code','name','drawing_id','change_type','change_level','urgent','source_version_id','target_version_id','status']);
 
 export const DrawingDistribution = master('forge_drawing_distribution', '图纸发放记录', 'share-2', {
   name: text('发放主题', true), code: code('发放单号'), drawing_id: reference('forge_drawing', '图号档案', true), version_id: reference('forge_drawing_version', '发放版本'),
@@ -79,7 +80,7 @@ export const CustomerDrawing = master('forge_customer_drawing', '客户图纸', 
   pdf_file: Field.file({ label: 'PDF 文件', accept: ['application/pdf', '.pdf'], description: 'RISEMAP RM-080：仅支持一个 PDF 文件。' }),
   technical_requirement_file: Field.file({ label: '技术要求', accept: ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', '.pdf', '.doc', '.docx'], description: 'RISEMAP RM-080：支持一个 PDF、DOC 或 DOCX 文件。' }),
   other_attachment_file: Field.file({ label: '其他附件', accept: ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'image/*', 'application/zip', '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.jpg', '.jpeg', '.png', '.zip', '.rar', '.7z'], description: 'RISEMAP RM-080：支持一个 PDF、Word、Excel、图片或压缩包。' }),
-  internal_drawing_id: reference('forge_drawing', '关联内部图号'), status: select('状态', [['valid','有效'],['invalid','作废'],['expired','已过期']], 'valid'), remarks: remarks(),
+  internal_drawing_id: reference('forge_drawing', '关联内部图号'), status: select('状态', [['draft','草稿'],['valid','有效'],['invalid','作废'],['expired','已过期']], 'draft'), remarks: remarks(),
 }, ['code','name','customer_id','confidentiality','usage_scope','version','status','received_on']);
 
 export const DrawingOperationLog = master('forge_drawing_operation_log', '图纸操作日志', 'history', {

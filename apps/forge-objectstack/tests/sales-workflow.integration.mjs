@@ -8,6 +8,7 @@ const foundation = Object.fromEntries(registry.results.map(result => [result.key
 const api = await connect();
 const cases = [];
 const ids = {};
+const stamp = new Date().toISOString().replace(/[-:TZ.]/g, '').slice(0, 14);
 
 async function test(name, run) {
   try { await run(); cases.push({ name, status: 'passed' }); console.log(`PASS ${name}`); }
@@ -51,7 +52,7 @@ await removePreviousFixture();
 
 await test('creates an isolated draft quote-contract-order workflow fixture', async () => {
   ids.quotation = await create('forge_quotation', {
-    name: '工作流验收报价', code: 'QT-WF-20260909-001', customer_id: foundation.customer,
+    name: '工作流验收报价', code: 'QT-WF-' + stamp + '-001', customer_id: foundation.customer,
     contact_id: foundation.contact, quotation_type_id: foundationReport.ids.quotationType, issuer_id: foundationReport.ids.issuer,
     quotation_date: '2026-09-09', valid_until: '2026-10-09', payment_method: 'bank_transfer',
     responsible_id: api.userId, remarks: 'OEM-RM-20260909-A workflow fixture',
@@ -63,7 +64,7 @@ await test('creates an isolated draft quote-contract-order workflow fixture', as
     discount_rate: 5, taxed_subtotal: 243200, cost_price: 54000,
   });
   ids.contract = await create('forge_sales_contract', {
-    name: '工作流验收框架合同', code: 'SC-WF-20260909-001', contract_type_id: foundationReport.ids.contractType,
+    name: '工作流验收框架合同', code: 'SC-WF-' + stamp + '-001', contract_type_id: foundationReport.ids.contractType,
     customer_id: foundation.customer, contact_id: foundation.contact, quotation_id: ids.quotation,
     signed_on: '2026-09-09', starts_on: '2026-09-09', ends_on: '2027-09-09', responsible_id: api.userId,
     has_order_amount_limit: true, order_amount_limit: 243200, outside_item_requires_approval: true,
@@ -116,7 +117,7 @@ await test('submits and approves the accepted-quote contract', async () => {
 
 await test('rejects a contract order that exceeds the material quantity limit', async () => {
   ids.overOrder = await create('forge_sales_order', {
-    name: '超限订单', code: 'SO-WF-OVER-20260909-001', source_type: 'contract', customer_id: foundation.customer,
+    name: '超限订单', code: 'SO-WF-OVER-' + stamp + '-001', source_type: 'contract', customer_id: foundation.customer,
     contact_id: foundation.contact, contract_id: ids.contract, quotation_id: ids.quotation,
     planned_delivery_on: '2026-10-09', responsible_id: api.userId, payment_term: '订单生效后30天内付款',
     payment_method: 'bank_transfer', revenue_trigger: 'shipment', delivery_address: '苏州市工业园区澄岳路9号',
@@ -135,7 +136,7 @@ await test('rejects a contract order that exceeds the material quantity limit', 
 
 await test('approves an exact-limit order and atomically rolls progress up to the contract', async () => {
   ids.order = await create('forge_sales_order', {
-    name: '工作流验收销售订单', code: 'SO-WF-20260909-001', source_type: 'contract', customer_id: foundation.customer,
+    name: '工作流验收销售订单', code: 'SO-WF-' + stamp + '-001', source_type: 'contract', customer_id: foundation.customer,
     contact_id: foundation.contact, contract_id: ids.contract, quotation_id: ids.quotation,
     planned_delivery_on: '2026-10-09', responsible_id: api.userId, payment_term: '订单生效后30天内付款',
     payment_method: 'bank_transfer', revenue_trigger: 'shipment', delivery_address: '苏州市工业园区澄岳路9号',

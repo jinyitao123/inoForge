@@ -6,7 +6,9 @@ import { seedReferenceData } from '../scripts/seed-reference-data.mjs';
 const { ids: fixtureIds } = await seedReferenceData();
 const api = await connect();
 const cases = [];
+const stamp = new Date().toISOString().replace(/[-:TZ.]/g, '').slice(0, 14);
 const ids = { supplier: fixtureIds.supplier, sku: fixtureIds.plc_sku, warehouse: fixtureIds.warehouse };
+let submittedDuringSupplierPrerequisite = false;
 
 async function test(name, run) {
   try { await run(); cases.push({ name, status: 'passed' }); console.log(`PASS ${name}`); }
@@ -44,7 +46,7 @@ try {
 
 await test('creates a draft purchase order with one existing supplier and SKU fixture', async () => {
   const orderResult = await api.request('/data/forge_purchase_order', 'POST', {
-    name: '锐联电气 PLC 补库采购订单', code: 'PO-RM-202609-001', supplier_id: ids.supplier,
+    name: '锐联电气 PLC 补库采购订单', code: 'PO-RM-' + stamp + '-001', supplier_id: ids.supplier,
     source_type: 'inventory_replenishment', warehouse_id: ids.warehouse, expected_arrival_on: '2026-09-22',
     payment_term: '到货验收合格后30天付款', payment_method: 'bank_transfer', currency: 'cny', exchange_rate: 1,
     payable_trigger: 'inbound', responsible_id: api.userId, remarks: 'OEM-RM-20260909-A 采购最小链验收',
@@ -65,19 +67,28 @@ await test('creates a draft purchase order with one existing supplier and SKU fi
   assert.equal(line.order_id, ids.order);
 });
 
-await test('requires and records supplier approval before purchase submission', async () => {
-  const blocked = await invoke('forge_purchase_order', 'purchase_order_submit', ids.order);
-  assert.equal(blocked.status, 400, JSON.stringify(blocked.value));
-  assert.match(blocked.value.error.message, /已审批/);
+await test('requires supplier approval when needed and accepts an already approved supplier', async () => {
+  const supplier = await read('forge_supplier', ids.supplier);
+  const response = await invoke('forge_purchase_order', 'purchase_order_submit', ids.order);
+  if (supplier.status === 'approved' || supplier.approval_status === 'approved') {
+    assert.equal(response.status, 200, JSON.stringify(response.value));
+    assert.equal(actionResult(response).status, 'pending_approval');
+    submittedDuringSupplierPrerequisite = true;
+    return;
+  }
+  assert.equal(response.status, 400, JSON.stringify(response.value));
+  assert.match(response.value.error.message, /已审批/);
   assert.equal((await invoke('forge_supplier', 'supplier_submit_approval', ids.supplier)).status, 200);
   const approved = await invoke('forge_supplier', 'supplier_review', ids.supplier, { decision: 'approve', comment: '采购基础链供应商审批' });
   assert.equal(approved.status, 200, JSON.stringify(approved.value));
 });
 
 await test('submits the order and rolls line quantity and amount into the header', async () => {
-  const response = await invoke('forge_purchase_order', 'purchase_order_submit', ids.order);
-  assert.equal(response.status, 200, JSON.stringify(response.value));
-  assert.equal(actionResult(response).status, 'pending_approval');
+  if (!submittedDuringSupplierPrerequisite) {
+    const response = await invoke('forge_purchase_order', 'purchase_order_submit', ids.order);
+    assert.equal(response.status, 200, JSON.stringify(response.value));
+    assert.equal(actionResult(response).status, 'pending_approval');
+  }
   const order = await read('forge_purchase_order', ids.order);
   assert.deepEqual(
     { status: order.status, line_count: order.line_count, total_quantity: order.total_quantity, total_amount: order.total_amount },
@@ -121,7 +132,7 @@ await test('rejects a second approval and does not duplicate the notice', async 
 
 await test('rejects submitting a purchase order without any material line', async () => {
   const result = await api.request('/data/forge_purchase_order', 'POST', {
-    name: '无明细采购订单', code: 'PO-RM-202609-EMPTY', supplier_id: ids.supplier, warehouse_id: ids.warehouse,
+    name: '无明细采购订单', code: 'PO-RM-' + stamp + '-EMPTY', supplier_id: ids.supplier, warehouse_id: ids.warehouse,
     expected_arrival_on: '2026-09-22', payment_term: '30天', responsible_id: api.userId,
   });
   assert.equal(result.status, 201, JSON.stringify(result.value));

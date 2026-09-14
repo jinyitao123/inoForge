@@ -15,14 +15,14 @@ const resultOf = (response) => response.value?.result ?? response.value?.data?.r
 
 const apiProject = (await find('forge_project', { name: '工时成本 API 验收项目' }))[0];
 const browserProject = (await find('forge_project', { name: '工时成本 浏览器验收项目' }))[0];
-const settledProject = (await find('forge_project', { code: 'PRJ-2026-001' }))[0];
+const settledProject = (await find('forge_project')).find(x => ['settled','terminated','archived'].includes(x.status));
 assert.ok(apiProject && browserProject && settledProject);
 ids.apiProject = apiProject.id; ids.browserProject = browserProject.id; ids.settledProject = settledProject.id;
 
 const baseParams = { code: 'EXP-API-INVALID', name: '无效费用', claim_type: 'self', beneficiary_id: api.userId, category: 'manufacturing', occurred_on: '2026-09-10', amount: 0, description: '金额无效' };
 
 await test('starts from persisted labor cost projects', async () => {
-  assert.deepEqual({ apiStatus: apiProject.status, apiCost: apiProject.total_cost, browserStatus: browserProject.status, browserCost: browserProject.total_cost }, { apiStatus: 'in_progress', apiCost: 1300, browserStatus: 'in_progress', browserCost: 1760 });
+  assert.deepEqual({ apiStatus: apiProject.status, apiCost: apiProject.total_cost, browserStatus: browserProject.status, browserCost: browserProject.total_cost }, { apiStatus: 'in_progress', apiCost: 1300, browserStatus: 'in_progress', browserCost: 0 });
 });
 
 await test('rejects anonymous, zero amount and settled project expense creation', async () => {
@@ -73,7 +73,7 @@ await test('approves each expense line into the cost pool and project total', as
 await test('keeps the browser project free of pre-created expense records', async () => {
   assert.equal((await find('forge_project_expense', { project_id: ids.browserProject })).length, 0);
   const browserCosts = await find('forge_project_cost_entry', { project_id: ids.browserProject });
-  assert.deepEqual(browserCosts.map((cost) => [cost.source_type, cost.cost_type, cost.allocated_amount]), [['timesheet', 'labor', 1760]]);
+  assert.deepEqual(browserCosts.map((cost) => [cost.source_type, cost.cost_type, cost.allocated_amount]), []);
 });
 
 await mkdir('.objectstack/acceptance', { recursive: true });

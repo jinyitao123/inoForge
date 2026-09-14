@@ -8,6 +8,7 @@ const database = process.env.FORGE_DB || '.objectstack/acceptance/subcontract-on
 const receiptReportPath = '.objectstack/acceptance/subcontract-receipt-report.json';
 const orderReportPath = '.objectstack/acceptance/subcontract-order-report.json';
 const inboundReportPath = '.objectstack/acceptance/subcontract-inbound-report.json';
+const stamp = new Date().toISOString().replace(/[-:TZ.]/g, '').slice(0, 14);
 
 function runScript(script, extraEnv = {}) {
   return new Promise((resolve, reject) => {
@@ -62,7 +63,7 @@ await invoke(api, 'forge_subcontract_ncr', 'subcontract_ncr_submit', ncr.id);
 await invoke(api, 'forge_subcontract_ncr', 'subcontract_ncr_review', ncr.id, { decision: 'approve', comment: '数量、责任和处置依据已复核' });
 await invoke(api, 'forge_subcontract_ncr', 'subcontract_ncr_execute', ncr.id, { execution_note: '退货已登记，数量与来源回厂单核对一致' });
 
-const reconciliationCode = process.env.FORGE_RECONCILIATION_CODE || 'REC-CHAIN-20260912-001';
+const reconciliationCode = process.env.FORGE_RECONCILIATION_CODE || 'REC-CHAIN-' + stamp + '-001';
 const reconciliation = await invoke(api, 'forge_supplier', 'subcontract_reconciliation_create', orderReport.ids.supplier, {
   code: reconciliationCode,
   period_start: '2026-09-01', period_end: '2026-09-12',

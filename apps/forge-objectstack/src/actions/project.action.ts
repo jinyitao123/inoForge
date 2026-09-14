@@ -90,6 +90,7 @@ return { id, contract_id: contract.id, order_count: links.length, contract_amoun
 export const ProjectPause = defineAction({
   name: 'project_pause', label: '暂停', objectName: 'forge_project', icon: 'pause',
   locations: [...locations], order: 30, visible: `record.status == 'in_progress'`, refreshAfter: true,
+  description: '暂停后项目仍保留现有计划和记录，但停止按进行中状态推进。请填写暂停原因并确认。',
   params: [{ field: 'pause_reason', objectOverride: 'forge_project', required: true }], successMessage: '项目已暂停',
   body: { language: 'js', capabilities: ['api.write'], source: `const id=ctx.recordId||(ctx.record&&ctx.record.id); if(!id||!ctx.record||ctx.record.status!=='in_progress') throw new Error('仅进行中项目可以暂停'); await ctx.api.object('forge_project').update({id,status:'paused',pause_reason:ctx.input.pause_reason}); return {id,status:'paused'};` },
 });
@@ -103,6 +104,7 @@ export const ProjectResume = defineAction({
 export const ProjectTerminate = defineAction({
   name: 'project_terminate', label: '终止', objectName: 'forge_project', icon: 'octagon-x',
   locations: [...locations], order: 90, visible: `record.status == 'pending' || record.status == 'in_progress' || record.status == 'paused'`, refreshAfter: true,
+  description: '终止后项目不能继续按正常执行流程推进，现有计划、任务和业务记录将保留用于追溯。请填写终止原因并确认。',
   params: [{ field: 'termination_reason', objectOverride: 'forge_project', required: true }], successMessage: '项目已终止',
   body: { language: 'js', capabilities: ['api.write'], source: `const id=ctx.recordId||(ctx.record&&ctx.record.id); if(!id||!ctx.record||!['pending','in_progress','paused'].includes(ctx.record.status)) throw new Error('当前项目不能终止'); await ctx.api.object('forge_project').update({id,status:'terminated',termination_reason:ctx.input.termination_reason}); return {id,status:'terminated'};` },
 });
@@ -110,7 +112,7 @@ export const ProjectTerminate = defineAction({
 export const ProjectCreateManualPlan = defineAction({
   name: 'project_create_manual_plan', label: '手工创建计划', objectName: 'forge_project', icon: 'calendar-plus',
   locations: [...locations], order: 40, visible: `record.status == 'in_progress' || record.status == 'paused'`, refreshAfter: true,
-  description: '从一个阶段开始建立项目计划。当前租户未观察到可用系统或自定义模板。', successMessage: '项目计划和首个阶段已创建',
+  description: '从一个阶段开始建立项目计划，也可以在后续从项目配置中心套用可用模板。', successMessage: '项目计划和首个阶段已创建',
   params: [
     { field: 'phase_name', objectOverride: 'forge_project_work_item', required: true },
     { field: 'owner_id', objectOverride: 'forge_project_work_item' },
@@ -146,7 +148,7 @@ try {
   phaseId = typeof phase === 'string' ? phase : phase && (phase.id || (phase.record && phase.record.id));
   if (!phaseId) throw new Error('首个阶段创建后未返回记录ID');
 } catch (error) {
-  if (planId) await ctx.api.object('forge_project_plan').delete(planId);
+  if (planId) await ctx.api.object('forge_project_plan').delete({ where: { id: planId } });
   throw error;
 }
 return { id: planId, project_id: projectId, phase_id: phaseId, source: 'manual', item_count: 1 };
@@ -200,19 +202,49 @@ try {
     status: 'pending', progress: 0, sort_order: (items.length + 1) * 10 });
   itemId = typeof created === 'string' ? created : created && (created.id || (created.record && created.record.id));
   if (!itemId) throw new Error('计划工作项创建后未返回记录ID');
-  await ctx.api.object('forge_project_plan').update({ id: planId, item_count: items.length + 1 });
+  const leafProgress = items.filter(item => item.item_type !== 'phase').map(item => Number(item.progress || 0));
+  if (ctx.input.item_type !== 'phase') leafProgress.push(0);
+  const planProgress = leafProgress.length ? Math.round(leafProgress.reduce((sum, value) => sum + value, 0) / leafProgress.length) : 0;
+  await ctx.api.object('forge_project_plan').update({ id: planId, item_count: items.length + 1, progress: planProgress });
+  await ctx.api.object('forge_project').update({ id: plan.project_id, progress: planProgress });
 } catch (error) {
-  if (itemId) await ctx.api.object('forge_project_work_item').delete(itemId);
+  if (itemId) await ctx.api.object('forge_project_work_item').delete({ where: { id: itemId } });
   throw error;
 }
 return { id: itemId, plan_id: planId, item_type: ctx.input.item_type, item_count: items.length + 1 };
 ` },
 });
 
+export const ProjectWorkItemDelete = defineAction({
+  name: 'project_work_item_delete', label: '删除工作项', objectName: 'forge_project_work_item', icon: 'trash-2',
+  locations: [...locations], order: 90, visible: `record.status != 'completed'`, refreshAfter: true,
+  confirmText: '删除后无法恢复。阶段下仍有任务或里程碑时必须先处理下级工作项。确认删除？', successMessage: '计划工作项已删除',
+  body: { language: 'js', capabilities: ['api.read', 'api.write'], source: `
+const id = ctx.recordId || (ctx.record && ctx.record.id); const item = ctx.record;
+if (ctx.recordLoadDenied === true || !id || !item) throw new Error('当前工作项不存在或不可访问');
+if (item.status === 'completed') throw new Error('已完成工作项不能删除');
+const children = await ctx.api.object('forge_project_work_item').find({ where: { parent_id: id } });
+if (children.length) throw new Error('当前阶段仍有任务或里程碑，请先处理下级工作项');
+const reports = await ctx.api.object('forge_project_daily_report').find({ where: { work_item_id: id } });
+if (reports.length) throw new Error('当前工作项已有日报记录，不能删除');
+const siblings = await ctx.api.object('forge_project_work_item').find({ where: { plan_id: item.plan_id } });
+for (const sibling of siblings) {
+  const predecessors = Array.isArray(sibling.predecessor_ids) ? sibling.predecessor_ids : [];
+  if (predecessors.includes(id)) throw new Error('当前工作项仍被其他任务设为前置任务，不能删除');
+}
+await ctx.api.object('forge_project_work_item').delete({ where: { id } });
+const remaining = siblings.filter(sibling => sibling.id !== id), leafValues = remaining.filter(sibling => sibling.item_type !== 'phase').map(sibling => Number(sibling.progress || 0));
+const planProgress = leafValues.length ? Math.round(leafValues.reduce((sum, value) => sum + value, 0) / leafValues.length) : 0;
+await ctx.api.object('forge_project_plan').update({ id: item.plan_id, item_count: remaining.length, progress: planProgress });
+await ctx.api.object('forge_project').update({ id: item.project_id, progress: planProgress });
+return { id, plan_id: item.plan_id, deleted: true, item_count: remaining.length, plan_progress: planProgress };
+` },
+});
+
 export const ProjectWorkItemUpdateProgress = defineAction({
   name: 'project_work_item_update_progress', label: '更新进度', objectName: 'forge_project_work_item', icon: 'gauge',
   locations: [...locations], order: 10, visible: `record.item_type != 'phase'`, refreshAfter: true,
-  description: '更新完成度、状态和实际日期，并按 RISEMAP 已观察到的简单平均规则回算所属阶段。', successMessage: '工作项进度已更新',
+  description: '更新完成度、状态和实际日期，并回算计划与项目进度；尚未开始的新增工作项不立即拉低阶段进度。', successMessage: '工作项进度已更新',
   params: [
     { field: 'progress', objectOverride: 'forge_project_work_item', required: true },
     { field: 'status', objectOverride: 'forge_project_work_item' },
@@ -240,7 +272,7 @@ await ctx.api.object('forge_project_work_item').update({ id, progress, status, a
 let phaseProgress = null;
 if (item.parent_id) {
   const children = await ctx.api.object('forge_project_work_item').find({ where: { parent_id: item.parent_id } });
-  const values = children.filter(child => child.item_type !== 'phase').map(child => child.id === id ? progress : Number(child.progress || 0));
+  const values = children.filter(child => child.item_type !== 'phase').map(child => child.id === id ? { progress, status } : { progress: Number(child.progress || 0), status: child.status }).filter(child => !(child.status === 'pending' && child.progress === 0)).map(child => child.progress);
   phaseProgress = values.length ? Math.round(values.reduce((sum, value) => sum + value, 0) / values.length) : 0;
   await ctx.api.object('forge_project_work_item').update({ id: item.parent_id, progress: phaseProgress });
 }
@@ -248,6 +280,8 @@ const planItems = await ctx.api.object('forge_project_work_item').find({ where: 
 const leafValues = planItems.filter(candidate => candidate.item_type !== 'phase').map(candidate => candidate.id === id ? progress : Number(candidate.progress || 0));
 const planProgress = leafValues.length ? Math.round(leafValues.reduce((sum, value) => sum + value, 0) / leafValues.length) : 0;
 await ctx.api.object('forge_project_plan').update({ id: item.plan_id, progress: planProgress });
+const project = await ctx.api.object('forge_project').findOne({ where: { id: item.project_id } });
+if (project) await ctx.api.object('forge_project').update({ id: project.id, progress: planProgress });
 return { id, progress, status, actual_start_on: actualStart, actual_end_on: actualEnd, phase_progress: phaseProgress, plan_progress: planProgress };
 ` },
 });
@@ -289,5 +323,49 @@ const created = await ctx.api.object('forge_project_daily_report').insert({
 const reportId = typeof created === 'string' ? created : created && (created.id || (created.record && created.record.id));
 if (!reportId) throw new Error('日报创建后未返回记录ID');
 return { id: reportId, plan_id: planId, work_item_id: item.id, report_on: reportOn, completion_percent: progress };
+` },
+});
+
+export const ProjectPlanSaveAsTemplate = defineAction({
+  name: 'project_plan_save_as_template', label: '保存为计划模板', objectName: 'forge_project_plan', icon: 'copy-check',
+  locations: [...locations], order: 80, visible: `record.status == 'active'`, refreshAfter: true,
+  description: '把当前计划的阶段、里程碑和任务保存为可复用模板。', successMessage: '计划模板已保存',
+  params: [{ field: 'template_name', objectOverride: 'forge_project_plan_template', required: true }, { field: 'category', objectOverride: 'forge_project_plan_template', defaultValue: 'custom' }],
+  body: { language: 'js', capabilities: ['api.read', 'api.write'], source: `
+const planId = ctx.recordId || (ctx.record && ctx.record.id); const plan = ctx.record;
+if (!planId || !plan || plan.status !== 'active') throw new Error('仅执行中的项目计划可以保存为模板');
+const name = String(ctx.input.template_name || '').trim(); if (!name) throw new Error('模板名称不能为空');
+const items = await ctx.api.object('forge_project_work_item').find({ where: { plan_id: planId } });
+if (!items.length) throw new Error('当前计划没有可保存的阶段或工作项');
+const structure = items.map(x => ({ source_id:x.id, item_type:x.item_type, name:x.name, parent_id:x.parent_id || null, planned_start_on:x.planned_start_on, planned_end_on:x.planned_end_on, duration_days:x.duration_days || 0, weight:Number(x.weight || 0), critical_path:x.critical_path === true, planned_deliverable:x.planned_deliverable || null, sort_order:Number(x.sort_order || 0) }));
+const created = await ctx.api.object('forge_project_plan_template').insert({ name, template_key: planId + ':T' + Date.now(), category: ctx.input.category || 'custom', source_plan_id: planId, source_project_id: plan.project_id, structure_json: JSON.stringify(structure), item_count: structure.length, status: 'active', remarks: '由项目计划保存' });
+const id = typeof created === 'string' ? created : created && (created.id || (created.record && created.record.id));
+return { id, name, item_count: structure.length, source_plan_id: planId };
+` },
+});
+
+export const ProjectPlanApplyTemplate = defineAction({
+  name: 'project_plan_apply_template', label: '套用计划模板', objectName: 'forge_project_plan', icon: 'copy-plus',
+  locations: [...locations], order: 70, visible: `record.status == 'active'`, refreshAfter: true,
+  description: '将模板中的阶段、里程碑和任务复制到当前执行计划。', successMessage: '计划模板已套用',
+  params: [{ field: 'template_id', objectOverride: 'forge_project_plan_template', required: true }],
+  body: { language: 'js', capabilities: ['api.read', 'api.write'], source: `
+const planId = ctx.recordId || (ctx.record && ctx.record.id); const plan = ctx.record;
+if (!planId || !plan || plan.status !== 'active') throw new Error('仅执行中的项目计划可以套用模板');
+const templateId = ctx.input.template_id; if (!templateId) throw new Error('请选择计划模板');
+const template = await ctx.api.object('forge_project_plan_template').findOne({ where: { id: templateId, status: 'active' } });
+if (!template) throw new Error('计划模板不存在或已归档');
+const existing = await ctx.api.object('forge_project_work_item').find({ where: { plan_id: planId } });
+if (existing.length) throw new Error('当前计划已有工作项，请使用空计划套用模板');
+let structure; try { structure = JSON.parse(template.structure_json || '[]'); } catch { throw new Error('模板结构损坏，无法套用'); }
+if (!Array.isArray(structure) || !structure.length) throw new Error('模板没有可套用的工作项');
+const idMap = {}; let order = 10;
+for (const item of structure) {
+  const parent = item.parent_id ? idMap[item.parent_id] || null : null;
+  const created = await ctx.api.object('forge_project_work_item').insert({ name:item.name, item_key:planId+':'+order, project_id:plan.project_id, plan_id:planId, item_type:item.item_type, parent_id:parent, owner_id:null, planned_start_on:item.planned_start_on, planned_end_on:item.planned_end_on, duration_days:Number(item.duration_days || 0), weight:Number(item.weight || 0), critical_path:item.critical_path === true, planned_deliverable:item.planned_deliverable || null, status:'pending', progress:0, sort_order:order });
+  const createdId = typeof created === 'string' ? created : created && (created.id || (created.record && created.record.id)); if (!createdId) throw new Error('模板工作项创建失败'); idMap[item.source_id] = createdId; order += 10;
+}
+await ctx.api.object('forge_project_plan').update({ id: planId, source:'custom_template', item_count:structure.length, progress:0 });
+return { id:planId, template_id:templateId, item_count:structure.length, source:'custom_template' };
 ` },
 });

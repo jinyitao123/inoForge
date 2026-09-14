@@ -7,6 +7,7 @@ assert.equal(conversion.passed, true, 'sales conversion acceptance must pass bef
 const api = await connect();
 const cases = [];
 const ids = { order: conversion.ids.order, orderLine: conversion.ids.orderLine };
+const stamp = new Date().toISOString().replace(/[-:TZ.]/g, '').slice(0, 14);
 
 async function test(name, run) {
   try { await run(); cases.push({ name, status: 'passed' }); console.log(`PASS ${name}`); }
@@ -43,7 +44,7 @@ try {
 
 await test('creates a partial shipment plan from one active order line', async () => {
   const response = await invoke({
-    code: 'DN-CONVERT-20260909-001', shipment_on: '2026-09-09', recipient: '周启明',
+    code: 'DN-CONVERT-' + stamp + '-001', shipment_on: '2026-09-09', recipient: '周启明',
     recipient_phone: '13800002609', delivery_address: '苏州市工业园区澄岳路9号', quantity: 1,
     remarks: '销售发货单切片验收；实际出库另行处理。',
   });
@@ -75,7 +76,7 @@ await test('keeps shipment planning separate from actual outbound progress', asy
 
 await test('rejects shipment quantity beyond the unplanned order remainder', async () => {
   const response = await invoke({
-    code: 'DN-CONVERT-20260909-OVER', shipment_on: '2026-09-09', recipient: '周启明',
+    code: 'DN-CONVERT-' + stamp + '-OVER', shipment_on: '2026-09-09', recipient: '周启明',
     delivery_address: '苏州市工业园区澄岳路9号', quantity: 2,
   });
   assert.equal(response.status, 400, JSON.stringify(response.value));

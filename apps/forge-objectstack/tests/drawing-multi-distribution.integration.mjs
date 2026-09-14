@@ -7,7 +7,8 @@ const endpoint = process.env.FORGE_URL || 'http://localhost:4382';
 const database = process.env.FORGE_DB || '.objectstack/otc-drawing-multi-distribution.sqlite';
 const api = await connect(endpoint);
 const cases = [];
-const ids = { operator: api.userId, drawing: lifecycle.ids.drawing, version: lifecycle.ids.v1 };
+const run = Date.now().toString().slice(-8);
+const ids = { operator: api.userId, drawing: lifecycle.ids.drawing, version: null };
 
 async function test(name, fn) {
   try {
@@ -46,8 +47,11 @@ async function invoke(object, action, id, params = {}, authenticated = true) {
 const resultOf = (response) => response.value?.result ?? response.value?.data?.result ?? response.value?.data ?? response.value;
 const recipient = (type, name, organization) => ({ recipient_type: type, recipient_name: name, organization, contact: '021-55550000' });
 
+ids.version = (await read('forge_drawing', ids.drawing)).current_version_id;
+assert.ok(ids.version, '图号必须存在当前已发布版本');
+
 ids.allRequiredDistribution = await create('forge_drawing_distribution', {
-  name: '生产与质量联合发放 V1.0', code: 'DIST-MULTI-API-001', drawing_id: ids.drawing, version_id: ids.version,
+  name: '生产与质量联合发放 '+run, code: 'DIST-MULTI-API-ALL-'+run, drawing_id: ids.drawing, version_id: ids.version,
   purpose: 'production', recipient_type: 'department', recipient_name: '2 个接收对象', multi_recipient: true,
   require_all_confirmation: true, method: 'system', require_confirmation: true, require_receipt: true,
   receipt_due_on: '2026-09-18', receipt_requirement: '各接收对象确认并回执受控副本', restrict_download: true,
@@ -98,7 +102,7 @@ await test('records a partial confirmation without satisfying an all-recipient t
 });
 
 ids.anyRequiredDistribution = await create('forge_drawing_distribution', {
-  name: '项目协同发放 V1.0', code: 'DIST-MULTI-API-002', drawing_id: ids.drawing, version_id: ids.version,
+  name: '项目协同发放 '+run, code: 'DIST-MULTI-API-ANY-'+run, drawing_id: ids.drawing, version_id: ids.version,
   purpose: 'project', recipient_type: 'person', recipient_name: '2 个接收对象', multi_recipient: true,
   require_all_confirmation: false, method: 'system', require_confirmation: true, require_receipt: false,
 });

@@ -28,10 +28,12 @@ export const SubcontractSupplierProfile = master('forge_subcontract_supplier_pro
 export const SubcontractOrder = master('forge_subcontract_order', '委外订单', 'factory', {
   name: text('订单名称', true), code: code('委外订单号'), supplier_profile_id: reference('forge_subcontract_supplier_profile', '委外供应商档案', true),
   supplier_id: reference('forge_supplier', '委外供应商', true), supply_mode: select('料权方式', [['customer_supplied','甲供料'],['turnkey','包工包料']], 'customer_supplied'),
-  expected_delivery_on: Field.date({ label: '期望交期', ...required }), project_id: reference('forge_project', '项目'),
-  source_type: select('业务来源', [['manual','手工新建'],['bom','BOM 展开'],['project','项目委外']], 'manual'),
-  inspection_method: select('验收方式', [['full','全检'],['sampling','抽检'],['exempt','免检']], 'full'),
-  payment_term: text('付款条件', true), line_count: Field.number({ label: '加工件行数', min: 0, scale: 0, defaultValue: 0, readonly: true }),
+  expected_delivery_on: Field.date({ label: '期望交期' }), project_id: reference('forge_project', '项目'),
+  source_type: select('业务来源', [['manual','手工新建'],['sales_order','关联销售订单'],['production_order','关联生产工单'],['mrp','MRP推送'],['bom','历史BOM展开'],['project','历史项目委外']], 'manual'),
+  source_sales_order_id: reference('forge_sales_order', '来源销售订单'), source_production_order_id: reference('forge_assembly_order', '来源生产工单'), source_mrp_analysis_id: reference('forge_bom_shortage_analysis', '来源MRP分析'),
+  inspection_method: select('验收方式', [['full','全检'],['sampling','抽检-按比例'],['supplier_self','供应商自检'],['exempt','历史免检']], 'full'),
+  sampling_ratio: Field.number({ label: '抽检比例（%）', min: 0.01, max: 100, scale: 2 }),
+  payment_condition_id: reference('forge_payment_condition', '付款条件配置'), payment_term: text('付款条件', true), line_count: Field.number({ label: '加工件行数', min: 0, scale: 0, defaultValue: 0, readonly: true }),
   total_quantity: quantity('加工件总数量', true), processing_amount: money('加工费总额', true),
   issue_planned_quantity: quantity('计划发料数量', true), issued_quantity: quantity('已发料数量', true),
   received_quantity: quantity('已回厂数量', true), backflushed_quantity: quantity('已倒冲耗用', true), overconsumption_quantity: quantity('累计超耗', true), reconciled_amount: money('已对账金额', true),
@@ -40,16 +42,16 @@ export const SubcontractOrder = master('forge_subcontract_order', '委外订单'
   submitted_at: Field.datetime({ label: '提交时间', readonly: true }), submitted_by: Field.user({ label: '提交人', readonly: true }),
   approved_at: Field.datetime({ label: '审核时间', readonly: true }), approved_by: Field.user({ label: '审核人', readonly: true }),
   approval_note: Field.textarea({ label: '审核意见', readonly: true }), responsible_id: owner(true), remarks: remarks(),
-}, ['code','supplier_id','supply_mode','project_id','payment_term','processing_amount','issued_quantity','received_quantity','reconciled_amount','expected_delivery_on','status']);
+}, ['code','supplier_id','supply_mode','project_id','source_type','payment_condition_id','payment_term','processing_amount','issued_quantity','received_quantity','reconciled_amount','expected_delivery_on','status']);
 
 export const SubcontractOrderLine = master('forge_subcontract_order_line', '委外订单加工件', 'list', {
   name: text('物料名称', true), order_id: reference('forge_subcontract_order', '委外订单', true), sku_id: reference('forge_material_sku', '物料规格', true),
-  item_code: text('物料编号', true), specification: text('规格'), process_type: text('加工类型', true),
+  item_code: text('物料编号', true), specification: text('规格'), process_type_id: reference('forge_subcontract_business_setting', '加工类型'), process_type: text('加工类型', true),
   quantity: Field.number({ label: '数量', min: 0.0001, scale: 4, ...required }), unit_name: text('单位', true),
   unit_price: money('加工单价'), subtotal: money('加工小计', true), expected_delivery_on: Field.date({ label: '期望交期' }),
   drawing_number: text('图纸号'), received_good_quantity: quantity('已回良品', true), received_bad_quantity: quantity('已回不良品', true),
   ncr_concession_quantity: quantity('NCR 特采数量', true), ncr_return_quantity: quantity('NCR 退货数量', true), ncr_scrap_quantity: quantity('NCR 报废数量', true), ncr_rework_quantity: quantity('NCR 返工数量', true), remarks: remarks(),
-}, ['order_id','item_code','name','specification','process_type','quantity','unit_name','unit_price','subtotal','expected_delivery_on','drawing_number']);
+}, ['order_id','item_code','name','specification','process_type_id','process_type','quantity','unit_name','unit_price','subtotal','expected_delivery_on','drawing_number']);
 
 export const SubcontractMaterialPlan = master('forge_subcontract_material_plan', '委外发料计划', 'boxes', {
   name: text('物料名称', true), order_id: reference('forge_subcontract_order', '委外订单', true),
@@ -126,6 +128,7 @@ export const SubcontractReturn = master('forge_subcontract_return', '委外退�
   name: text('退料单名称', true), code: code('退料单号'), order_id: reference('forge_subcontract_order', '关联委外订单', true),
   supplier_id: reference('forge_supplier', '委外供应商', true), return_on: Field.date({ label: '退料日期', ...required }),
   handler_id: Field.user({ label: '经办人', ...required }), warehouse_id: reference('forge_warehouse', '入库仓库', true),
+  reason_setting_id: reference('forge_subcontract_business_setting', '退料原因配置'),
   reason: select('退料原因', [['excess_material','余料退回'],['engineering_change','工程变更'],['usable_scrap','可用废料回收'],['wrong_material','错发退回'],['other','其他']], 'excess_material'),
   line_count: Field.number({ label: '物料种数', min: 0, scale: 0, defaultValue: 0, readonly: true }),
   total_quantity: quantity('退料数量', true), total_amount: money('退料金额', true),
@@ -133,7 +136,7 @@ export const SubcontractReturn = master('forge_subcontract_return', '委外退�
   inbound_id: reference('forge_subcontract_return_inbound', '关联入库单'), confirmed_by: Field.user({ label: '确认人', readonly: true }),
   confirmed_at: Field.datetime({ label: '确认时间', readonly: true }), stocked_by: Field.user({ label: '入库人', readonly: true }),
   stocked_at: Field.datetime({ label: '入库时间', readonly: true }), responsible_id: owner(true), remarks: remarks(),
-}, ['code','supplier_id','order_id','return_on','reason','line_count','total_quantity','total_amount','status','inbound_id']);
+}, ['code','supplier_id','order_id','return_on','reason_setting_id','reason','line_count','total_quantity','total_amount','status','inbound_id']);
 
 export const SubcontractReturnLine = master('forge_subcontract_return_line', '委外退料明细', 'list', {
   name: text('物料名称', true), return_id: reference('forge_subcontract_return', '退料单', true), order_id: reference('forge_subcontract_order', '委外订单', true),
@@ -167,7 +170,7 @@ export const SubcontractReturnLog = master('forge_subcontract_return_log', '委�
 
 export const SubcontractIssueLog = master('forge_subcontract_issue_log', '委外发料操作记录', 'history', {
   name: text('记录名称', true), issue_id: reference('forge_subcontract_issue', '委外发料单', true),
-  action: select('操作', [['submitted','提交审核'],['approved','审核通过'],['rejected','审核驳回'],['issued','确认出库'],['signed','供应商签收']]),
+  action: select('操作', [['warning_released','超量提醒放行'],['submitted','提交审核'],['approved','审核通过'],['rejected','审核驳回'],['issued','确认出库'],['signed','供应商签收']]),
   from_status: text('原状态'), to_status: text('新状态'), comment: Field.textarea({ label: '说明' }),
   occurred_at: Field.datetime({ label: '操作时间', ...required, readonly: true }), operator_id: Field.user({ label: '操作人', ...required, readonly: true }),
 }, ['issue_id','action','from_status','to_status','comment','operator_id','occurred_at']);
@@ -231,7 +234,7 @@ export const SubcontractInboundLine = master('forge_subcontract_inbound_line', '
 
 export const SubcontractReceiptLog = master('forge_subcontract_receipt_log', '委外回厂操作记录', 'history', {
   name: text('记录名称', true), receipt_id: reference('forge_subcontract_receipt', '委外回厂单', true),
-  action: select('操作', [['submitted','提交回厂'],['inbound_created','生成待入库'],['exception_recorded','登记不良'],['stocked','完成入库'],['cancelled','作废']]),
+  action: select('操作', [['warning_released','超量提醒放行'],['submitted','提交回厂'],['inbound_created','生成待入库'],['exception_recorded','登记不良'],['stocked','完成入库'],['cancelled','作废']]),
   from_status: text('原状态'), to_status: text('新状态'), comment: Field.textarea({ label: '说明' }),
   occurred_at: Field.datetime({ label: '操作时间', ...required, readonly: true }), operator_id: Field.user({ label: '操作人', ...required, readonly: true }),
 }, ['receipt_id','action','from_status','to_status','comment','operator_id','occurred_at']);
