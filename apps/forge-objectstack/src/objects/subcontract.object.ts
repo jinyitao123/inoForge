@@ -28,7 +28,7 @@ export const SubcontractSupplierProfile = master('forge_subcontract_supplier_pro
 export const SubcontractOrder = master('forge_subcontract_order', '委外订单', 'factory', {
   name: text('订单名称', true), code: code('委外订单号'), supplier_profile_id: reference('forge_subcontract_supplier_profile', '委外供应商档案', true),
   supplier_id: reference('forge_supplier', '委外供应商', true), supply_mode: select('料权方式', [['customer_supplied','甲供料'],['turnkey','包工包料']], 'customer_supplied'),
-  expected_delivery_on: Field.date({ label: '期望交期' }), project_id: reference('forge_project', '项目'),
+  expected_delivery_on: Field.date({ label: '期望交期', ...required }), project_id: reference('forge_project', '项目'),
   source_type: select('业务来源', [['manual','手工新建'],['sales_order','关联销售订单'],['production_order','关联生产工单'],['mrp','MRP推送'],['bom','历史BOM展开'],['project','历史项目委外']], 'manual'),
   source_sales_order_id: reference('forge_sales_order', '来源销售订单'), source_production_order_id: reference('forge_assembly_order', '来源生产工单'), source_mrp_analysis_id: reference('forge_bom_shortage_analysis', '来源MRP分析'),
   inspection_method: select('验收方式', [['full','全检'],['sampling','抽检-按比例'],['supplier_self','供应商自检'],['exempt','历史免检']], 'full'),
