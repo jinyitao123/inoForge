@@ -31,6 +31,8 @@ export default defineStack({
             object('sales_outbounds', '销售出库单', 'forge_sales_outbound', 'truck'),
             object('sales_invoices', '销售发票', 'forge_sales_invoice', 'receipt-text'),
             object('accounts_receivable', '应收账款', 'forge_accounts_receivable', 'wallet-cards'),
+            object('cash_receipts', '收款流水', 'forge_cash_receipt', 'badge-dollar-sign'),
+            object('collection_allocations', '收款核销', 'forge_collection_allocation', 'badge-check'),
           ]),
           group('customer_records', '客户档案', [
             object('customers', '客户', 'forge_customer', 'building-2'),
@@ -43,6 +45,7 @@ export default defineStack({
             object('quotation_types', '报价类型', 'forge_quotation_type'),
             object('quotation_issuers', '报价主体', 'forge_quotation_issuer', 'landmark'),
             object('contract_types', '合同类型', 'forge_contract_type'),
+            object('fund_accounts', '资金账户', 'forge_fund_account', 'landmark'),
           ]),
         ],
       },
