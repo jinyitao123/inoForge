@@ -12,11 +12,11 @@ assert.deepEqual(
 );
 
 const production = app.areas.find((area) => area.id === 'production');
-const subcontract = production.navigation.find((item) => item.id === 'subcontracting');
+const subcontract = production.navigation.find((item) => item.id === 'subcontract_management');
 assert.deepEqual(
   subcontract.children.map((item) => item.label),
-  ['委外管理上手指南', '委外看板', '委外订单', '委外发料', '委外回厂', '委外退料', '委外对账', '委外供应商', '委外库存', '批次追溯', '委外未交', '委外进货', '委外对账单'],
-  'subcontract navigation preserves the 13 observed RISEMAP entries',
+  ['进入委外管理上手指南', '委外看板', '委外订单', '委外发料', '委外回厂', '委外退料', '委外对账', '委外供应商', '加工价目', '委外库存', '批次追溯', '委外未交', '委外进货', '委外对账单'],
+  'subcontract navigation preserves the observed RISEMAP entries and the Forge pricing entry',
 );
 assert.ok(subcontract.children.every((item) => item.type === 'page'), 'subcontract business navigation only exposes task pages');
 
