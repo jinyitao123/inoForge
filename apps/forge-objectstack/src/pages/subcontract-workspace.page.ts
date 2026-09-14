@@ -60,6 +60,12 @@ export const SubcontractDashboardPage = {
   icon: 'layout-dashboard', type: 'app' as const, kind: 'react' as const, source: subcontractSource,
 };
 
+export const SubcontractOrdersPage = {
+  name: 'page_subcontract_orders', label: '委外订单', description: '委外订单列表、创建、提交与审核',
+  icon: 'clipboard-list', type: 'app' as const, kind: 'react' as const,
+  source: subcontractSource.replace("useState('看板')", "useState('委外订单')"),
+};
+
 export const SubcontractSuppliersPage = {
   name: 'page_subcontract_suppliers', label: '委外供应商', description: '维护工艺能力、信用等级、加工价目表与启用状态',
   icon: 'factory', type: 'app' as const, kind: 'react' as const, source: subcontractSource,
