@@ -111,3 +111,11 @@ Forge 已补齐草稿编辑和取消：草稿可修改数量、仓库、计划�
 `acceptance:production-assembly-draft-safety` 四组通过；完整停服并从同一 `.objectstack/data/objectstack.db` 重启后，`acceptance:production-assembly-draft-safety-restart` 通过，内置浏览器仍回读 `ASM-2026-0045` 为“已取消”。`pnpm typecheck`、`pnpm validate`、`pnpm build` 与 `acceptance:page-visible-language` 通过。当前对照缺口仍包括 RISEMAP 新建页的可选销售订单字段，以及 RISEMAP 页面出现的“审批中”状态与 Forge 当前草稿直接下达为“待领料”的差异；未取得远端实际办理证据前不自行补写规则。
 
 本轮继续用内置浏览器创建 `ASM-2026-0050`，从详情进入“编辑草稿”，将计划数量从 `2` 调整为 `3`、再调整为 `4`。四行 BOM 需求随数量重算为 `4 / 4 / 4 / 8`。走查发现原编辑动作会把仓库可用量快照错误清零，现已改为按草稿所选仓库重新读取库存；页面回读四项快照为 `1004 / 1009 / 1004 / 1008`。对应 API 验收增加了逐行库存快照断言，四组安全用例、三项工程门禁和同一 SQLite 停服重启回读均通过。RISEMAP 登录态在本轮重启后失效，新的实时页面复核仍需登录后补齐，因此本段只描述 Forge 当前可验证结果，不替代已有 RISEMAP 页面证据。
+
+## 2026-09-15 P0/P1 当前复核
+
+本轮在已登录内置浏览器重新打开 RISEMAP `https://risemap.cn/production/assembly` 与 Forge `http://localhost:4356/_console/apps/forge/page/page_production_assembly_workspace`。RISEMAP 当前列表仍为空，但新建表单实时显示成品物料选择、BOM、BOM版本、组装数量、入库仓库（选填）、关联销售订单、计划完工日期、备注，以及按成品展开的四条物料需求、齐套率、缺料项和预计物料成本。选择 `FG-RM-CAB-800 · 800型柔性线控制柜` 后自动带出 `BOM-RM-CAB-800-V1`、`V1.0`，数量 1 台时显示四种末级物料、齐套率 0%、缺料项 4、预计成本 `¥14,442`；本轮未在 RISEMAP 保存或下达。
+
+Forge 页面已修正 ObjectStack 外壳与自定义页面重复标题，列表首屏只保留一组业务标题；草稿列表仍按状态只给草稿显示“编辑”，已下达、组装中和已完工单据不出现编辑或取消。内置浏览器实际将 `ASM-2026-0050` 数量从 4 改为 5，点击“保存草稿”进入二次确认，确认后回到详情并回读计划数量 5、四条需求 `5 / 5 / 5 / 10` 和仓库可用快照 `1004 / 1009 / 1004 / 1008`。点击“取消组装单”会打开二次确认，显示单号、保留已取消状态、不可恢复及不能继续下达/领料/入库的影响，并要求取消原因；本轮未点击最终破坏性确认。
+
+本轮 `acceptance:production-assembly-draft-safety` 与 `acceptance:production-assembly-draft-safety-restart` 通过，`pnpm typecheck`、`pnpm validate`、`pnpm build` 通过。当前仍有两项页面差异待后续修补：Forge 新建表单把成品、BOM和版本合并为一个 BOM 选择器，且仓库文案仍显示为必填；Forge 已通过数据层扩展了成品与预览数据，但表单展示尚未完全收敛到 RISEMAP 的三步选择结构。RISEMAP 当前无可办理列表数据，远端取消与库存过账继续标为待同材料复核。
