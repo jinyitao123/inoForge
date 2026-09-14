@@ -19,7 +19,7 @@ assert.deepEqual({ invoice_status: invoice.status, invoice_number: invoice.invoi
   line_quantity: invoiceLine.quantity, line_amount: invoiceLine.taxed_subtotal, payable_source: payable.source_type,
   payable_invoice: payable.invoice_id, payable_original: payable.original_amount, payable_outstanding: payable.outstanding_amount,
   payable_status: payable.status, inbound_amount: inbound.inventory_amount },
-{ invoice_status: 'normal', invoice_number: '32002609090001', invoice_amount: 6800, line_quantity: 1,
+{ invoice_status: 'normal', invoice_number: report.invoiceNumber, invoice_amount: 6800, line_quantity: 1,
   line_amount: 6800, payable_source: 'purchase_inbound', payable_invoice: report.ids.invoice, payable_original: 6800,
   payable_outstanding: 6800, payable_status: 'unpaid', inbound_amount: 6800 });
 assert.equal(invoiceLine.invoice_id, invoice.id);

@@ -390,3 +390,353 @@ return { id: orderId, contract_id: id, line_count: remaining.length, total_amoun
 `,
   },
 });
+
+const serviceOrderTransitionBody = (from: string, to: string, extraSource = '') => ({
+  language: 'js' as const,
+  capabilities: ['api.write' as const],
+  source: `
+const id = ctx.recordId || (ctx.record && ctx.record.id);
+const record = ctx.record;
+if (ctx.recordLoadDenied === true || !id || !record) throw new Error('当前服务工单不存在或不可访问');
+if (record.status !== '${from}') throw new Error('工单状态已变化，请刷新后重试');
+const now = new Date().toISOString();
+const patch = { id, status: '${to}' };
+${extraSource}
+await ctx.api.object('forge_service_order').update(patch);
+return { id, status: '${to}' };
+`,
+});
+
+export const ServiceOrderAccept = defineAction({
+  name: 'service_order_accept', label: '受理', objectName: 'forge_service_order', icon: 'circle-check', locations: [...locations], order: 10,
+  visible: `record.status == 'pending_acceptance'`, confirmText: '确认受理该服务工单并进入派工？', refreshAfter: true,
+  successMessage: '服务工单已受理，等待派工',
+  body: serviceOrderTransitionBody('pending_acceptance', 'pending_dispatch', `patch.accepted_at = now; patch.next_step = '派工';`),
+});
+
+export const ServiceOrderDispatch = defineAction({
+  name: 'service_order_dispatch', label: '派工', objectName: 'forge_service_order', icon: 'route', locations: [...locations], order: 20,
+  visible: `record.status == 'pending_dispatch'`, refreshAfter: true,
+  successMessage: '服务工单已派工，等待工程师接单',
+  params: [
+    { field: 'engineer_name', objectOverride: 'forge_service_order', required: true },
+    { field: 'scheduled_at', objectOverride: 'forge_service_order' },
+    { field: 'dispatch_note', objectOverride: 'forge_service_order', required: true },
+  ],
+  body: serviceOrderTransitionBody('pending_dispatch', 'pending_receive', `
+const engineerName = String(ctx.input.engineer_name || '').trim();
+const note = String(ctx.input.dispatch_note || '').trim();
+if (!engineerName) throw new Error('请选择或填写服务工程师');
+if (!note) throw new Error('派工说明不能为空');
+patch.engineer_name = engineerName;
+patch.scheduled_at = ctx.input.scheduled_at || null;
+patch.dispatch_note = note;
+patch.dispatched_at = now;
+patch.next_step = '工程师接单';
+`),
+});
+
+export const ServiceOrderEngineerAccept = defineAction({
+  name: 'service_order_engineer_accept', label: '工程师接单', objectName: 'forge_service_order', icon: 'wrench', locations: [...locations], order: 30,
+  visible: `record.status == 'pending_receive'`, confirmText: '确认工程师已接单并开始服务？', refreshAfter: true,
+  successMessage: '工程师已接单，工单进入服务中',
+  body: serviceOrderTransitionBody('pending_receive', 'in_progress', `patch.received_at = now; patch.next_step = '处理记录 / 到场签到 / 提交服务结果';`),
+});
+
+
+export const SalesLeadConvertToOpportunity = defineAction({
+  name: 'sales_lead_convert_to_opportunity', label: '转为商机', objectName: 'forge_sales_lead', icon: 'sparkles', locations: [...locations], order: 10,
+  visible: `record.status == 'new' || record.status == 'following' || record.status == 'public_pool'`, refreshAfter: true,
+  description: '确认后会将线索转为客户档案和销售商机。', successMessage: '线索已转为客户和商机',
+  params: [{ field: 'amount', objectOverride: 'forge_sales_opportunity' }, { field: 'expected_close_on', objectOverride: 'forge_sales_opportunity' }],
+  body: { language: 'js', capabilities: ['api.read', 'api.write', 'api.transaction'], source: `
+const id = ctx.recordId || (ctx.record && ctx.record.id); const lead = ctx.record;
+if (ctx.recordLoadDenied === true || !id || !lead) throw new Error('当前线索不存在或不可访问');
+if (!['new','following','public_pool'].includes(lead.status)) throw new Error('当前线索状态不能转化');
+const now = new Date().toISOString();
+let customerId = null, opportunityId = null;
+const existingCustomer = await ctx.api.object('forge_customer').find({ where: { name: lead.company_name } });
+customerId = existingCustomer[0]?.id;
+if (!customerId) {
+  const categories = await ctx.api.object('forge_customer_category').find({ where: { code: 'CUST-CAT-PROJECT' } });
+  let categoryId = categories[0]?.id;
+  if (!categoryId) { const cat = await ctx.api.object('forge_customer_category').insert({ name: '项目客户', code: 'CUST-CAT-PROJECT', status: 'active' }); categoryId = typeof cat === 'string' ? cat : cat && (cat.id || (cat.record && cat.record.id)); }
+  const created = await ctx.api.object('forge_customer').insert({ name: lead.company_name, customer_type: 'company', category_id: categoryId, responsible_id: lead.responsible_id || null, remarks: '由销售线索转入客户档案' });
+  customerId = typeof created === 'string' ? created : created && (created.id || (created.record && created.record.id));
+}
+const createdOpportunity = await ctx.api.object('forge_sales_opportunity').insert({ name: lead.company_name + ' 项目商机', customer_id: customerId, lead_id: id, contact_name: lead.contact_name || null, phone: lead.phone || null, stage: 'needs_confirmed', source: lead.source || '线索转化', description: lead.remarks || null, priority: 'medium', amount: Number(ctx.input.amount || 0), win_rate: 30, expected_close_on: ctx.input.expected_close_on || null, responsible_id: lead.responsible_id || null });
+opportunityId = typeof createdOpportunity === 'string' ? createdOpportunity : createdOpportunity && (createdOpportunity.id || (createdOpportunity.record && createdOpportunity.record.id));
+await ctx.api.object('forge_sales_lead').update({ id, status: 'converted', converted_customer_id: customerId, converted_opportunity_id: opportunityId, converted_at: now });
+return { id, status: 'converted', customer_id: customerId, opportunity_id: opportunityId };
+` },
+});
+
+export const SalesOpportunityAdvance = defineAction({
+  name: 'sales_opportunity_advance', label: '推进阶段', objectName: 'forge_sales_opportunity', icon: 'arrow-right-circle', locations: [...locations], order: 10,
+  visible: `record.stage != 'won' && record.stage != 'lost'`, refreshAfter: true, successMessage: '商机阶段已推进',
+  params: [{ field: 'stage', objectOverride: 'forge_sales_opportunity', required: true }],
+  body: { language: 'js', capabilities: ['api.write'], source: `
+const id = ctx.recordId || (ctx.record && ctx.record.id); const record = ctx.record;
+if (ctx.recordLoadDenied === true || !id || !record) throw new Error('当前商机不存在或不可访问');
+const allowed = ['initial_contact','needs_confirmed','proposal_quoted','negotiation','won','lost'];
+const stage = String(ctx.input.stage || '').trim();
+if (!allowed.includes(stage)) throw new Error('请选择有效商机阶段');
+const patch = { id, stage };
+if (stage === 'won') patch.win_rate = 100;
+if (stage === 'lost') patch.win_rate = 0;
+await ctx.api.object('forge_sales_opportunity').update(patch);
+return { id, stage };
+` },
+});
+
+export const CustomerPoolClaim = defineAction({
+  name: 'customer_pool_claim', label: '领取', objectName: 'forge_customer_pool', icon: 'user-check', locations: [...locations], order: 10,
+  visible: `record.status == 'claimable' || record.status == 'released'`, confirmText: '确认领取该公海客户并建立客户档案？', refreshAfter: true,
+  successMessage: '公海客户已领取',
+  body: { language: 'js', capabilities: ['api.read', 'api.write', 'api.transaction'], source: `
+const id = ctx.recordId || (ctx.record && ctx.record.id); const pool = ctx.record;
+if (ctx.recordLoadDenied === true || !id || !pool) throw new Error('当前公海客户不存在或不可访问');
+if (!['claimable','released'].includes(pool.status)) throw new Error('当前公海客户不能领取');
+const now = new Date().toISOString(); let customerId = null;
+const existing = await ctx.api.object('forge_customer').find({ where: { name: pool.name } }); customerId = existing[0]?.id;
+if (!customerId) { const cats = await ctx.api.object('forge_customer_category').find({ where: { code: 'CUST-CAT-PROJECT' } }); let categoryId = cats[0]?.id; if (!categoryId) { const cat = await ctx.api.object('forge_customer_category').insert({ name: '项目客户', code: 'CUST-CAT-PROJECT', status: 'active' }); categoryId = typeof cat === 'string' ? cat : cat && (cat.id || (cat.record && cat.record.id)); } const created = await ctx.api.object('forge_customer').insert({ name: pool.name, customer_type: 'company', category_id: categoryId, responsible_id: ctx.session?.userId || null, remarks: '由公海客户领取建档' }); customerId = typeof created === 'string' ? created : created && (created.id || (created.record && created.record.id)); }
+await ctx.api.object('forge_customer_pool').update({ id, status: 'claimed', claimed_customer_id: customerId, claimed_at: now });
+return { id, status: 'claimed', customer_id: customerId };
+` },
+});
+
+export const ServiceOrderComplete = defineAction({
+  name: 'service_order_complete', label: '提交服务结果', objectName: 'forge_service_order', icon: 'check-circle', locations: [...locations], order: 40,
+  visible: `record.status == 'in_progress'`, refreshAfter: true,
+  successMessage: '服务工单已完工，可继续生成报价、结算或质保卡',
+  params: [
+    { field: 'service_hours', objectOverride: 'forge_service_order' },
+    { field: 'treatment_record', objectOverride: 'forge_service_order' },
+    { field: 'onsite_evidence_count', objectOverride: 'forge_service_order' },
+    { field: 'service_result', objectOverride: 'forge_service_order' },
+  ],
+  body: serviceOrderTransitionBody('in_progress', 'completed', `
+const result = String(ctx.input.service_result || '').trim();
+const treatment = String(ctx.input.treatment_record || '').trim();
+const hours = Number(ctx.input.service_hours || 0);
+const imageCount = Number(ctx.input.onsite_evidence_count || 0);
+if (!treatment) throw new Error('请至少填写一条处理记录后再提交服务结果');
+if (!(hours > 0)) throw new Error('服务耗时必须大于 0');
+if (!(imageCount >= 1)) throw new Error('请至少记录一张现场处理图片');
+if (!result) throw new Error('服务结果不能为空');
+patch.service_hours = hours;
+patch.treatment_record = treatment;
+patch.onsite_evidence_count = imageCount;
+patch.service_result = result;
+patch.completed_at = now;
+patch.next_step = '服务报价 / 服务结算 / 质保卡';
+`),
+});
+
+export const ServiceOrderCreateQuotation = defineAction({
+  name: 'service_order_create_quotation', label: '生成服务报价', objectName: 'forge_service_order', icon: 'file-text', locations: [...locations], order: 50,
+  visible: `record.status == 'completed'`, refreshAfter: true,
+  successMessage: '服务报价单已生成',
+  params: [
+    { field: 'total_amount', objectOverride: 'forge_service_quotation', required: true },
+    { field: 'valid_until', objectOverride: 'forge_service_quotation', required: true },
+  ],
+  body: { language: 'js', capabilities: ['api.read', 'api.write'], source: `
+const id = ctx.recordId || (ctx.record && ctx.record.id); const order = ctx.record;
+if (ctx.recordLoadDenied === true || !id || !order) throw new Error('当前服务工单不存在或不可访问');
+if (order.status !== 'completed') throw new Error('仅已完工服务工单可以生成报价');
+const amount = Number(ctx.input.total_amount || 0); if (!(amount >= 0)) throw new Error('报价金额不能为负数');
+if (!ctx.input.valid_until) throw new Error('有效期不能为空');
+const actor = ctx.session && ctx.session.userId;
+const existing = await ctx.api.object('forge_service_quotation').find({ where: { service_order_id: id } });
+if (existing.length) throw new Error('该服务工单已生成服务报价');
+const code = 'SQ-' + new Date().toISOString().replace(/[-:TZ.]/g,'').slice(0,14);
+const created = await ctx.api.object('forge_service_quotation').insert({ name: order.name + ' - 服务报价', code, service_order_id: id, order_code: order.code, customer_id: order.customer_id, contact_id: order.contact_id || null, total_amount: amount, status: 'draft', valid_until: ctx.input.valid_until, responsible_id: order.responsible_id || actor || null, remarks: order.service_result || order.remarks || null });
+const quotationId = typeof created === 'string' ? created : created && (created.id || (created.record && created.record.id));
+await ctx.api.object('forge_service_order').update({ id, quotation_code: code, quotation_handling: '已生成服务报价', next_step: '客户确认服务报价' });
+return { id: quotationId, code, service_order_id: id };
+` },
+});
+
+export const ServiceOrderCreateSettlement = defineAction({
+  name: 'service_order_create_settlement', label: '生成服务结算', objectName: 'forge_service_order', icon: 'receipt-text', locations: [...locations], order: 55,
+  visible: `record.status == 'completed'`, refreshAfter: true,
+  successMessage: '服务结算单已生成',
+  params: [{ field: 'total_amount', objectOverride: 'forge_service_settlement', required: true }],
+  body: { language: 'js', capabilities: ['api.read', 'api.write'], source: `
+const id = ctx.recordId || (ctx.record && ctx.record.id); const order = ctx.record;
+if (ctx.recordLoadDenied === true || !id || !order) throw new Error('当前服务工单不存在或不可访问');
+if (order.status !== 'completed') throw new Error('仅已完工服务工单可以生成结算');
+const amount = Number(ctx.input.total_amount || 0); if (!(amount >= 0)) throw new Error('结算金额不能为负数');
+const actor = ctx.session && ctx.session.userId;
+const existing = await ctx.api.object('forge_service_settlement').find({ where: { service_order_id: id } });
+if (existing.length) throw new Error('该服务工单已生成服务结算');
+const code = 'SS-' + new Date().toISOString().replace(/[-:TZ.]/g,'').slice(0,14);
+const created = await ctx.api.object('forge_service_settlement').insert({ name: order.name + ' - 服务结算', code, service_order_id: id, quotation_id: null, order_code: order.code, customer_id: order.customer_id, contact_id: order.contact_id || null, total_amount: amount, status: 'draft', responsible_id: order.responsible_id || actor || null, remarks: order.service_result || order.remarks || null });
+const settlementId = typeof created === 'string' ? created : created && (created.id || (created.record && created.record.id));
+await ctx.api.object('forge_service_order').update({ id, settlement_code: code, next_step: '服务结算确认 / 财务应收' });
+return { id: settlementId, code, service_order_id: id };
+` },
+});
+
+export const ServiceQuotationConfirm = defineAction({
+  name: 'service_quotation_confirm', label: '客户确认', objectName: 'forge_service_quotation', icon: 'circle-check', locations: [...locations], order: 10,
+  visible: `record.status == 'draft' || record.status == 'pending_confirmation'`, confirmText: '确认客户已接受这份服务报价？', refreshAfter: true,
+  successMessage: '服务报价已确认',
+  body: { language: 'js', capabilities: ['api.write'], source: `
+const id = ctx.recordId || (ctx.record && ctx.record.id); const record = ctx.record;
+if (ctx.recordLoadDenied === true || !id || !record) throw new Error('当前服务报价不存在或不可访问');
+if (!['draft','pending_confirmation'].includes(record.status)) throw new Error('当前服务报价状态不能确认');
+await ctx.api.object('forge_service_quotation').update({ id, status: 'confirmed' });
+return { id, status: 'confirmed' };
+` },
+});
+
+export const ServiceQuotationCreateSettlement = defineAction({
+  name: 'service_quotation_create_settlement', label: '转服务结算', objectName: 'forge_service_quotation', icon: 'receipt-text', locations: [...locations], order: 20,
+  visible: `record.status == 'confirmed'`, refreshAfter: true,
+  successMessage: '服务结算单已生成',
+  body: { language: 'js', capabilities: ['api.read', 'api.write', 'api.transaction'], source: `
+const id = ctx.recordId || (ctx.record && ctx.record.id); const quote = ctx.record;
+if (ctx.recordLoadDenied === true || !id || !quote) throw new Error('当前服务报价不存在或不可访问');
+if (quote.status !== 'confirmed') throw new Error('仅已确认服务报价可以转结算');
+const existing = await ctx.api.object('forge_service_settlement').find({ where: { quotation_id: id } });
+if (existing.length) throw new Error('该服务报价已生成服务结算');
+const actor = ctx.session && ctx.session.userId;
+const code = 'SS-' + new Date().toISOString().replace(/[-:TZ.]/g,'').slice(0,14);
+const created = await ctx.api.object('forge_service_settlement').insert({ name: quote.name.replace('服务报价','服务结算'), code, service_order_id: quote.service_order_id || null, quotation_id: id, order_code: quote.order_code, customer_id: quote.customer_id, contact_id: quote.contact_id || null, total_amount: Number(quote.total_amount || 0), status: 'draft', responsible_id: quote.responsible_id || actor || null, remarks: quote.remarks || null });
+const settlementId = typeof created === 'string' ? created : created && (created.id || (created.record && created.record.id));
+await ctx.api.object('forge_service_quotation').update({ id, status: 'settlement_created' });
+if (quote.service_order_id) await ctx.api.object('forge_service_order').update({ id: quote.service_order_id, settlement_code: code, next_step: '服务结算确认' });
+return { id: settlementId, code, quotation_id: id };
+` },
+});
+
+export const ServiceSettlementConfirm = defineAction({
+  name: 'service_settlement_confirm', label: '确认结算', objectName: 'forge_service_settlement', icon: 'circle-check', locations: [...locations], order: 10,
+  visible: `record.status == 'draft' || record.status == 'customer_confirming'`, confirmText: '确认服务结算金额并进入财务应收？', refreshAfter: true,
+  successMessage: '服务结算已确认',
+  body: { language: 'js', capabilities: ['api.write'], source: `
+const id = ctx.recordId || (ctx.record && ctx.record.id); const record = ctx.record;
+if (ctx.recordLoadDenied === true || !id || !record) throw new Error('当前服务结算不存在或不可访问');
+if (!['draft','customer_confirming'].includes(record.status)) throw new Error('当前服务结算状态不能确认');
+await ctx.api.object('forge_service_settlement').update({ id, status: 'confirmed' });
+return { id, status: 'confirmed' };
+` },
+});
+
+export const ServiceSettlementCreateReceivable = defineAction({
+  name: 'service_settlement_create_receivable', label: '生成应收', objectName: 'forge_service_settlement', icon: 'wallet-cards', locations: [...locations], order: 20,
+  visible: `record.status == 'confirmed'`, refreshAfter: true,
+  successMessage: '服务应收已生成',
+  params: [{ field: 'due_on', objectOverride: 'forge_accounts_receivable', required: true }],
+  body: { language: 'js', capabilities: ['api.read', 'api.write', 'api.transaction'], source: `
+const id = ctx.recordId || (ctx.record && ctx.record.id); const settlement = ctx.record;
+if (ctx.recordLoadDenied === true || !id || !settlement) throw new Error('当前服务结算不存在或不可访问');
+if (settlement.status !== 'confirmed') throw new Error('仅已确认服务结算可以生成应收');
+if (!ctx.input.due_on) throw new Error('应收到期日不能为空');
+const actor = ctx.session && ctx.session.userId;
+const responsibleId = settlement.responsible_id || actor;
+if (!responsibleId) throw new Error('无法识别当前应收负责人');
+const existing = await ctx.api.object('forge_accounts_receivable').find({ where: { service_settlement_id: id } });
+if (existing.length) throw new Error('该服务结算已生成应收');
+const code = 'AR-SVC-' + new Date().toISOString().replace(/[-:TZ.]/g,'').slice(0,14);
+await ctx.api.object('forge_accounts_receivable').insert({ name: settlement.name + ' - 应收', code, source_type: 'service_settlement', service_settlement_id: id, customer_id: settlement.customer_id, recognized_on: new Date().toISOString().slice(0,10), due_on: ctx.input.due_on, original_amount: Number(settlement.total_amount || 0), collected_amount: 0, outstanding_amount: Number(settlement.total_amount || 0), status: 'open', responsible_id: responsibleId, remarks: '服务结算生成应收' });
+await ctx.api.object('forge_service_settlement').update({ id, status: 'receivable_created', receivable_code: code });
+if (settlement.service_order_id) await ctx.api.object('forge_service_order').update({ id: settlement.service_order_id, next_step: '财务收款 / 服务复盘' });
+return { id, receivable_code: code };
+` },
+});
+
+export const ServiceOrderCreateWarranty = defineAction({
+  name: 'service_order_create_warranty', label: '生成质保卡', objectName: 'forge_service_order', icon: 'shield-check', locations: [...locations], order: 60,
+  visible: `record.status == 'completed'`, refreshAfter: true,
+  successMessage: '质保卡已生成',
+  body: { language: 'js', capabilities: ['api.read', 'api.write'], source: `
+const id = ctx.recordId || (ctx.record && ctx.record.id); const order = ctx.record;
+if (ctx.recordLoadDenied === true || !id || !order) throw new Error('当前服务工单不存在或不可访问');
+if (order.status !== 'completed') throw new Error('仅已完工服务工单可以生成质保卡');
+const existing = await ctx.api.object('forge_warranty_card').find({ where: { service_order_id: id } });
+if (existing.length) throw new Error('该服务工单已生成质保卡');
+const code = 'WC-' + new Date().toISOString().replace(/[-:TZ.]/g,'').slice(0,14);
+await ctx.api.object('forge_warranty_card').insert({ name: order.service_object || order.name, code, service_order_id: id, sales_order_id: order.sales_order_id || null, customer_id: order.customer_id, product_sn: order.service_object || order.name, scope: '整机/整单服务', starts_on: order.warranty_starts_on || new Date().toISOString().slice(0,10), ends_on: order.warranty_ends_on || null, status: 'active', responsible_party: '供应商', remarks: order.service_result || null });
+await ctx.api.object('forge_service_order').update({ id, warranty_code: code });
+return { id, warranty_code: code };
+` },
+});
+
+export const GoodwillOrderSubmit = defineAction({
+  name: 'goodwill_order_submit', label: '提交审批', objectName: 'forge_goodwill_order', icon: 'send', locations: [...locations], order: 10,
+  visible: `record.status == 'draft'`, confirmText: '提交后 Goodwill 订单将进入审批，是否继续？', refreshAfter: true,
+  successMessage: 'Goodwill 订单已提交审批', body: statusBody('forge_goodwill_order', 'draft', 'pending_approval'),
+});
+
+export const GoodwillOrderApprove = defineAction({
+  name: 'goodwill_order_approve', label: '同意', objectName: 'forge_goodwill_order', icon: 'circle-check', locations: [...locations], order: 20,
+  visible: `record.status == 'pending_approval'`, confirmText: '确认同意这张 Goodwill 订单？', refreshAfter: true,
+  successMessage: 'Goodwill 订单审批通过',
+  body: {
+    language: 'js', capabilities: ['api.write'], source: `
+const id = ctx.recordId || (ctx.record && ctx.record.id);
+if (ctx.recordLoadDenied === true || !id) throw new Error('当前 Goodwill 订单不存在或不可访问');
+const record = ctx.record;
+if (!record || record.status !== 'pending_approval') throw new Error('Goodwill 订单状态已变化，请刷新后重试');
+const now = new Date().toISOString();
+await ctx.api.object('forge_goodwill_order').update({ id, status: 'approved', approved_by: 'Dev Admin', approved_at: now });
+return { id, status: 'approved', approved_at: now };
+`,
+  },
+});
+
+export const GoodwillOrderCreateShipment = defineAction({
+  name: 'goodwill_order_create_shipment', label: '创建发货', objectName: 'forge_goodwill_order', icon: 'truck', locations: [...locations], order: 30,
+  visible: `record.status == 'approved'`, refreshAfter: true,
+  successMessage: 'Goodwill 发货已记录',
+  params: [
+    { field: 'delivery_address', objectOverride: 'forge_goodwill_order', required: true },
+    { field: 'recipient', objectOverride: 'forge_goodwill_order', required: true },
+    { field: 'recipient_phone', objectOverride: 'forge_goodwill_order', required: true },
+    { field: 'logistics_company', objectOverride: 'forge_goodwill_order' },
+    { field: 'tracking_no', objectOverride: 'forge_goodwill_order' },
+  ],
+  body: {
+    language: 'js', capabilities: ['api.write'], source: `
+const id = ctx.recordId || (ctx.record && ctx.record.id);
+if (ctx.recordLoadDenied === true || !id) throw new Error('当前 Goodwill 订单不存在或不可访问');
+const record = ctx.record;
+if (!record || record.status !== 'approved') throw new Error('仅已审批 Goodwill 订单可以创建发货');
+const deliveryAddress = String(ctx.input.delivery_address || '').trim();
+const recipient = String(ctx.input.recipient || '').trim();
+const recipientPhone = String(ctx.input.recipient_phone || '').trim();
+if (!deliveryAddress) throw new Error('收货地址不能为空');
+if (!recipient) throw new Error('收件人不能为空');
+if (!recipientPhone) throw new Error('联系电话不能为空');
+const now = new Date().toISOString();
+const shippedQuantity = Number(record.quantity || 0) || Number(String(record.item_summary || '').match(/\d+(?:\.\d+)?/)?.[0] || 0);
+const shipmentCode = record.shipment_code || 'DN-GW-' + now.slice(0,10).replace(/-/g,'') + '-001';
+await ctx.api.object('forge_goodwill_order').update({
+  id, status: 'shipping', shipment_code: shipmentCode, shipment_status: '待发货', shipment_count: 1, shipped_quantity: shippedQuantity,
+  logistics_company: String(ctx.input.logistics_company || '').trim() || null, tracking_no: String(ctx.input.tracking_no || '').trim() || null,
+  delivery_address: deliveryAddress, recipient, recipient_phone: recipientPhone, shipped_at: now,
+});
+return { id, status: 'shipping', shipment_code: shipmentCode, shipped_quantity: shippedQuantity };
+`,
+  },
+});
+
+export const GoodwillOrderComplete = defineAction({
+  name: 'goodwill_order_complete', label: '确认完成', objectName: 'forge_goodwill_order', icon: 'check-circle', locations: [...locations], order: 40,
+  visible: `record.status == 'shipping'`, confirmText: '确认客户已收到赠送物品并完成这张 Goodwill 订单？', refreshAfter: true,
+  successMessage: 'Goodwill 订单已确认完成',
+  body: {
+    language: 'js', capabilities: ['api.write'], source: `
+const id = ctx.recordId || (ctx.record && ctx.record.id);
+if (ctx.recordLoadDenied === true || !id) throw new Error('当前 Goodwill 订单不存在或不可访问');
+const record = ctx.record;
+if (!record || record.status !== 'shipping') throw new Error('仅发货中的 Goodwill 订单可以确认完成');
+const now = new Date().toISOString();
+await ctx.api.object('forge_goodwill_order').update({ id, status: 'completed', shipment_status: '已完成', completed_at: now });
+return { id, status: 'completed', completed_at: now };
+`,
+  },
+});

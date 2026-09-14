@@ -35,6 +35,10 @@ const [receipt, inbound, consumption, stock, order, orderLine, plan, finishedBal
   read('forge_accounts_payable', chainReport.ids.payable),
 ]);
 
+const finished = finishedBalances[0];
+const inventoryLedger = inventoryLedgers[0];
+const finishedBeforeOnHand = Number(report.result.confirmed.finishedBeforeOnHand || 0);
+const finishedBeforeValue = Number(report.result.confirmed.finishedBeforeValue || 0);
 assert.deepEqual({
   receipt: receipt.status,
   inbound: [inbound.status, inbound.material_amount, inbound.inventory_amount, inbound.valuation_status],
@@ -43,7 +47,8 @@ assert.deepEqual({
   order: [order.status, order.received_quantity, order.backflushed_quantity, order.overconsumption_quantity],
   orderLine: [orderLine.received_good_quantity, orderLine.received_bad_quantity],
   plan: [plan.backflushed_quantity, plan.overconsumption_quantity],
-  finished: [finishedBalances.length, finishedBalances[0]?.on_hand_quantity, finishedBalances[0]?.average_cost, finishedBalances[0]?.inventory_value],
+  finishedDelta: [finishedBalances.length, Number(finished?.on_hand_quantity || 0) - finishedBeforeOnHand, Number(finished?.inventory_value || 0) - finishedBeforeValue],
+  inventoryLedger: [inventoryLedgers.length, inventoryLedger?.movement_type, inventoryLedger?.quantity, inventoryLedger?.unit_cost, inventoryLedger?.amount],
   ledgers: [stockLedgers.length, inventoryLedgers.length],
   ncr: ncr.status,
   reconciliation: reconciliation.status,
@@ -56,7 +61,8 @@ assert.deepEqual({
   order: ['in_progress', 2, 6, 0.18],
   orderLine: [2, 0],
   plan: [6, 0.18],
-  finished: [1, 2, 73, 146],
+  finishedDelta: [1, report.result.confirmed.finishedQuantity, report.result.confirmed.finishedAmount],
+  inventoryLedger: [1, 'subcontract_receipt_inbound', report.result.confirmed.finishedQuantity, report.result.confirmed.finishedUnitCost, report.result.confirmed.finishedAmount],
   ledgers: [1, 1],
   ncr: 'executed',
   reconciliation: 'payable_generated',

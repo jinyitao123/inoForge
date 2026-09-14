@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import { readFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import { connect } from '../scripts/api-client.mjs';
 
 const endpoint = process.env.FORGE_URL || 'http://localhost:4442';
@@ -41,16 +41,32 @@ const stocks = await find(api, 'forge_subcontract_stock_balance', { balance_key:
 assert.equal(stocks.length, 1, 'return sample needs one supplier stock balance');
 const before = stocks[0]; assert.ok(Number(before.on_hand_quantity) > 0, 'return sample needs positive outside quantity');
 const quantity = Math.min(1, Number(before.on_hand_quantity));
+const runId = new Date().toISOString().replace(/[-:.TZ]/g, '').slice(0, 14);
+const reasons = await find(api, 'forge_subcontract_business_setting', { category: 'return_reason' });
+let returnReason = reasons.find(row => row.name === '余料退回');
+if (!returnReason) {
+  const response = await api.request('/data/forge_subcontract_business_setting', 'POST', { name: '余料退回', code: 'SUB-RETURN-SURPLUS', category: 'return_reason', enabled: true, sort_order: 10, description: '委外退料原因前置配置。' });
+  assert.equal(response.status, 201, JSON.stringify(response.value));
+  returnReason = response.value.record || response.value;
+}
+await api.request('/data/forge_subcontract_business_setting/' + returnReason.id, 'PATCH', { enabled: false });
+await expectFailure(api, 'forge_subcontract_order', 'subcontract_return_create', orderId, {
+  return_code: `RET-CHAIN-${runId}-DISABLED`, return_on: '2026-09-12', reason_setting_id: returnReason.id, reason: 'excess_material',
+  lines_json: JSON.stringify([{ plan_id: plan.id, quantity }]),
+}, 'disabled return reason must be blocked');
+await api.request('/data/forge_subcontract_business_setting/' + returnReason.id, 'PATCH', { enabled: true });
 
 const created = await invoke(api, 'forge_subcontract_order', 'subcontract_return_create', orderId, {
-  return_code: 'RET-CHAIN-20260912-001', return_on: '2026-09-12', reason: 'excess_material',
+  return_code: `RET-CHAIN-${runId}-001`, return_on: '2026-09-12', reason_setting_id: returnReason.id, reason: 'excess_material',
   lines_json: JSON.stringify([{ plan_id: plan.id, quantity }]), remarks: '委外退料闭环验收',
 });
 assert.equal(created.status, 'draft');
+const createdReturn = (await find(api, 'forge_subcontract_return', { id: created.id }))[0];
+assert.equal(createdReturn.reason_setting_id, returnReason.id, 'return must preserve the selected active business reason');
 const draftStock = (await find(api, 'forge_subcontract_stock_balance', { id: before.id }))[0];
 assert.equal(Number(draftStock.on_hand_quantity), Number(before.on_hand_quantity), 'draft must not change stock');
 await expectFailure(api, 'forge_subcontract_order', 'subcontract_return_create', orderId, {
-  return_code: 'RET-CHAIN-20260912-OVER', return_on: '2026-09-12', reason: 'excess_material',
+  return_code: `RET-CHAIN-${runId}-OVER`, return_on: '2026-09-12', reason: 'excess_material',
   lines_json: JSON.stringify([{ plan_id: plan.id, quantity: Number(before.on_hand_quantity) + 1 }]),
 }, 'over-return must be blocked');
 
@@ -67,4 +83,6 @@ const finalStock = (await find(api, 'forge_subcontract_stock_balance', { id: bef
 const ledger = await find(api, 'forge_subcontract_stock_ledger', { source_id: created.id, movement_type: 'material_return' });
 const finalLine = (await find(api, 'forge_subcontract_return_line', { return_id: created.id }))[0];
 assert.deepEqual({ returnStatus: finalReturn.status, inboundStatus: finalInbound.status, lineStatus: finalLine.status, onHand: Number(finalStock.on_hand_quantity), returned: Number(finalStock.returned_quantity), ledger: ledger.length }, { returnStatus: 'stocked', inboundStatus: 'stocked', lineStatus: 'stocked', onHand: Number(before.on_hand_quantity) - quantity, returned: Number(before.returned_quantity || 0) + quantity, ledger: 1 });
-console.log(JSON.stringify({ suite: 'subcontract-return', passed: true, database, orderId, returnId: created.id, inboundId: inbound.id, quantity, result: { returnStatus: finalReturn.status, inboundStatus: finalInbound.status, stockAfter: finalStock.on_hand_quantity, returnedTotal: finalStock.returned_quantity, ledgerRows: ledger.length }, boundary: '证明本地 Forge 委外退料链和服务端阻断；不证明 RISEMAP 写入行为、权限隔离或页面独立验收。' }, null, 2));
+const report = { suite: 'subcontract-return', passed: true, database, orderId, returnId: created.id, inboundId: inbound.id, lineId: finalLine.id, stockId: finalStock.id, sourceId: created.id, movementType: 'material_return', quantity, result: { returnStatus: finalReturn.status, inboundStatus: finalInbound.status, stockAfter: finalStock.on_hand_quantity, returnedTotal: finalStock.returned_quantity, ledgerRows: ledger.length }, boundary: '证明本地 Forge 委外退料链和服务端阻断；不证明 RISEMAP 写入行为、权限隔离或页面独立验收。' };
+await writeFile('.objectstack/acceptance/subcontract-return-report.json', JSON.stringify(report, null, 2));
+console.log(JSON.stringify(report, null, 2));

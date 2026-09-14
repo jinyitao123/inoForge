@@ -15,8 +15,16 @@ const resultOf = (response) => response.value?.result ?? response.value?.data?.r
 
 const customer = (await find('forge_customer'))[0];
 const type = (await find('forge_project_type', { code: 'CABINET_OTC' }))[0];
-const settled = (await find('forge_project', { code: 'PRJ-2026-001' }))[0];
-assert.ok(customer && type && settled);
+assert.ok(customer && type);
+let settled = (await find('forge_project')).find(x => ['settled','terminated','archived'].includes(x.status));
+if (!settled) {
+  const created = await invoke('forge_customer', 'customer_create_project', customer.id, { name: '工时成本关闭项目', type_id: type.id, priority: 'low', planned_start_on: '2026-09-10', planned_end_on: '2026-10-10', expected_revenue: 10000, budget_amount: 5000, manager_id: api.userId, description: '关闭项目边界验收' });
+  assert.equal(created.status, 200, JSON.stringify(created.value));
+  const closedId = resultOf(created).id;
+  assert.equal((await invoke('forge_project', 'project_start', closedId)).status, 200);
+  assert.equal((await invoke('forge_project', 'project_terminate', closedId, { termination_reason: '工时关闭项目边界验收' })).status, 200);
+  settled = await read('forge_project', closedId);
+}
 ids.customer = customer.id; ids.type = type.id; ids.settledProject = settled.id;
 
 async function createProject(name, expectedRevenue) {

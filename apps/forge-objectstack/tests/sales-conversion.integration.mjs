@@ -8,6 +8,7 @@ const foundation = Object.fromEntries(registry.results.map(result => [result.key
 const api = await connect();
 const cases = [];
 const ids = {};
+const stamp = new Date().toISOString().replace(/[-:TZ.]/g, '').slice(0, 14);
 
 async function test(name, run) {
   try { await run(); cases.push({ name, status: 'passed' }); console.log(`PASS ${name}`); }
@@ -57,7 +58,7 @@ await removePreviousFixture();
 
 await test('creates and accepts an isolated quotation for conversion', async () => {
   ids.quotation = await create('forge_quotation', {
-    name: '一键转换验收报价', code: 'QT-CONVERT-20260909-001', customer_id: foundation.customer,
+    name: '一键转换验收报价', code: 'QT-CONVERT-' + stamp + '-001', customer_id: foundation.customer,
     contact_id: foundation.contact, quotation_type_id: foundationReport.ids.quotationType, issuer_id: foundationReport.ids.issuer,
     quotation_date: '2026-09-09', valid_until: '2026-10-09', payment_method: 'bank_transfer',
     responsible_id: api.userId, business_terms: '含税、含包装，运输与现场服务另行约定。',
@@ -77,7 +78,7 @@ await test('creates and accepts an isolated quotation for conversion', async () 
 
 await test('converts an accepted quotation into one contract and copied line', async () => {
   const response = await invoke('forge_quotation', 'quotation_convert_to_contract', ids.quotation, {
-    contract_type_id: foundationReport.ids.contractType, code: 'SC-CONVERT-20260909-001',
+    contract_type_id: foundationReport.ids.contractType, code: 'SC-CONVERT-' + stamp + '-001',
     name: '一键转换验收框架合同', starts_on: '2026-09-09', ends_on: '2027-09-09',
   });
   assert.equal(response.status, 200, JSON.stringify(response.value));
@@ -99,7 +100,7 @@ await test('converts an accepted quotation into one contract and copied line', a
 
 await test('rejects repeated quotation conversion without creating another contract', async () => {
   const response = await invoke('forge_quotation', 'quotation_convert_to_contract', ids.quotation, {
-    contract_type_id: foundationReport.ids.contractType, code: 'SC-CONVERT-20260909-REPEAT',
+    contract_type_id: foundationReport.ids.contractType, code: 'SC-CONVERT-' + stamp + '-REPEAT',
     name: '重复合同', starts_on: '2026-09-09', ends_on: '2027-09-09',
   });
   assert.equal(response.status, 400, JSON.stringify(response.value));
@@ -113,7 +114,7 @@ await test('approves the generated contract and converts all remaining quantity 
     assert.equal(response.status, 200, `${action}: ${JSON.stringify(response.value)}`);
   }
   const response = await invoke('forge_sales_contract', 'contract_convert_to_sales_order', ids.contract, {
-    code: 'SO-CONVERT-20260909-001', name: '一键转换验收销售订单', planned_delivery_on: '2026-10-09',
+    code: 'SO-CONVERT-' + stamp + '-001', name: '一键转换验收销售订单', planned_delivery_on: '2026-10-09',
     payment_term: '订单生效后30天内付款', payment_method: 'bank_transfer', delivery_address: '苏州市工业园区澄岳路9号',
   });
   assert.equal(response.status, 200, JSON.stringify(response.value));
@@ -135,7 +136,7 @@ await test('approves the generated contract and converts all remaining quantity 
 
 await test('rejects repeated contract conversion and approves the generated order with exact rollup', async () => {
   const repeated = await invoke('forge_sales_contract', 'contract_convert_to_sales_order', ids.contract, {
-    code: 'SO-CONVERT-20260909-REPEAT', name: '重复订单', planned_delivery_on: '2026-10-09',
+    code: 'SO-CONVERT-' + stamp + '-REPEAT', name: '重复订单', planned_delivery_on: '2026-10-09',
     payment_term: '订单生效后30天内付款', payment_method: 'bank_transfer',
   });
   assert.equal(repeated.status, 400, JSON.stringify(repeated.value));

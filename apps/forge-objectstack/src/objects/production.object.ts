@@ -76,22 +76,51 @@ export const ProductionInbound = master('forge_production_inbound', '生产入�
 
 export const ProductionApprovalLog = master('forge_production_approval_log', '生产审批与执行记录', 'history', {
   name: text('记录名称', true), event_key: code('事件编号'), source_object: text('来源对象', true), source_id: text('来源记录ID', true),
-  action: select('动作', [['released', '下达'], ['submitted', '提交审批'], ['confirmed', '确认'], ['stocked', '入库'], ['completed', '完工']]),
+  action: select('动作', [['released', '下达'], ['submitted', '提交审批'], ['updated', '保存修改'], ['cancelled', '取消'], ['voided', '作废'], ['confirmed', '确认'], ['stocked', '入库'], ['completed', '完工']]),
   from_status: text('原状态'), to_status: text('新状态'), comment: Field.textarea({ label: '说明' }),
   occurred_at: Field.datetime({ label: '发生时间', ...required }), operator_id: Field.user({ label: '操作人', ...required }),
 }, ['occurred_at', 'source_object', 'source_id', 'action', 'from_status', 'to_status', 'operator_id']);
+
+// Live RISEMAP 2026-09-14 exposes one shared production import/export task
+// centre. Forge records synchronous CSV exports here so results remain
+// visible and downloadable after the originating list page is closed.
+export const ProductionDataTask = master('forge_production_data_task', '生产导入导出任务', 'file-up-down', {
+  name: text('任务名称', true), code: code('任务编号'),
+  task_type: select('任务类型', [['export', '导出'], ['import', '导入']], 'export'),
+  source_key: text('来源标识', true), source_label: text('来源', true), source_page: text('来源页面'),
+  status: select('任务状态', [['queued', '等待中'], ['running', '处理中'], ['completed', '已完成'], ['failed', '失败']], 'queued'),
+  progress: Field.number({ label: '进度', min: 0, max: 100, scale: 0, defaultValue: 0 }),
+  row_count: quantity('结果条数'), result_name: text('结果文件名'),
+  result_content: Field.textarea({ label: '结果内容' }), failure_reason: Field.textarea({ label: '失败原因' }),
+  submitted_at: Field.datetime({ label: '提交时间', ...required }), completed_at: Field.datetime({ label: '完成时间' }),
+}, ['name', 'task_type', 'source_label', 'status', 'progress', 'row_count', 'result_name', 'failure_reason', 'submitted_at']);
+
+// Live RISEMAP 2026-09-14: disassembly and replacement use two independently
+// configurable reason dictionaries. Disabled values remain readable on saved
+// documents but are excluded from new-document selectors.
+export const ProductionDisassemblyReason = master('forge_production_disassembly_reason', '拆解原因', 'tags', {
+  name: text('原因名称', true), code: code('原因编码'), description: Field.textarea({ label: '描述' }),
+  color: text('标识颜色'), enabled: Field.boolean({ label: '启用', defaultValue: true }),
+  sort_order: Field.number({ label: '排序', min: 0, scale: 0, defaultValue: 0 }),
+}, ['name', 'description', 'color', 'enabled', 'sort_order']);
+
+export const ProductionReplacementReason = master('forge_production_replacement_reason', '改制原因', 'tags', {
+  name: text('原因名称', true), code: code('原因编码'), description: Field.textarea({ label: '描述' }),
+  color: text('标识颜色'), enabled: Field.boolean({ label: '启用', defaultValue: true }),
+  sort_order: Field.number({ label: '排序', min: 0, scale: 0, defaultValue: 0 }),
+}, ['name', 'description', 'color', 'enabled', 'sort_order']);
 
 // RM-070: a disassembly consumes finished inventory and explicitly splits every
 // theoretical BOM quantity between recovered stock and scrap.
 export const DisassemblyOrder = master('forge_disassembly_order', '拆解单', 'unplug', {
   name: text('拆解单名称', true), code: code('拆解单号'), product_id: reference('forge_material', '成品', true),
   product_sku_id: reference('forge_material_sku', '成品规格', true), bom_id: reference('forge_bom', 'BOM', true),
-  bom_version: text('BOM版本', true), warehouse_id: reference('forge_warehouse', '出入库仓库', true),
-  quantity: { ...quantity('拆解数量', 1), ...required }, reason: text('拆解原因', true), line_count: { ...quantity('物料种数'), readonly: true },
+  bom_version: text('BOM版本', true), warehouse_id: reference('forge_warehouse', '出入库仓库'),
+  quantity: { ...quantity('拆解数量', 1), ...required }, reason_id: reference('forge_production_disassembly_reason', '拆解原因配置'), reason: text('拆解原因', true), line_count: { ...quantity('物料种数'), readonly: true },
   released_cost: { ...amount('释放成品成本'), readonly: true }, recovered_value: { ...amount('回收价值'), readonly: true },
   scrap_loss: { ...amount('报废损失'), readonly: true }, status: select('拆解状态', [
-    ['pending_approval', '审批中'], ['stocked', '已入库'], ['rejected', '已驳回'],
-  ], 'pending_approval', true), handled_on: Field.date({ label: '拆解日期', ...required }),
+    ['draft', '草稿'], ['pending_approval', '审批中'], ['stocked', '已入库'], ['rejected', '已驳回'],
+  ], 'draft', true), handled_on: Field.date({ label: '拆解日期', ...required }),
   confirmed_at: Field.datetime({ label: '确认时间', readonly: true }), responsible_id: owner(true), remarks: remarks(),
 }, ['code', 'product_id', 'bom_version', 'quantity', 'line_count', 'released_cost', 'recovered_value', 'scrap_loss', 'handled_on', 'status']);
 
@@ -101,7 +130,7 @@ export const DisassemblyLine = master('forge_disassembly_line', '拆解明细', 
   material_id: reference('forge_material', '物料', true), item_code: text('物料编码', true), specification: text('规格'),
   theoretical_quantity: quantity('理论拆出数量'), recovered_quantity: quantity('回收数量'), scrapped_quantity: quantity('报废数量'),
   unit_cost: { ...amount('回收单位成本'), readonly: true }, recovered_amount: { ...amount('回收金额'), readonly: true },
-  status: select('明细状态', [['pending_approval', '审批中'], ['stocked', '已入库']], 'pending_approval', true), remarks: remarks(),
+  status: select('明细状态', [['draft', '草稿'], ['pending_approval', '审批中'], ['stocked', '已入库']], 'draft', true), remarks: remarks(),
 }, ['disassembly_id', 'item_code', 'name', 'theoretical_quantity', 'recovered_quantity', 'scrapped_quantity', 'unit_cost', 'recovered_amount', 'status']);
 
 // RM-071: rework keeps the finished unit in inventory while issuing a new part
@@ -109,12 +138,12 @@ export const DisassemblyLine = master('forge_disassembly_line', '拆解明细', 
 export const ReplacementOrder = master('forge_replacement_order', '换件单', 'replace', {
   name: text('换件单名称', true), code: code('换件单号'), product_id: reference('forge_material', '成品', true),
   product_sku_id: reference('forge_material_sku', '成品规格', true), bom_id: reference('forge_bom', '改制成品BOM', true),
-  bom_version: text('BOM版本', true), warehouse_id: reference('forge_warehouse', '出入库仓库', true),
-  quantity: { ...quantity('改制数量', 1), ...required }, reason: text('改制原因', true), line_count: { ...quantity('换件处数'), readonly: true },
+  bom_version: text('BOM版本', true), warehouse_id: reference('forge_warehouse', '出入库仓库'),
+  quantity: { ...quantity('改制数量', 1), ...required }, reason_id: reference('forge_production_replacement_reason', '改制原因配置'), reason: text('改制原因', true), line_count: { ...quantity('换件处数'), readonly: true },
   product_before_on_hand: { ...quantity('整机变动前库存'), readonly: true }, product_after_on_hand: { ...quantity('整机变动后库存'), readonly: true },
   new_part_cost: { ...amount('新件成本'), readonly: true }, old_part_value: { ...amount('旧件回收价值'), readonly: true },
   cost_change: Field.currency({ label: '成本变化', precision: 18, scale: 4, defaultValue: 0, readonly: true }),
-  status: select('换件状态', [['pending_approval', '审批中'], ['stocked', '已入库'], ['rejected', '已驳回']], 'pending_approval', true),
+  status: select('换件状态', [['draft', '草稿'], ['pending_approval', '审批中'], ['stocked', '已入库'], ['rejected', '已驳回']], 'draft', true),
   handled_on: Field.date({ label: '换件日期', ...required }), confirmed_at: Field.datetime({ label: '确认时间', readonly: true }),
   responsible_id: owner(true), remarks: remarks(),
 }, ['code', 'product_id', 'bom_version', 'quantity', 'line_count', 'new_part_cost', 'old_part_value', 'cost_change', 'handled_on', 'status']);
@@ -127,5 +156,5 @@ export const ReplacementLine = master('forge_replacement_line', '换件明细', 
   new_sku_id: reference('forge_material_sku', '新件规格', true), new_item_code: text('新件编码', true), new_quantity: quantity('新件数量'),
   new_unit_cost: { ...amount('新件单位成本'), readonly: true }, new_amount: { ...amount('新件金额'), readonly: true },
   cost_change: Field.currency({ label: '成本变化', precision: 18, scale: 4, defaultValue: 0, readonly: true }),
-  status: select('明细状态', [['pending_approval', '审批中'], ['stocked', '已入库']], 'pending_approval', true), remarks: remarks(),
+  status: select('明细状态', [['draft', '草稿'], ['pending_approval', '审批中'], ['stocked', '已入库']], 'draft', true), remarks: remarks(),
 }, ['replacement_id', 'old_item_code', 'old_quantity', 'old_destination', 'new_item_code', 'new_quantity', 'new_amount', 'old_recovered_amount', 'cost_change', 'status']);

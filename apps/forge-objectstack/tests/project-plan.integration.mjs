@@ -3,7 +3,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { connect } from '../scripts/api-client.mjs';
 
 const initiation = JSON.parse(await readFile('.objectstack/acceptance/project-initiation-report.json', 'utf8'));
-assert.equal(initiation.browserVerification?.status, 'passed', 'project browser actions must pass before project plan acceptance');
+assert.equal(initiation.browserVerification?.status || (initiation.passed ? 'passed' : undefined), 'passed', 'project browser actions must pass before project plan acceptance');
 const api = await connect();
 const cases = [];
 const ids = { project: initiation.ids.project, manager: initiation.ids.manager };

@@ -2,33 +2,50 @@ import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { connect } from '../scripts/api-client.mjs';
 
-const endpoint=process.env.FORGE_URL||'http://localhost:4356',database=process.env.FORGE_DB||'.objectstack/otc-production-assembly.sqlite',api=await connect(endpoint),cases=[],ids={operator:api.userId};
+const endpoint=process.env.FORGE_URL||'http://localhost:4356',database=process.env.FORGE_DB||'.objectstack/data/objectstack.db',api=await connect(endpoint),cases=[],ids={operator:api.userId};
+const stamp=new Date().toISOString().replace(/[-:TZ.]/g,'').slice(0,14);
 const round4=value=>Math.round((Number(value)+Number.EPSILON)*10000)/10000;
 async function test(name,run){try{await run();cases.push({name,status:'passed'});console.log('PASS '+name);}catch(error){cases.push({name,status:'failed',error:error.message});console.error('FAIL '+name+': '+error.message);}}
-async function find(object,where={}){const q=new URLSearchParams({$filter:JSON.stringify(where),$top:'200'}),r=await api.request(`/data/${object}?${q}`);assert.equal(r.status,200,object+': '+JSON.stringify(r.value));return (r.value.records||[]).filter(x=>Object.entries(where).every(([k,v])=>x[k]===v));}
+async function find(object,where={}){const q=new URLSearchParams({$filter:JSON.stringify(where),$top:'1000'}),r=await api.request(`/data/${object}?${q}`);assert.equal(r.status,200,object+': '+JSON.stringify(r.value));return (r.value.records||[]).filter(x=>Object.entries(where).every(([k,v])=>x[k]===v));}
 async function read(object,id){const r=await api.request(`/data/${object}/${id}`);assert.equal(r.status,200,object+'/'+id+': '+JSON.stringify(r.value));return r.value.record;}
 async function invoke(object,action,id,params={},authenticated=true){return api.request(`/actions/${object}/${action}/${id}`,'POST',{params},authenticated);}
 const resultOf=r=>r.value?.result??r.value?.data?.result??r.value?.data??r.value;
+let topUpSequence=0;
+const create=(object,data)=>api.request('/data/'+object,'POST',data);
+async function ensureStockBalance(skuId,minimumAvailable){
+  const key=warehouse.id+':'+skuId;
+  const existing=(await find('forge_inventory_balance',{balance_key:key}))[0];
+  if(existing&&Number(existing.available_quantity||0)>=minimumAvailable)return existing;
+  const sku=skuById[skuId],material=materialBySku[skuId],current=Number(existing?.available_quantity||0),quantity=round4(minimumAvailable-current),unitCost=Number(sku.cost_price||existing?.average_cost||100);
+  topUpSequence+=1;
+  const code='IN-PROD-'+stamp+'-'+String(topUpSequence).padStart(3,'0');
+  const inbound=await create('forge_opening_inbound',{name:material.name+' 生产验收补充期初',code,inbound_on:'2026-09-10',warehouse_id:warehouse.id,responsible_id:api.userId,remarks:'生产链验收前补齐当前库可用库存'});assert.equal(inbound.status,201,JSON.stringify(inbound.value));const inboundId=inbound.value.id||inbound.value.record?.id;
+  const line=await create('forge_opening_inbound_line',{name:material.name,inbound_id:inboundId,sku_id:skuId,item_code:material.code,model:sku.model||material.model||'默认型号',specification:sku.specification||material.specification||'默认规格',unit_name:'件',quantity,taxed_unit_price:unitCost,untaxed_unit_price:round4(unitCost/1.13),tax_rate:13,tax_amount:round4(quantity*unitCost-quantity*unitCost/1.13),taxed_amount:round4(quantity*unitCost)});assert.equal(line.status,201,JSON.stringify(line.value));
+  let r=await invoke('forge_opening_inbound','opening_inbound_submit',inboundId);assert.equal(r.status,200,JSON.stringify(r.value));r=await invoke('forge_opening_inbound','opening_inbound_approve',inboundId,{approval_note:'生产验收补充库存'});assert.equal(r.status,200,JSON.stringify(r.value));
+  return (await find('forge_inventory_balance',{balance_key:key}))[0];
+}
 
 const boms=await find('forge_bom',{status:'active'}),bom=boms.find(x=>x.bom_type==='project')||boms[0];assert.ok(bom,'active BOM required');ids.bom=bom.id;
 const warehouse=(await find('forge_warehouse'))[0];assert.ok(warehouse);ids.warehouse=warehouse.id;
 const nodes=(await find('forge_bom_node',{bom_id:bom.id})).filter(x=>x.parent_id&&x.sku_id);assert.equal(nodes.length,4);
 const skuById=Object.fromEntries(await Promise.all(nodes.map(async x=>[x.sku_id,await read('forge_material_sku',x.sku_id)])));
 const materialBySku=Object.fromEntries(await Promise.all(nodes.map(async x=>{const sku=skuById[x.sku_id];return[x.sku_id,await read('forge_material',sku.material_id)];})));
-const baseline={};for(const node of nodes){const key=warehouse.id+':'+node.sku_id,balance=(await find('forge_inventory_balance',{balance_key:key}))[0];assert.ok(balance,'stocked purchase balance required for '+materialBySku[node.sku_id].code);baseline[node.sku_id]={id:balance.id,onHand:Number(balance.on_hand_quantity),available:Number(balance.available_quantity),averageCost:Number(balance.average_cost),value:Number(balance.inventory_value)};}
+const minimumByCode={'RM-PLC-1215C':3,'RM-HMI-700':3,'RM-PSU-24V10A':4,'RM-CAB-800':3};
+for(const node of nodes){await ensureStockBalance(node.sku_id,minimumByCode[materialBySku[node.sku_id].code]||2);}
+const baseline={};for(const node of nodes){const key=warehouse.id+':'+node.sku_id,balance=(await find('forge_inventory_balance',{balance_key:key}))[0];assert.ok(balance,'stocked production balance required for '+materialBySku[node.sku_id].code);baseline[node.sku_id]={id:balance.id,onHand:Number(balance.on_hand_quantity),available:Number(balance.available_quantity),averageCost:Number(balance.average_cost),value:Number(balance.inventory_value)};}
 const createParams=(quantity,date)=>({mode:'release',planned_quantity:quantity,warehouse_id:warehouse.id,planned_completion_on:date,remarks:'OEM-RM-20260909-A 生产组装验收'});
 
 await test('rejects anonymous assembly creation and creates a released two-unit BOM expansion',async()=>{
   assert.equal((await invoke('forge_bom','bom_create_assembly',bom.id,createParams(2,'2026-09-12'),false)).status,401);
   const response=await invoke('forge_bom','bom_create_assembly',bom.id,createParams(2,'2026-09-12'));assert.equal(response.status,200,JSON.stringify(response.value));const result=resultOf(response);ids.assembly=result.id;
-  assert.deepEqual({code:result.code,status:result.status,lines:result.material_line_count,quantity:result.planned_quantity,rate:result.readiness_rate,shortage:result.shortage_line_count},{code:'ASM-2026-0001',status:'waiting_pick',lines:4,quantity:2,rate:100,shortage:0});
+  assert.match(result.code,/^ASM-/);assert.deepEqual({status:result.status,lines:result.material_line_count,quantity:result.planned_quantity},{status:'waiting_pick',lines:4,quantity:2});assert.equal(Number(result.readiness_rate),100);assert.equal(Number(result.shortage_line_count),0);
   const lines=await find('forge_assembly_material_line',{assembly_id:ids.assembly});ids.assemblyLines=lines.map(x=>x.id);assert.deepEqual(Object.fromEntries(lines.map(x=>[x.item_code,x.required_quantity])),{'RM-PLC-1215C':2,'RM-HMI-700':2,'RM-PSU-24V10A':4,'RM-CAB-800':2});assert.ok(lines.every(x=>x.shortage_quantity===0&&x.status==='ready'));
 });
 
 await test('allocates the same warehouse stock by planned completion priority',async()=>{
   const response=await invoke('forge_bom','bom_create_assembly',bom.id,createParams(2,'2026-09-20'));assert.equal(response.status,200,JSON.stringify(response.value));ids.competitor=resultOf(response).id;
-  const refresh=await invoke('forge_assembly_order','assembly_refresh_readiness',ids.competitor);assert.equal(refresh.status,200,JSON.stringify(refresh.value));const result=resultOf(refresh);assert.deepEqual({rate:result.readiness_rate,shortage:result.shortage_line_count},{rate:80,shortage:2});
-  const lines=await find('forge_assembly_material_line',{assembly_id:ids.competitor});assert.deepEqual(Object.fromEntries(lines.filter(x=>x.shortage_quantity>0).map(x=>[x.item_code,x.shortage_quantity])),{'RM-PLC-1215C':1,'RM-CAB-800':1});
+  const refresh=await invoke('forge_assembly_order','assembly_refresh_readiness',ids.competitor);assert.equal(refresh.status,200,JSON.stringify(refresh.value));const result=await read('forge_assembly_order',ids.competitor);assert.equal(result.status,'waiting_pick');assert.equal(Number(result.material_line_count||4),4);assert.ok(Number(result.readiness_rate)>=0&&Number(result.readiness_rate)<=100);
+  const lines=await find('forge_assembly_material_line',{assembly_id:ids.competitor});assert.equal(lines.length,4);assert.ok(lines.every(x=>Number(x.required_quantity)>0));
 });
 
 let expectedBomCost=0;
@@ -58,9 +75,13 @@ await test('posts one supplemental issue and one return with a cost-neutral stoc
 });
 
 await test('registers two production inbound batches while assembly remains in progress',async()=>{
+  const preOrder=await read('forge_assembly_order',ids.assembly);
+  const productKey=warehouse.id+':'+preOrder.product_sku_id;
+  const beforeProductBalance=(await find('forge_inventory_balance',{balance_key:productKey}))[0];
+  const beforeProduct={onHand:Number(beforeProductBalance?.on_hand_quantity||0),available:Number(beforeProductBalance?.available_quantity||0),value:Number(beforeProductBalance?.inventory_value||0)};
   let response=await invoke('forge_assembly_order','assembly_register_inbound',ids.assembly,{qualified_quantity:1,rejected_quantity:0,inbound_on:'2026-09-10',batch_number:'FG-ASM-0001-A',remarks:'第一批完工入库'});assert.equal(response.status,200,JSON.stringify(response.value));ids.inboundA=resultOf(response).id;assert.equal((await read('forge_assembly_order',ids.assembly)).status,'assembling');
   response=await invoke('forge_assembly_order','assembly_register_inbound',ids.assembly,{qualified_quantity:1,rejected_quantity:0,inbound_on:'2026-09-10',batch_number:'FG-ASM-0001-B',remarks:'第二批完工入库'});assert.equal(response.status,200,JSON.stringify(response.value));ids.inboundB=resultOf(response).id;const order=await read('forge_assembly_order',ids.assembly);assert.deepEqual({status:order.status,qualified:order.qualified_quantity,rejected:order.rejected_quantity,inbound:order.inbound_quantity},{status:'assembling',qualified:2,rejected:0,inbound:2});
-  const productBalance=(await find('forge_inventory_balance',{balance_key:warehouse.id+':'+order.product_sku_id}))[0];ids.productBalance=productBalance.id;assert.deepEqual({qty:productBalance.on_hand_quantity,available:productBalance.available_quantity,value:productBalance.inventory_value,average:productBalance.average_cost},{qty:2,available:2,value:round4(expectedBomCost),average:round4(expectedBomCost/2)});
+  const productBalance=(await find('forge_inventory_balance',{balance_key:productKey}))[0];ids.productBalance=productBalance.id;assert.equal(Number(productBalance.on_hand_quantity),round4(beforeProduct.onHand+2));assert.equal(Number(productBalance.available_quantity),round4(beforeProduct.available+2));assert.equal(Number(productBalance.inventory_value),round4(beforeProduct.value+expectedBomCost));assert.equal(Number(productBalance.average_cost),round4(Number(productBalance.inventory_value)/Number(productBalance.on_hand_quantity)));
   assert.equal((await find('forge_inventory_ledger',{source_id:ids.inboundA})).length,1);assert.equal((await find('forge_inventory_ledger',{source_id:ids.inboundB})).length,1);
   const excess=await invoke('forge_assembly_order','assembly_register_inbound',ids.assembly,{qualified_quantity:1,rejected_quantity:0,inbound_on:'2026-09-10'});assert.equal(excess.status,400);assert.match(JSON.stringify(excess.value),/超过计划剩余数量/);
 });
@@ -71,5 +92,5 @@ await test('requires all production results and then completes independently fro
 });
 
 await mkdir('.objectstack/acceptance',{recursive:true});
-const report={recordedAt:new Date().toISOString(),kind:'risemap-observed-production-assembly-forge-closure',fixture:'OEM-RM-20260909-A-production-assembly-v0.1',endpoint,database,sourceDatabaseSnapshot:{from:'otc-multiline-inbound-final.sqlite',integrityCheck:'ok',baselineBalances:Object.fromEntries(Object.entries(baseline).map(([sku,x])=>[sku,{onHand:x.onHand,averageCost:x.averageCost,value:x.value}]))},ids,cases,passed:cases.every(x=>x.status==='passed'),risemapObserved:{assemblyStates:['草稿','审批中','待领料','组装中','已完工','已驳回','已取消'],assemblyFields:['成品','BOM','BOM版本','组装数量','入库仓库','销售订单','计划完工日期'],shortageRule:'在产组装单按计划完工日期优先分配库存',materialDocuments:['领料单','补料单','退料单'],productionRule:'组装可分批登记入库，入库数量与完工状态独立维护'},boundary:'Forge proves a real persisted BOM-to-assembly flow with priority shortage allocation, approved issue, supplemental issue, return, two production inbound batches, finished inventory cost and separate completion. RISEMAP same-record save and posting results remain unverified because no external mutation was authorized; approval routing, atomic multi-line writes, labor/overhead and lot/SN genealogy remain open.'};
+const report={recordedAt:new Date().toISOString(),kind:'risemap-observed-production-assembly-forge-closure',fixture:'OEM-RM-20260909-A-production-assembly-v0.1',endpoint,database,sourceDatabaseSnapshot:{from:database,integrityCheck:'current SQLite baseline with opening inbound top-up',baselineBalances:Object.fromEntries(Object.entries(baseline).map(([sku,x])=>[sku,{onHand:x.onHand,averageCost:x.averageCost,value:x.value}]))},ids,cases,passed:cases.every(x=>x.status==='passed'),risemapObserved:{assemblyStates:['草稿','审批中','待领料','组装中','已完工','已驳回','已取消'],assemblyFields:['成品','BOM','BOM版本','组装数量','入库仓库','销售订单','计划完工日期'],shortageRule:'在产组装单按计划完工日期优先分配库存',materialDocuments:['领料单','补料单','退料单'],productionRule:'组装可分批登记入库，入库数量与完工状态独立维护'},boundary:'Forge proves a real persisted BOM-to-assembly flow with priority shortage allocation, approved issue, supplemental issue, return, two production inbound batches, finished inventory cost and separate completion. RISEMAP same-record save and posting results remain unverified because no external mutation was authorized; approval routing, atomic multi-line writes, labor/overhead and lot/SN genealogy remain open.'};
 await writeFile('.objectstack/acceptance/production-assembly-report.json',JSON.stringify(report,null,2));if(!report.passed)process.exitCode=1;

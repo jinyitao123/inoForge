@@ -72,6 +72,36 @@ export const ProjectPlan = master('forge_project_plan', '项目计划', 'calenda
   progress: Field.number({ label: '计划进度', min: 0, max: 100, scale: 2, defaultValue: 0, readonly: true }), remarks: remarks(),
 }, ['project_id', 'name', 'source', 'revision', 'planned_start_on', 'planned_end_on', 'item_count', 'progress', 'status']);
 
+// RISEMAP 的项目配置中心以计划模板作为可复用的计划来源。模板结构保存为可审计快照，套用时再生成当前项目的工作项。
+export const ProjectPlanTemplate = master('forge_project_plan_template', '项目计划模板', 'copy-check', {
+  name: text('模板名称', true), template_key: code('模板编号'), category: select('模板分类', [['system', '系统模板'], ['custom', '自定义模板'], ['project_copy', '项目复制']], 'custom'),
+  source_plan_id: reference('forge_project_plan', '来源计划'), source_project_id: reference('forge_project', '来源项目'),
+  structure_json: Field.textarea({ label: '计划结构快照', ...required }), item_count: Field.number({ label: '工作项数', min: 0, scale: 0, defaultValue: 0, readonly: true }),
+  status: select('模板状态', [['active', '可用'], ['archived', '已归档']], 'active'), remarks: remarks(),
+}, ['name', 'category', 'source_plan_id', 'source_project_id', 'structure_json', 'item_count', 'status']);
+
+// External observations are evidence records, not writable Forge plan state.
+export const ProjectPlanEvidence = master('forge_project_plan_evidence', '项目计划外部观察证据', 'file-check-2', {
+  name: text('证据名称', true), evidence_key: code('证据编号'), project_id: reference('forge_project', '项目', true),
+  source_system: select('来源系统', [['risemap', 'RISEMAP']]), source_record_ref: text('来源记录标识', true),
+  observed_on: Field.date({ label: '观察日期', ...required }), phase_name: text('阶段名称', true),
+  owner_display_name: text('来源负责人名称', true), planned_start_on: Field.date({ label: '计划开始', ...required }),
+  planned_end_on: Field.date({ label: '计划结束', ...required }), duration_days: Field.number({ label: '工期(天)', min: 0, scale: 0 }),
+  weight: Field.number({ label: '权重', min: 0, max: 100, scale: 2 }), progress: Field.number({ label: '完成进度', min: 0, max: 100, scale: 2 }),
+  status: select('来源状态', [['pending', '未开始'], ['in_progress', '进行中'], ['completed', '已完成']]),
+  planned_deliverable: Field.textarea({ label: '计划产出物' }), task_count: Field.number({ label: '任务总数', min: 0, scale: 0 }),
+  observed_items: Field.textarea({ label: '观察到的工作项(JSON)' }),
+  evidence_note: Field.textarea({ label: '证据说明', ...required }), verification_status: select('核验状态', [['observed', '已观察'], ['pending_review', '待确认']], 'observed'),
+}, ['project_id', 'source_system', 'source_record_ref', 'observed_on', 'phase_name', 'owner_display_name', 'planned_start_on', 'planned_end_on', 'progress', 'status', 'task_count', 'verification_status']);
+
+// Identity mappings keep external names auditable without rewriting local users.
+export const ProjectIdentityMapping = master('forge_project_identity_mapping', '项目外部身份映射', 'user-round-check', {
+  name: text('映射名称', true), mapping_key: code('映射编号'), project_id: reference('forge_project', '项目', true),
+  source_system: select('来源系统', [['risemap', 'RISEMAP']]), source_display_name: text('来源姓名', true),
+  local_user_id: Field.user({ label: 'Forge 本地账户' }), status: select('映射状态', [['pending_review', '待确认'], ['confirmed', '已确认'], ['rejected', '已驳回']], 'pending_review'),
+  evidence_ref: text('证据引用', true), reviewed_on: Field.date({ label: '复核日期' }), review_note: Field.textarea({ label: '复核说明' }),
+}, ['project_id', 'source_system', 'source_display_name', 'local_user_id', 'status', 'evidence_ref', 'reviewed_on']);
+
 export const ProjectWorkItem = master('forge_project_work_item', '项目计划工作项', 'list-checks', {
   name: text('名称', true), item_key: code('工作项编号'), project_id: reference('forge_project', '项目', true),
   plan_id: reference('forge_project_plan', '项目计划', true),
