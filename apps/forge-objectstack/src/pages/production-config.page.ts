@@ -5,11 +5,11 @@ const productionConfigCss = `
 `;
 
 const productionConfigSource = `
-function App(){
+function App(){const adapter=useAdapter();
  const isEnabled=value=>value===true||value===1||value==='1';
  const definitions={disassembly:{label:'拆解原因',object:'forge_production_disassembly_reason',addLabel:'添加拆解原因',placeholder:'如：质量返工、报废回收',description:'配置拆解单可选的拆解原因。停用后不再出现在新建拆解单中，已保存单据仍保留原原因。'},replacement:{label:'改制原因',object:'forge_production_replacement_reason',addLabel:'添加改制原因',placeholder:'如：升级改型、客户要求',description:'配置换件单可选的改制原因。停用后不再出现在新建换件单中，已保存单据仍保留原原因。'}},colors=['#245bdb','#16845b','#b86500','#c53b32','#7c3aed','#0891b2','#475467','#db2777'],[tab,setTab]=React.useState('disassembly'),[state,setState]=React.useState({loading:true,rows:[],error:''}),[search,setSearch]=React.useState(''),[dialog,setDialog]=React.useState(null),[busy,setBusy]=React.useState(false),[toast,setToast]=React.useState('');
  const def=definitions[tab];
- async function request(path,options){const response=await fetch('/api/v1'+path,{credentials:'include',headers:{'Content-Type':'application/json'},...options}),payload=await response.json().catch(()=>({}));if(!response.ok)throw new Error(payload.error?.message||payload.message||'请求失败');return payload}
+ async function request(path,options){const response=await fetch('/api/v1'+path,{credentials:'include',headers:{'Content-Type':'application/json',...(adapter?.getAuthHeaders?.()||{})},...options}),payload=await response.json().catch(()=>({}));if(!response.ok)throw new Error(payload.error?.message||payload.message||'请求失败');return payload}
  async function find(object){return (await request('/data/'+object+'?$top=200')).records||[]}
  async function load(nextTab=tab){setState(s=>({...s,loading:true,error:''}));try{const rows=await find(definitions[nextTab].object);setState({loading:false,rows:rows.sort((a,b)=>Number(a.sort_order||0)-Number(b.sort_order||0)||String(a.name).localeCompare(String(b.name),'zh-CN')),error:''})}catch(error){setState(s=>({...s,loading:false,error:String(error.message||error)}))}}
  React.useEffect(()=>{load()},[tab]);

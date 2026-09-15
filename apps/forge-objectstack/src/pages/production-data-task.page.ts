@@ -10,10 +10,10 @@ function openProductionDataTasks(sourceKey){window.location.href='/_console/apps
 const css = `${forgeProductUiCss}.task-result{max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.task-progress{display:flex;align-items:center;gap:8px;min-width:130px}.task-progress progress{width:82px}.task-failure{max-width:260px;white-space:normal;color:#b42318}`;
 
 const source = String.raw`
-function App(){
+function App(){const adapter=useAdapter();
  const params=new URLSearchParams(window.location.search),sourceFilter=params.get('source')||'',sourceLabels={assembly:'组装单',disassembly:'拆解单',replacement:'换件单',issue:'领料单',supply:'补料单',return:'退料单',production_inbound:'生产入库',production_outbound:'生产出库'};
  const [state,setState]=React.useState({loading:true,rows:[],error:''}),[status,setStatus]=React.useState(''),[query,setQuery]=React.useState(''),[page,setPage]=React.useState(1);
- async function request(path,options){const response=await fetch('/api/v1'+path,{credentials:'include',headers:{'Content-Type':'application/json'},...options}),payload=await response.json().catch(()=>({}));if(!response.ok)throw new Error(payload.error?.message||payload.message||'请求失败');return payload}
+ async function request(path,options){const response=await fetch('/api/v1'+path,{credentials:'include',headers:{'Content-Type':'application/json',...(adapter?.getAuthHeaders?.()||{})},...options}),payload=await response.json().catch(()=>({}));if(!response.ok)throw new Error(payload.error?.message||payload.message||'请求失败');return payload}
  async function load(){setState(s=>({...s,loading:true,error:''}));try{const payload=await request('/data/forge_production_data_task?$top=500');setState({loading:false,rows:(payload.records||[]).sort((a,b)=>String(b.submitted_at||'').localeCompare(String(a.submitted_at||''))),error:''})}catch(error){setState({loading:false,rows:[],error:String(error.message||error)})}}
  React.useEffect(()=>{load()},[]);
  const statusLabels={queued:'等待中',running:'处理中',completed:'已完成',failed:'失败'},typeLabels={export:'导出',import:'导入'},filtered=state.rows.filter(row=>(!sourceFilter||row.source_key===sourceFilter)&&(!status||row.status===status)&&(!query.trim()||[row.name,row.code,row.source_label,row.result_name,row.failure_reason].join(' ').toLowerCase().includes(query.trim().toLowerCase()))),pageCount=Math.max(1,Math.ceil(filtered.length/20)),safePage=Math.min(page,pageCount),rows=filtered.slice((safePage-1)*20,safePage*20);

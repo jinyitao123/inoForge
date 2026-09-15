@@ -382,5 +382,119 @@
       "reference": "project-task-workspace.page.ts",
       "designStatus": "review_required"
     }
+  ],
+  "production": [
+    {
+      "file": "production-assembly-workspace.page.ts",
+      "pages": ["page_production_assembly_workspace", "page_production_shortage_workspace"],
+      "archetype": "task_workspace",
+      "reference": "project-task-workspace.page.ts",
+      "designStatus": "review_required"
+    },
+    {
+      "file": "production-material-workspace.page.ts",
+      "pages": ["page_production_material_workspace", "page_production_supply_workspace", "page_production_return_workspace"],
+      "archetype": "task_workspace",
+      "reference": "project-task-workspace.page.ts",
+      "designStatus": "review_required"
+    },
+    {
+      "file": "production-transform-workspace.page.ts",
+      "pages": ["page_production_disassembly_workspace", "page_production_replacement_workspace"],
+      "archetype": "task_workspace",
+      "reference": "project-task-workspace.page.ts",
+      "designStatus": "review_required"
+    },
+    {
+      "file": "supply-production-routing.page.ts",
+      "pages": ["page_drawing_guide", "page_subcontract_guide"],
+      "archetype": "configuration",
+      "reference": "project-timesheet-cost.page.ts",
+      "designStatus": "review_required"
+    },
+    {
+      "file": "drawing-workspace.page.ts",
+      "pages": ["page_drawing_workspace", "page_drawing_archive", "page_drawing_review", "page_drawing_release", "page_drawing_change", "page_drawing_distribution", "page_drawing_query", "page_customer_drawings"],
+      "archetype": "task_workspace",
+      "reference": "project-task-workspace.page.ts",
+      "designStatus": "review_required"
+    },
+    {
+      "file": "subcontract-workspace.page.ts",
+      "pages": ["page_subcontract_dashboard", "page_subcontract_workspace", "page_subcontract_suppliers"],
+      "archetype": "task_workspace",
+      "reference": "project-task-workspace.page.ts",
+      "designStatus": "review_required"
+    },
+    {
+      "file": "subcontract-issue.page.ts",
+      "pages": ["page_subcontract_issue_workspace"],
+      "archetype": "task_workspace",
+      "reference": "project-task-workspace.page.ts",
+      "designStatus": "review_required"
+    },
+    {
+      "file": "subcontract-receipt.page.ts",
+      "pages": ["page_subcontract_receipt_workspace"],
+      "archetype": "task_workspace",
+      "reference": "project-task-workspace.page.ts",
+      "designStatus": "review_required"
+    },
+    {
+      "file": "subcontract-return.page.ts",
+      "pages": ["page_subcontract_return_workspace"],
+      "archetype": "task_workspace",
+      "reference": "project-task-workspace.page.ts",
+      "designStatus": "review_required"
+    },
+    {
+      "file": "subcontract-reconciliation.page.ts",
+      "pages": ["page_subcontract_reconciliation"],
+      "archetype": "task_workspace",
+      "reference": "project-task-workspace.page.ts",
+      "designStatus": "review_required"
+    },
+    {
+      "file": "subcontract-pricing.page.ts",
+      "pages": ["page_subcontract_pricing"],
+      "archetype": "configuration",
+      "reference": "project-timesheet-cost.page.ts",
+      "designStatus": "review_required"
+    },
+    {
+      "file": "subcontract-stock.page.ts",
+      "pages": ["page_subcontract_stock"],
+      "archetype": "analysis",
+      "reference": "project-timesheet-cost.page.ts",
+      "designStatus": "review_required"
+    },
+    {
+      "file": "subcontract-trace.page.ts",
+      "pages": ["page_subcontract_trace"],
+      "archetype": "analysis",
+      "reference": "project-timesheet-cost.page.ts",
+      "designStatus": "review_required"
+    },
+    {
+      "file": "subcontract-undelivered.page.ts",
+      "pages": ["page_subcontract_undelivered"],
+      "archetype": "analysis",
+      "reference": "project-timesheet-cost.page.ts",
+      "designStatus": "review_required"
+    },
+    {
+      "file": "subcontract-inbound-report.page.ts",
+      "pages": ["page_subcontract_inbound_report"],
+      "archetype": "analysis",
+      "reference": "project-timesheet-cost.page.ts",
+      "designStatus": "review_required"
+    },
+    {
+      "file": "subcontract-reconciliation-report.page.ts",
+      "pages": ["page_subcontract_reconciliation_report"],
+      "archetype": "analysis",
+      "reference": "project-timesheet-cost.page.ts",
+      "designStatus": "review_required"
+    }
   ]
 }
