@@ -124,6 +124,7 @@ export const FinanceLoan = master('forge_finance_loan', '借款贷款', 'hand-co
   ], { label: '借款类型', defaultValue: 'employee', ...required }),
   purpose: Field.textarea({ label: '借款用途', ...required }), purpose_category: Field.select([
     { value: 'business', label: '业务支出' }, { value: 'travel', label: '差旅支出' },
+    { value: 'project_transport', label: '项目费用 / 项目差旅费用 / 项目交通费' },
     { value: 'purchase', label: '采购支出' }, { value: 'other', label: '其他' },
   ], { label: '用途分类', defaultValue: 'business', ...required }),
   amount: amount('借款金额'), outstanding_amount: { ...amount('未还本金'), readonly: true }, repaid_amount: { ...amount('已还本金'), defaultValue: 0, readonly: true },

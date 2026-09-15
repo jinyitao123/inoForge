@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises';
 const manifest = JSON.parse(await readFile(new URL('./page-polish.manifest.json', import.meta.url), 'utf8'));
 const pagesDir = new URL('../src/pages/', import.meta.url);
 const config = await readFile(new URL('../objectstack.config.ts', import.meta.url), 'utf8');
+const productUi = await readFile(new URL('../src/pages/product-ui.ts', import.meta.url), 'utf8');
 const findings = [];
 
 for (const [area, entries] of Object.entries(manifest)) {
@@ -33,5 +34,9 @@ const financePages = [...financeBlock.matchAll(/page\([^,]+,[^,]+,\s*'([^']+)'/g
 const polishedFinancePages = new Set(manifest.finance.flatMap(entry => entry.pages));
 for (const page of financePages) if (!polishedFinancePages.has(page)) findings.push(`finance: ${page} 未加入 page-polish 清单`);
 assert.equal(financeBlock.includes("'page_finance_gap'"), false, '财务导航仍指向空白占位页');
+assert.match(productUi, /div:has\(>\.forge-product\)>div\.space-y-2\{display:none!important\}/, 'product-ui.ts 必须隐藏 Console 自动标题，避免产品页出现重复标题区');
+assert.match(productUi, /\.forge-product \.btn,.forge-product \.icon-btn\{height:34px;[^}]*border-radius:8px/, 'product-ui.ts 必须统一财务页主次按钮尺寸与圆角');
+assert.match(productUi, /\.forge-product\.bank-flow \.page-shell,.forge-product\.finance-page \.fp-shell,.forge-product \.body\{width:min\(1380px,100%\);max-width:1380px/, 'product-ui.ts 必须按工时管理页面统一财务内容宽度');
+assert.match(productUi, /\.forge-product \.card,.forge-product \.panel,.forge-product \.metric,.forge-product \.metric-card,.forge-product \.process\{[^}]*border-radius:10px/, 'product-ui.ts 必须统一财务卡片层级与圆角');
 assert.deepEqual(findings, [], findings.join('\n'));
 console.log(`PASS page-polish 清单覆盖 ${Object.values(manifest).flat().length} 个页面文件，${financePages.length} 个财务页面全部纳入且导航无空白占位入口`);
