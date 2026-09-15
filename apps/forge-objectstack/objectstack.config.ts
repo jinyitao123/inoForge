@@ -41,7 +41,7 @@ export default defineStack({
       {
         id: 'supply_chain', label: '供应链', icon: 'boxes', navigation: [
           group('arrival_inspection', '到货检验', [
-            object('purchase_arrival_notices', '到货通知', 'forge_purchase_arrival_notice', 'package-search'),
+            page('purchase_arrival_notices', '到货通知', 'page_purchase_arrival_notice', 'package-search'),
             page('purchase_receipts', '到货登记', 'page_purchase_arrival_workspace', 'package-check'),
             page('pending_inspections', '待检验库存', 'page_pending_inspection_workspace', 'clipboard-clock'),
             page('purchase_inspections', '检验单', 'page_purchase_inspection_workspace', 'clipboard-check'),

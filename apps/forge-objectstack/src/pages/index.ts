@@ -1,6 +1,7 @@
 export * from './bom-workspace.page.js';
 export * from './drawing-workspace.page.js';
 export * from './purchase-order-workspace.page.js';
+export * from './purchase-arrival-notice.page.js';
 export * from './purchase-arrival-workspace.page.js';
 export * from './purchase-inspection-workspace.page.js';
 export * from './purchase-inbound-workspace.page.js';
