@@ -79,6 +79,8 @@ RISEMAP 当前新建页事实为：处理方式、可留空自动编码的退货
 
 不合格处理已从两个来源卡升级为 RISEMAP 式统一 NCR 清单，汇总委外回厂 NCR 和采购检验不合格记录，补齐全文搜索、状态/业务来源/处置/缺陷筛选、导出、刷新、10 列和 20 条分页。RISEMAP 当前租户页面为空；Forge 浏览器在重启后的同一 SQLite 回读 1 条已执行委外 NCR 和 1 条采购检验不合格记录，选择“委外回厂”准确筛出 1 条，搜索 `PLC` 准确筛出采购异常，并从“查看”进入对应采购检验单。具体有数据时的 RISEMAP 行操作仍为待同材料复核。
 
+处置执行中心已从三块来源卡升级为 RISEMAP 式统一执行单表，汇总已有委外 NCR 处置、采购退换货和库存报损来源，补齐执行单总数/待执行/执行中/异常指标、全部/待执行/执行中/已完成/执行异常页签、全文搜索、处置类型、退回类型联动、8 列和 20 条分页。RISEMAP 当前租户页面为空；Forge 浏览器在同一 SQLite 重启后回读 3 条执行来源，待执行页签准确筛出 1 条草稿退货，选择“退回”后退回类型由禁用变为可选，选择“退货退款”回读 3 条，并从“继续办理”进入对应采购退换货单。
+
 此前浏览器已将 `UI-RET-20260915-001` 从草稿依次办理到提交、财务审批、仓库确认、退货出库和供应商退款，页面最终回读“已完成 / 已收款 ¥1,360.00”。API/SQLite 回读为 `status=completed`、`refund_status=received`、`outbound_status=outbounded`、资金账户余额 ¥1,360.00；停服重启后页面仍可回读。
 
 ## 页面覆盖
@@ -118,6 +120,8 @@ RISEMAP 当前新建页事实为：处理方式、可留空自动编码的退货
 - RISEMAP / Forge 库存总览五视图实时对照：通过；Forge 物料搜索、打印确认、在途双视图、分类汇总、仓库双查询和重启后页面回读均在浏览器验证
 - RISEMAP / Forge 不合格处理统一清单实时对照：通过（RISEMAP 当前租户为空，Forge 有数据办理动作为待同材料复核）
 - `pnpm acceptance:inventory-ncr-readback`：重启后 1 条委外 NCR 和 1 条采购检验不合格记录的来源、供应商与数量 API 回读通过
+- RISEMAP / Forge 处置执行中心实时对照：通过（RISEMAP 当前租户为空，Forge 有数据办理动作为待同材料复核）
+- `pnpm acceptance:inventory-disposal-center-readback`：重启后 1 条委外 NCR、2 条采购退换货的来源、数量和状态 API 回读通过
 - `pnpm acceptance:other-inbound-prerequisite`：4 项通过
 - `pnpm acceptance:other-inbound-prerequisite-restart`：同一 SQLite 停服重启回读通过
 - `pnpm acceptance:procurement-receipt-inbound-restart`：同一 SQLite 重启回读通过；断言已改为来源入库流水持久存在且当前余额匹配该物料最新流水，兼容后续合法退货变动
