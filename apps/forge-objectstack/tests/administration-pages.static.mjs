@@ -18,4 +18,6 @@ assert.match(pages, /ForgeDialog/);
 assert.match(pages, /ForgeDateInput/);
 assert.match(pages, /ForgeSelect/);
 assert.match(pages, /forge_administration_record/);
+assert.doesNotMatch(pages, /当前业务边界|同材料待确认|实际办理明确后补齐/);
+assert.doesNotMatch(pages, /className="admin-contract"/);
 console.log(JSON.stringify({ suite: 'administration-pages-static', pages: pageNames.length, status: 'passed' }, null, 2));
