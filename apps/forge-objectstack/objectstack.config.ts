@@ -74,7 +74,7 @@ export default defineStack({
             page('inbound_lines', '入库明细', 'page_inbound_lines', 'list'),
           ]),
           group('inventory_management', '库存管理', [
-            object('inventory_balances', '库存总览', 'forge_inventory_balance', 'boxes'),
+            page('inventory_balances', '库存总览', 'page_inventory_overview', 'boxes'),
             page('inventory_ncr', '不合格处理', 'page_inventory_ncr', 'triangle-alert'),
             page('inventory_disposal_center', '处置执行中心', 'page_inventory_disposal_center', 'clipboard-check'),
             object('inventory_ledgers', '库存流水', 'forge_inventory_ledger', 'book-open'),
