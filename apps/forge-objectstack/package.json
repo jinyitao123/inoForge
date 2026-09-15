@@ -104,6 +104,7 @@
     "acceptance:purchase-return-ui-readback": "node tests/purchase-return-ui-readback.mjs",
     "acceptance:purchase-return-restart": "node tests/purchase-return-restart-readback.mjs",
     "acceptance:purchase-return-outbound-readback": "node tests/purchase-return-outbound-readback.mjs",
+    "acceptance:outbound-lines-readback": "node tests/outbound-lines-readback.mjs",
     "acceptance:purchase-replacement": "node tests/purchase-replacement.integration.mjs",
     "acceptance:purchase-replacement-ui-readback": "node tests/purchase-replacement-ui-readback.mjs",
     "acceptance:purchase-replacement-restart": "node tests/purchase-replacement-restart-readback.mjs",
