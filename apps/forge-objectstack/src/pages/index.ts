@@ -10,6 +10,7 @@ export * from './production-material-workspace.page.js';
 export * from './production-transform-workspace.page.js';
 export * from './production-config.page.js';
 export * from './production-inventory-workspace.page.js';
+export * from './production-outbound-list.page.js';
 export { ProductionDataTaskPage } from './production-data-task.page.js';
 export * from './delivery-acceptance-workspace.page.js';
 export * from './collection-settlement-workspace.page.js';
