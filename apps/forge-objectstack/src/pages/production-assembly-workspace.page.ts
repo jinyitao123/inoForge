@@ -30,6 +30,7 @@ const productionAssemblyParityPageSource=productionAssemblyPageSource
  .replace("remarks:''}),[quantities", "remarks:'',sales_order_id:''}),[quantities")
  .replace("React.useEffect(()=>{load();},[recordId,newMode,editMode,form.bom_id,form.planned_quantity]);", "React.useEffect(()=>{load();},[recordId,newMode,editMode,form.bom_id,form.planned_quantity]);React.useEffect(()=>{if(newMode||editMode||recordId)request('/data/forge_sales_order?$top=100').then(p=>setSalesOrders(p.records||[])).catch(()=>{});},[newMode,editMode,recordId]);")
  .replace("remarks:form.remarks}),saveDraft", "remarks:form.remarks,sales_order_id:form.sales_order_id}),saveDraft")
+ .replace("planned_completion_on:order.planned_completion_on||today,remarks:order.remarks||''", "planned_completion_on:order.planned_completion_on||today,sales_order_id:order.sales_order_id||'',remarks:order.remarks||''")
  .replace('<div className="field"><label>计划完工日期</label>',String.raw`<div className="field"><label>关联销售订单</label><ForgeSelectControl aria-label="关联销售订单" value={form.sales_order_id} onChange={e=>setForm({...form,sales_order_id:e.target.value})}><option value="">请选择销售订单（选填）</option>{salesOrders.map(x=><option key={x.id} value={x.id}>{x.code} · {x.name||x.customer_name||'销售订单'}</option>)}</ForgeSelectControl></div><div className="field"><label>计划完工日期</label>`)
  .replace('<label>出入库仓库 *</label>', '<label>入库仓库（选填）</label>')
  .replace('aria-label="出入库仓库"', 'aria-label="入库仓库（选填）"')
