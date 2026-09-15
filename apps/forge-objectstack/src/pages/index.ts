@@ -94,3 +94,4 @@ export * from './production-prerequisites.page.js';
 export * from './administration-pages.page.js';
 export * from './approval-center.page.js';
 export * from './administration-workflow.page.js';
+export * from './administration-notice.page.js';

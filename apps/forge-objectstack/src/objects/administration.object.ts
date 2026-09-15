@@ -174,3 +174,31 @@ export const ProcessDefinition = ObjectSchema.create({
   indexes: [{ fields: ['code'], unique: 'organization' }, { fields: ['category_id', 'status'] }],
   enable: { apiEnabled: true, searchable: true, trackHistory: true, feeds: false, activities: true },
 });
+
+export const CompanyNotice = ObjectSchema.create({
+  name: 'forge_company_notice', label: '公司通知', pluralLabel: '公司通知', icon: 'megaphone',
+  sharingModel: 'private', nameField: 'title',
+  fields: {
+    title: Field.text({ label: '通知主题', maxLength: 200, ...required }),
+    code: Field.text({ label: '通知编号', maxLength: 80, ...required }),
+    category: Field.select([option('activity', '活动通知'), option('administration', '行政通知'), option('personnel', '人事通知'), option('system', '系统通知')], { label: '通知类别', defaultValue: 'administration', ...required }),
+    priority: Field.select([option('normal', '普通'), option('important', '重要'), option('urgent', '紧急')], { label: '优先级', defaultValue: 'normal', ...required }),
+    status: Field.select([option('draft', '草稿'), option('published', '已发布'), option('withdrawn', '已撤回'), option('expired', '已失效')], { label: '状态', defaultValue: 'draft', ...required }),
+    department: Field.text({ label: '发布部门', maxLength: 120, ...required }),
+    publisher_name: Field.text({ label: '发布人', maxLength: 100, ...required }),
+    summary: Field.textarea({ label: '摘要', ...required }),
+    content: Field.textarea({ label: '正文', ...required }),
+    audience_type: Field.select([option('company', '全公司'), option('departments', '指定部门'), option('people', '指定人员')], { label: '接收范围', defaultValue: 'company', ...required }),
+    audience_detail: Field.text({ label: '范围说明', maxLength: 500 }),
+    expires_on: Field.date({ label: '失效日期' }),
+    pinned: Field.boolean({ label: '置顶显示', defaultValue: false }),
+    published_at: Field.datetime({ label: '发布时间' }),
+    withdrawn_at: Field.datetime({ label: '撤回时间' }),
+    read_count: Field.number({ label: '已读人数', min: 0, scale: 0, defaultValue: 0 }),
+    recipient_count: Field.number({ label: '接收人数', min: 0, scale: 0, defaultValue: 0 }),
+  },
+  searchableFields: ['title', 'code', 'department', 'publisher_name', 'summary', 'content'],
+  listViews: { all: { label: '全部', type: 'grid', columns: ['code', 'title', 'status', 'category', 'priority', 'audience_type', 'department', 'publisher_name', 'published_at', 'read_count'] } },
+  indexes: [{ fields: ['code'], unique: 'organization' }, { fields: ['status', 'published_at'] }, { fields: ['category', 'audience_type'] }],
+  enable: { apiEnabled: true, searchable: true, trackHistory: true, feeds: false, activities: true },
+});
