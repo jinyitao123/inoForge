@@ -53,6 +53,7 @@ export * from './subcontract-reconciliation-report.page.js';
 export * from './subcontract-reconciliation-recovery-status.page.js';
 export * from './navigation-recovery-status.page.js';
 export * from './workbench.page.js';
+export * from './workspace-pages.page.js';
 export * from './feature-gap-status.page.js';
 export * from './sales-collection-flow.page.js';
 export * from './sales-invoice-request.page.js';

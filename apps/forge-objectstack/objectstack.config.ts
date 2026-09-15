@@ -42,9 +42,9 @@ export default defineStack({
         id: 'workspace', label: '工作台', icon: 'layout-dashboard', navigation: [
           group('workspace_overview', '工作台', [
             page('workspace_home', '工作台', 'page_workbench', 'layout-dashboard'),
-            page('workspace_todo', '待办管理', 'page_workbench', 'list-todo'),
-            page('workspace_ai', 'AI 广场', 'page_workspace_recovery_status', 'sparkles'),
-            page('workspace_guidance', '引导中心', 'page_workspace_recovery_status', 'book-open'),
+            page('workspace_ai', 'AI 广场', 'page_workspace_ai', 'sparkles'),
+            page('workspace_guidance', '引导中心', 'page_onboarding_center', 'book-open'),
+            page('workspace_todo', '待办管理', 'page_todo_management', 'list-todo'),
           ]),
         ],
       },
