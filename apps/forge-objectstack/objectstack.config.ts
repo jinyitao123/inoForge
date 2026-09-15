@@ -77,7 +77,7 @@ export default defineStack({
             page('inventory_balances', '库存总览', 'page_inventory_overview', 'boxes'),
             page('inventory_ncr', '不合格处理', 'page_inventory_ncr', 'triangle-alert'),
             page('inventory_disposal_center', '处置执行中心', 'page_inventory_disposal_center', 'clipboard-check'),
-            object('inventory_ledgers', '库存流水', 'forge_inventory_ledger', 'book-open'),
+            page('inventory_ledgers', '库存流水', 'page_inventory_ledger', 'book-open'),
             page('inventory_locks', '库存锁定', 'page_inventory_locks', 'lock'),
             page('inventory_count', '库存盘点', 'page_inventory_count', 'clipboard-check'),
             page('inventory_transfer', '调拨与借出', 'page_inventory_transfer', 'arrow-left-right'),

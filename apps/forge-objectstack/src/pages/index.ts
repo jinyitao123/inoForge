@@ -68,5 +68,6 @@ export * from './inbound-lines-list.page.js';
 export * from './inventory-overview.page.js';
 export * from './inventory-ncr.page.js';
 export * from './inventory-disposal-center.page.js';
+export * from './inventory-ledger.page.js';
 export * from './business-prerequisite-config.page.js';
 export * from './production-prerequisites.page.js';
