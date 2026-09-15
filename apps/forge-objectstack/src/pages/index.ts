@@ -73,6 +73,8 @@ export * from './sales-additional-fee.page.js';
 export * from './sales-management-pages.page.js';
 export * from './sales-crm-service-pages.page.js';
 export * from './supply-production-routing.page.js';
+export * from './purchase-inquiry.page.js';
+export * from './supplier-price-book.page.js';
 
 export * from './inventory-operations.page.js';
 export * from './inventory-damage.page.js';
