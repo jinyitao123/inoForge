@@ -10,6 +10,43 @@ const nonNegativeQuantity = (label: string, readonly = false) => Field.number({ 
 const nonNegativeMoney = (label: string, scale = 4) => Field.currency({ label, precision: 18, scale, min: 0 });
 const percentage = (label: string, defaultValue = 13) => Field.number({ label, min: 0, max: 100, scale: 4, defaultValue });
 
+// Live RISEMAP /inventory/inspection-rules exposes a reusable inspection item
+// library and inspection plans. These records are configuration sources for
+// later receipt inspection rather than inspection results themselves.
+export const InspectionRuleItem = master('forge_inspection_rule_item', '检验项目', 'list-checks', {
+  name: text('项目名称', true), code: code('项目编码'),
+  category: select('项目分类', [['incoming', '来料检验(IQC)'], ['subcontract', '外协检验'], ['finished', '成品检验']], 'incoming'),
+  judgment_type: select('判定类型', [['result', '结果型'], ['numeric', '数值型'], ['option', '选项型'], ['text', '文本型'], ['attachment', '附件型']], 'result'),
+  inspection_types: text('适用检验类型', true), unit_name: text('单位'),
+  result_options: Field.textarea({ label: '结果选项' }), default_pass_option: text('默认合格项'),
+  requirement: Field.textarea({ label: '检验要求说明' }),
+  required_inspection: Field.boolean({ label: '是否必检', defaultValue: true }),
+  affects_batch_result: Field.boolean({ label: '影响整批结论', defaultValue: false }),
+  allow_skip: Field.boolean({ label: '允许跳过', defaultValue: false }),
+  attachment_required: Field.boolean({ label: '附件上传', defaultValue: false }),
+  allow_exception_note: Field.boolean({ label: '允许异常备注', defaultValue: true }),
+  defect_level: select('缺陷等级', [['critical', '致命'], ['major', '严重'], ['minor', '轻微']], 'major'),
+  allow_concession: Field.boolean({ label: '允许让步接收', defaultValue: false }),
+  trigger_ncr: Field.boolean({ label: '触发异常处理', defaultValue: false }),
+  reference_standard: Field.textarea({ label: '参考标准说明' }),
+  status: select('启用状态', [['active', '启用'], ['inactive', '停用']], 'active'), remarks: remarks(),
+}, ['code', 'name', 'category', 'judgment_type', 'inspection_types', 'unit_name', 'required_inspection', 'affects_batch_result', 'status']);
+
+export const InspectionPlan = master('forge_inspection_plan', '检验方案', 'clipboard-list', {
+  name: text('方案名称', true), code: code('方案编码'),
+  inspection_type: select('检验类型', [['incoming', '来料检验'], ['subcontract', '外协检验'], ['finished', '成品检验']], 'incoming'),
+  inspection_method: select('默认检验方式', [['full', '全检'], ['sampling', '抽检'], ['exempt', '免检']], 'full'),
+  scope_type: select('适用方式', [['material', '指定物料'], ['category', '物料分类'], ['supplier', '指定供应商']], 'category'),
+  scope_value: text('适用范围'), item_count: Field.number({ label: '检验项目数', min: 0, scale: 0, defaultValue: 0 }),
+  status: select('启用状态', [['active', '启用'], ['inactive', '停用']], 'active'), remarks: remarks(),
+}, ['code', 'name', 'inspection_type', 'inspection_method', 'scope_type', 'scope_value', 'item_count', 'status']);
+
+export const InspectionPlanItem = master('forge_inspection_plan_item', '检验方案项目', 'list-tree', {
+  name: text('项目名称快照', true), plan_id: reference('forge_inspection_plan', '检验方案', true),
+  item_id: reference('forge_inspection_rule_item', '检验项目', true), sequence: Field.number({ label: '顺序', min: 1, scale: 0, defaultValue: 1 }),
+  requirement_override: Field.textarea({ label: '检验要求覆盖' }), required_override: Field.boolean({ label: '本方案必检', defaultValue: true }),
+}, ['plan_id', 'sequence', 'item_id', 'name', 'required_override']);
+
 // RISEMAP purchase basic data supplies the enabled payment conditions used by
 // purchase and subcontract orders. Business documents keep the readable name
 // as a snapshot while this record controls whether a new order may submit.
