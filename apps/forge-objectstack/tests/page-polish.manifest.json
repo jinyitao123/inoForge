@@ -1,32 +1,348 @@
 {
   "finance": [
-    { "file": "bank-flow.page.ts", "pages": ["page_bank_flow"] },
-    { "file": "bank-statement.page.ts", "pages": ["page_bank_statement"] },
-    { "file": "opening-balance.page.ts", "pages": ["page_opening_balance"] },
-    { "file": "customer-prepayment.page.ts", "pages": ["page_customer_prepayment"] },
-    { "file": "purchase-payment.page.ts", "pages": ["page_purchase_payment"] },
-    { "file": "supplier-refund.page.ts", "pages": ["page_supplier_refund"] },
-    { "file": "revenue-recognition.page.ts", "pages": ["page_revenue_recognition"] },
-    { "file": "counterparty-reconciliation.page.ts", "pages": ["page_counterparty_reconciliation"] },
-    { "file": "invoice-reversal.page.ts", "pages": ["page_invoice_reversal"] },
-    { "file": "collection-settlement-workspace.page.ts", "pages": ["page_collection_settlement_workspace"] },
-    { "file": "finance-management.page.ts", "pages": ["page_fund_accounts", "page_receivables_payables", "page_credit_management", "page_finance_loans", "page_finance_cost_center", "page_finance_expense_center", "page_finance_reimbursement", "page_invoice_overview", "page_output_invoices", "page_input_invoices", "page_invoice_tasks"] }
+    {
+      "file": "bank-flow.page.ts",
+      "pages": [
+        "page_bank_flow"
+      ],
+      "archetype": "analysis",
+      "reference": "project-timesheet-cost.page.ts",
+      "designStatus": "review_required"
+    },
+    {
+      "file": "bank-statement.page.ts",
+      "pages": [
+        "page_bank_statement"
+      ],
+      "archetype": "task_workspace",
+      "reference": "project-task-workspace.page.ts",
+      "designStatus": "review_required"
+    },
+    {
+      "file": "opening-balance.page.ts",
+      "pages": [
+        "page_opening_balance"
+      ],
+      "archetype": "task_workspace",
+      "reference": "project-task-workspace.page.ts",
+      "designStatus": "review_required"
+    },
+    {
+      "file": "customer-prepayment.page.ts",
+      "pages": [
+        "page_customer_prepayment"
+      ],
+      "archetype": "task_workspace",
+      "reference": "project-task-workspace.page.ts",
+      "designStatus": "review_required"
+    },
+    {
+      "file": "purchase-payment.page.ts",
+      "pages": [
+        "page_purchase_payment"
+      ],
+      "archetype": "task_workspace",
+      "reference": "project-task-workspace.page.ts",
+      "designStatus": "review_required"
+    },
+    {
+      "file": "supplier-refund.page.ts",
+      "pages": [
+        "page_supplier_refund"
+      ],
+      "archetype": "task_workspace",
+      "reference": "project-task-workspace.page.ts",
+      "designStatus": "review_required"
+    },
+    {
+      "file": "revenue-recognition.page.ts",
+      "pages": [
+        "page_revenue_recognition"
+      ],
+      "archetype": "task_workspace",
+      "reference": "project-task-workspace.page.ts",
+      "designStatus": "review_required"
+    },
+    {
+      "file": "counterparty-reconciliation.page.ts",
+      "pages": [
+        "page_counterparty_reconciliation"
+      ],
+      "archetype": "task_workspace",
+      "reference": "project-task-workspace.page.ts",
+      "designStatus": "review_required"
+    },
+    {
+      "file": "invoice-reversal.page.ts",
+      "pages": [
+        "page_invoice_reversal"
+      ],
+      "archetype": "task_workspace",
+      "reference": "project-task-workspace.page.ts",
+      "designStatus": "review_required"
+    },
+    {
+      "file": "collection-settlement-workspace.page.ts",
+      "pages": [
+        "page_collection_settlement_workspace"
+      ],
+      "archetype": "task_workspace",
+      "reference": "project-task-workspace.page.ts",
+      "designStatus": "review_required"
+    },
+    {
+      "file": "finance-management.page.ts",
+      "pages": [
+        "page_fund_accounts"
+      ],
+      "archetype": "configuration",
+      "reference": "project-timesheet-cost.page.ts",
+      "designStatus": "review_required"
+    },
+    {
+      "file": "finance-management.page.ts",
+      "pages": [
+        "page_receivables_payables"
+      ],
+      "archetype": "analysis",
+      "reference": "project-timesheet-cost.page.ts",
+      "designStatus": "review_required"
+    },
+    {
+      "file": "finance-management.page.ts",
+      "pages": [
+        "page_credit_management"
+      ],
+      "archetype": "task_workspace",
+      "reference": "project-task-workspace.page.ts",
+      "designStatus": "review_required"
+    },
+    {
+      "file": "finance-management.page.ts",
+      "pages": [
+        "page_finance_loans"
+      ],
+      "archetype": "task_workspace",
+      "reference": "project-task-workspace.page.ts",
+      "designStatus": "review_required"
+    },
+    {
+      "file": "finance-management.page.ts",
+      "pages": [
+        "page_finance_cost_center"
+      ],
+      "archetype": "workbench",
+      "reference": "workbench.page.ts",
+      "designStatus": "review_required"
+    },
+    {
+      "file": "finance-management.page.ts",
+      "pages": [
+        "page_finance_expense_center"
+      ],
+      "archetype": "task_workspace",
+      "reference": "project-task-workspace.page.ts",
+      "designStatus": "review_required"
+    },
+    {
+      "file": "finance-management.page.ts",
+      "pages": [
+        "page_finance_reimbursement"
+      ],
+      "archetype": "task_workspace",
+      "reference": "project-task-workspace.page.ts",
+      "designStatus": "review_required"
+    },
+    {
+      "file": "finance-management.page.ts",
+      "pages": [
+        "page_invoice_overview"
+      ],
+      "archetype": "workbench",
+      "reference": "workbench.page.ts",
+      "designStatus": "review_required"
+    },
+    {
+      "file": "finance-management.page.ts",
+      "pages": [
+        "page_output_invoices"
+      ],
+      "archetype": "task_workspace",
+      "reference": "project-task-workspace.page.ts",
+      "designStatus": "review_required"
+    },
+    {
+      "file": "finance-management.page.ts",
+      "pages": [
+        "page_input_invoices"
+      ],
+      "archetype": "task_workspace",
+      "reference": "project-task-workspace.page.ts",
+      "designStatus": "review_required"
+    },
+    {
+      "file": "finance-management.page.ts",
+      "pages": [
+        "page_invoice_tasks"
+      ],
+      "archetype": "task_workspace",
+      "reference": "project-task-workspace.page.ts",
+      "designStatus": "review_required"
+    }
   ],
   "supply_chain": [
-    { "file": "bom-workspace.page.ts", "pages": ["page_bom_workspace"] },
-    { "file": "purchase-order-workspace.page.ts", "pages": ["page_purchase_order_workspace"] },
-    { "file": "other-inbound-workspace.page.ts", "pages": ["page_other_inbounds"] },
-    { "file": "pending-outbound-shipments.page.ts", "pages": ["page_pending_outbound_shipments"] },
-    { "file": "inventory-overview.page.ts", "pages": ["page_inventory_overview"] },
-    { "file": "inventory-ncr.page.ts", "pages": ["page_inventory_ncr"] },
-    { "file": "inventory-disposal-center.page.ts", "pages": ["page_inventory_disposal_center"] },
-    { "file": "inventory-ledger.page.ts", "pages": ["page_inventory_ledger"] },
-    { "file": "inventory-count.page.ts", "pages": ["page_inventory_count"] },
-    { "file": "inventory-transfer.page.ts", "pages": ["page_inventory_transfer"] },
-    { "file": "production-prerequisites.page.ts", "pages": ["page_production_prerequisites"] },
-    { "file": "production-data-task.page.ts", "pages": ["page_production_data_tasks"] },
-    { "file": "subcontract-pricing.page.ts", "pages": ["page_subcontract_pricing"] },
-    { "file": "subcontract-policy.page.ts", "pages": ["page_subcontract_policy"] },
-    { "file": "supply-production-routing.page.ts", "pages": ["page_purchase_request_pool", "page_purchase_todo_pool", "page_purchase_inquiry"] }
+    {
+      "file": "bom-workspace.page.ts",
+      "pages": [
+        "page_bom_workspace"
+      ],
+      "archetype": "task_workspace",
+      "reference": "project-task-workspace.page.ts",
+      "designStatus": "review_required"
+    },
+    {
+      "file": "purchase-order-workspace.page.ts",
+      "pages": [
+        "page_purchase_order_workspace"
+      ],
+      "archetype": "task_workspace",
+      "reference": "project-task-workspace.page.ts",
+      "designStatus": "review_required"
+    },
+    {
+      "file": "other-inbound-workspace.page.ts",
+      "pages": [
+        "page_other_inbounds"
+      ],
+      "archetype": "task_workspace",
+      "reference": "project-task-workspace.page.ts",
+      "designStatus": "review_required"
+    },
+    {
+      "file": "pending-outbound-shipments.page.ts",
+      "pages": [
+        "page_pending_outbound_shipments"
+      ],
+      "archetype": "task_workspace",
+      "reference": "project-task-workspace.page.ts",
+      "designStatus": "review_required"
+    },
+    {
+      "file": "inventory-overview.page.ts",
+      "pages": [
+        "page_inventory_overview"
+      ],
+      "archetype": "workbench",
+      "reference": "workbench.page.ts",
+      "designStatus": "review_required"
+    },
+    {
+      "file": "inventory-ncr.page.ts",
+      "pages": [
+        "page_inventory_ncr"
+      ],
+      "archetype": "task_workspace",
+      "reference": "project-task-workspace.page.ts",
+      "designStatus": "review_required"
+    },
+    {
+      "file": "inventory-disposal-center.page.ts",
+      "pages": [
+        "page_inventory_disposal_center"
+      ],
+      "archetype": "task_workspace",
+      "reference": "project-task-workspace.page.ts",
+      "designStatus": "review_required"
+    },
+    {
+      "file": "inventory-ledger.page.ts",
+      "pages": [
+        "page_inventory_ledger"
+      ],
+      "archetype": "analysis",
+      "reference": "project-timesheet-cost.page.ts",
+      "designStatus": "review_required"
+    },
+    {
+      "file": "inventory-count.page.ts",
+      "pages": [
+        "page_inventory_count"
+      ],
+      "archetype": "task_workspace",
+      "reference": "project-task-workspace.page.ts",
+      "designStatus": "review_required"
+    },
+    {
+      "file": "inventory-transfer.page.ts",
+      "pages": [
+        "page_inventory_transfer"
+      ],
+      "archetype": "task_workspace",
+      "reference": "project-task-workspace.page.ts",
+      "designStatus": "review_required"
+    },
+    {
+      "file": "production-prerequisites.page.ts",
+      "pages": [
+        "page_production_prerequisites"
+      ],
+      "archetype": "configuration",
+      "reference": "project-timesheet-cost.page.ts",
+      "designStatus": "review_required"
+    },
+    {
+      "file": "production-data-task.page.ts",
+      "pages": [
+        "page_production_data_tasks"
+      ],
+      "archetype": "task_workspace",
+      "reference": "project-task-workspace.page.ts",
+      "designStatus": "review_required"
+    },
+    {
+      "file": "subcontract-pricing.page.ts",
+      "pages": [
+        "page_subcontract_pricing"
+      ],
+      "archetype": "configuration",
+      "reference": "project-timesheet-cost.page.ts",
+      "designStatus": "review_required"
+    },
+    {
+      "file": "subcontract-policy.page.ts",
+      "pages": [
+        "page_subcontract_policy"
+      ],
+      "archetype": "configuration",
+      "reference": "project-timesheet-cost.page.ts",
+      "designStatus": "review_required"
+    },
+    {
+      "file": "supply-production-routing.page.ts",
+      "pages": [
+        "page_purchase_request_pool"
+      ],
+      "archetype": "task_workspace",
+      "reference": "project-task-workspace.page.ts",
+      "designStatus": "review_required"
+    },
+    {
+      "file": "supply-production-routing.page.ts",
+      "pages": [
+        "page_purchase_todo_pool"
+      ],
+      "archetype": "task_workspace",
+      "reference": "project-task-workspace.page.ts",
+      "designStatus": "review_required"
+    },
+    {
+      "file": "supply-production-routing.page.ts",
+      "pages": [
+        "page_purchase_inquiry"
+      ],
+      "archetype": "task_workspace",
+      "reference": "project-task-workspace.page.ts",
+      "designStatus": "review_required"
+    }
   ]
 }

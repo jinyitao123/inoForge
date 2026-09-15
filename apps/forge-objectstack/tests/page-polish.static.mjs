@@ -6,9 +6,25 @@ const pagesDir = new URL('../src/pages/', import.meta.url);
 const config = await readFile(new URL('../objectstack.config.ts', import.meta.url), 'utf8');
 const productUi = await readFile(new URL('../src/pages/product-ui.ts', import.meta.url), 'utf8');
 const findings = [];
+const allowedArchetypes = new Set(['workbench', 'task_workspace', 'timesheet_composite', 'analysis', 'configuration']);
+const allowedDesignStatuses = new Set(['review_required', 'accepted']);
+const allowedReferences = new Set(['workbench.page.ts', 'project-task-workspace.page.ts', 'project-timesheet-cost.page.ts']);
+let acceptedPages = 0;
+let reviewRequiredPages = 0;
 
 for (const [area, entries] of Object.entries(manifest)) {
   for (const entry of entries) {
+    if (!allowedArchetypes.has(entry.archetype)) findings.push(`${area}/${entry.file}: 缺少有效页面主原型`);
+    if (!allowedDesignStatuses.has(entry.designStatus)) findings.push(`${area}/${entry.file}: 缺少有效设计验收状态`);
+    if (!allowedReferences.has(entry.reference)) findings.push(`${area}/${entry.file}: 缺少有效参考页面`);
+    if (entry.designStatus === 'accepted') {
+      acceptedPages += entry.pages.length;
+      if (entry.pages.length !== 1) findings.push(`${area}/${entry.file}: accepted 必须逐页登记，不能批量验收`);
+      if (!entry.evidence?.trim()) findings.push(`${area}/${entry.file}: accepted 页面缺少浏览器对照证据路径`);
+    } else {
+      reviewRequiredPages += entry.pages.length;
+      if (entry.evidence) findings.push(`${area}/${entry.file}: review_required 页面不得记录为已验收证据`);
+    }
     const source = await readFile(new URL(entry.file, pagesDir), 'utf8');
     for (const [label, pattern] of [
       ['product-ui.ts 样式', /forgeProductUiCss/],
@@ -39,4 +55,4 @@ assert.match(productUi, /\.forge-product \.btn,.forge-product \.icon-btn\{height
 assert.match(productUi, /\.forge-product\.bank-flow \.page-shell,.forge-product\.finance-page \.fp-shell,.forge-product \.body\{width:min\(1380px,100%\);max-width:1380px/, 'product-ui.ts 必须按工时管理页面统一财务内容宽度');
 assert.match(productUi, /\.forge-product \.card,.forge-product \.panel,.forge-product \.metric,.forge-product \.metric-card,.forge-product \.process\{[^}]*border-radius:10px/, 'product-ui.ts 必须统一财务卡片层级与圆角');
 assert.deepEqual(findings, [], findings.join('\n'));
-console.log(`PASS page-polish 清单覆盖 ${Object.values(manifest).flat().length} 个页面文件，${financePages.length} 个财务页面全部纳入且导航无空白占位入口`);
+console.log(`PASS page-polish 清单覆盖 ${Object.values(manifest).flat().length} 个页面条目；${acceptedPages} 个页面设计已验收，${reviewRequiredPages} 个页面仍需逐页精修；${financePages.length} 个财务入口均已纳入且导航无空白占位入口`);
