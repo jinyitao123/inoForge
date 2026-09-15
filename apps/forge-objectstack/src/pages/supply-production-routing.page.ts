@@ -152,7 +152,6 @@ function App(){
 export default App;
 `;
 
-export const MaterialSearchPage = makePage(pages[2]);
 export const ProductTracePage = makePage(pages[3]);
 export const PurchaseInvoiceEntryPage = makePage(pages[4]);
 export const PurchaseRequestPoolPage = makePage(pages[5]);
