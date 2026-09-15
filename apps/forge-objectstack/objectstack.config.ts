@@ -13,7 +13,15 @@ const group = (id: string, label: string, children: NavigationItemInput[], icon?
 });
 
 const page = (id: string, label: string, pageName: string, icon?: string) => ({
-  id, type: 'page' as const, label, pageName, ...(icon ? { icon } : {}),
+  id,
+  type: 'page' as const,
+  label,
+  pageName,
+  // A page may temporarily serve more than one RISEMAP menu entry while that
+  // area is being reconstructed. Keep the navigation identity in the URL so
+  // the Console can restore the exact area, group, and item after refresh.
+  params: { nav: id },
+  ...(icon ? { icon } : {}),
 });
 
 export default defineStack({
