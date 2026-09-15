@@ -22,7 +22,8 @@ return <div className="forge-product forge-reconcile"><style>{css}</style><div c
 ${forgeProductUiRuntime}
 `;
 
-export const CounterpartyReconciliationPage = { name: 'page_counterparty_reconciliation', label: '往来对账中心', description: '客户应收与供应商应付期间对账、发送确认及差异处理', icon: 'file-check-2', type: 'app' as const, kind: 'react' as const, source: counterpartyReconciliationSource };
+const withReconciliationActions = (source:string) => source.replace(/(<ForgePageHeader\b[^>]*description="[^"]*")\/>/, (_, prefix) => prefix + ' actions={<button className="fp-button" onClick={load}>刷新</button>} />');
+export const CounterpartyReconciliationPage = { name: 'page_counterparty_reconciliation', label: '往来对账中心', description: '客户应收与供应商应付期间对账、发送确认及差异处理', icon: 'file-check-2', type: 'app' as const, kind: 'react' as const, source: withReconciliationActions(counterpartyReconciliationSource) };
 
 export const ReconciliationPoolPage = { ...CounterpartyReconciliationPage, name: 'page_reconciliation_pool', label: '待对账池', description: '按往来单位、合同、订单、发货收货、发票和收付款维度汇集待对账来源' };
 export const CustomerReconciliationPage = { ...CounterpartyReconciliationPage, name: 'page_customer_reconciliation', label: '客户对账', description: '客户应收对账单生成、发送、确认和差异处理' };

@@ -22,4 +22,5 @@ export default App;
 ${forgeProductUiRuntime}
 `;
 
-export const RevenueRecognitionPage = { name: 'page_revenue_recognition', label: '销售收入确认', description: '按发货或开票业务凭据生成并审核收入确认', icon: 'badge-dollar-sign', type: 'app' as const, kind: 'react' as const, source: revenueRecognitionSource };
+const financeActionSource = (source:string) => source.replace(/(<ForgePageHeader\b[^>]*description="[^"]*")\/>/, (_, prefix) => prefix + ' actions={<><button className="fp-button" onClick={load}>刷新</button><button className="fp-button primary" onClick={()=>document.querySelector("[aria-label=\\"收入确认来源订单\\"]")?.focus()}>新建确认</button></>} />');
+export const RevenueRecognitionPage = { name: 'page_revenue_recognition', label: '销售收入确认', description: '按发货或开票业务凭据生成并审核收入确认', icon: 'badge-dollar-sign', type: 'app' as const, kind: 'react' as const, source: financeActionSource(revenueRecognitionSource) };
