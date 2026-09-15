@@ -67,8 +67,7 @@ const pages = Object.fromEntries(definitions.map(def => [def.name, {
   type: 'app' as const, kind: 'react' as const, source: sourceFor(def),
 }]));
 
-export const MyApprovalsPage=pages.page_my_approvals; export const CcToMePage=pages.page_cc_to_me;
-export const InitiatedByMePage=pages.page_initiated_by_me; export const AdministrationRequestsPage=pages.page_administration_requests;
+export const AdministrationRequestsPage=pages.page_administration_requests;
 export const AdministrationNoticePage=pages.page_administration_notice; export const SealManagementPage=pages.page_seal_management;
 export const MeetingMinutesPage=pages.page_meeting_minutes; export const WorkReportsPage=pages.page_work_reports;
 export const DocumentCenterPage=pages.page_document_center; export const FixedAssetsPage=pages.page_fixed_assets;

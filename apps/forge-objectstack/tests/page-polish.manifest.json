@@ -1,6 +1,6 @@
 {
   "administration": [
-    {"file":"administration-pages.page.ts","pages":["page_my_approvals","page_cc_to_me","page_initiated_by_me"],"archetype":"task_workspace","reference":"project-task-workspace.page.ts","designStatus":"review_required"},
+    {"file":"approval-center.page.ts","pages":["page_my_approvals","page_cc_to_me","page_initiated_by_me"],"archetype":"task_workspace","reference":"project-task-workspace.page.ts","designStatus":"review_required"},
     {"file":"administration-pages.page.ts","pages":["page_administration_requests","page_hr_workspace","page_start_process"],"archetype":"workbench","reference":"workbench.page.ts","designStatus":"review_required"},
     {"file":"administration-pages.page.ts","pages":["page_administration_notice","page_seal_management","page_meeting_minutes","page_fixed_assets","page_qualification_declaration","page_material_pickup","page_equipment_maintenance","page_gift_management","page_loan_management","page_employee_records","page_recruitment","page_onboarding_offboarding"],"archetype":"task_workspace","reference":"project-task-workspace.page.ts","designStatus":"review_required"},
     {"file":"administration-pages.page.ts","pages":["page_work_reports","page_vehicle_management","page_overtime_requests","page_leave_management","page_business_trip","page_attendance_management"],"archetype":"timesheet_composite","reference":"project-timesheet-cost.page.ts","designStatus":"review_required"},
