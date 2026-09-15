@@ -26,13 +26,20 @@ for (const [area, entries] of Object.entries(manifest)) {
       if (entry.evidence) findings.push(`${area}/${entry.file}: review_required 页面不得记录为已验收证据`);
     }
     const source = await readFile(new URL(entry.file, pagesDir), 'utf8');
-    for (const [label, pattern] of [
-      ['product-ui.ts 样式', /forgeProductUiCss/],
-      ['product-ui.ts 运行时', /forgeProductUiRuntime/],
-      ['标准产品根节点', /forge-product/],
-      ['标准标题区', /ForgePageHeader|fp-page-header/],
-      ['可执行按钮', /<button\b[^>]*onClick=/],
-    ]) if (!pattern.test(source)) findings.push(`${area}/${entry.file}: 缺少${label}`);
+    const structuralPatterns = entry.archetype === 'workbench'
+      ? [
+          ['产品根节点', /forge-product|forge-workbench/],
+          ['工作台标题区', /ForgePageHeader|fp-page-header|wb-welcome|ws-hero/],
+          ['可执行按钮', /<button\b[^>]*onClick=/],
+        ]
+      : [
+          ['product-ui.ts 样式', /forgeProductUiCss/],
+          ['product-ui.ts 运行时', /forgeProductUiRuntime/],
+          ['标准产品根节点', /forge-product/],
+          ['标准标题区', /ForgePageHeader|fp-page-header/],
+          ['可执行按钮', /<button\b[^>]*onClick=/],
+        ];
+    for (const [label, pattern] of structuralPatterns) if (!pattern.test(source)) findings.push(`${area}/${entry.file}: 缺少${label}`);
     for (const [label, pattern] of [
       ['浏览器原生弹框', /(?<!function\s)(?<!const\s)(?<!let\s)(?<!var\s)(?:window\.)?(?:alert|confirm|prompt)\s*\(/],
       ['浏览器原生选择器', /<select\b/],
