@@ -10,9 +10,9 @@ const css=${JSON.stringify(forgeProductUiCss + portalCss)};
 ${forgeProductUiRuntime}
 const pages={orders:'page_subcontract_orders',issues:'page_subcontract_issue_workspace',receipts:'page_subcontract_receipt_workspace',returns:'page_subcontract_returns',reconciliation:'page_subcontract_reconciliation',suppliers:'page_subcontract_suppliers',stock:'page_subcontract_stock',trace:'page_subcontract_trace',undelivered:'page_subcontract_undelivered',receiptReport:'page_subcontract_receipts_report',statement:'page_subcontract_statement_report'};
 const href=key=>'/_console/apps/forge/page/'+pages[key];
-function App(){
+function App(){const adapter=useAdapter();
  const [state,setState]=useState({loading:true,error:'',data:{}}),[role,setRole]=useState('委外业务员');
- async function request(name){const r=await fetch('/api/v1/data/'+name+'?$top=300',{credentials:'include'}),p=await r.json().catch(()=>({}));if(!r.ok)throw new Error(p.error?.message||p.message||'请求失败');return p.records||[]}
+ async function request(name){if(adapter?.find){const p=await adapter.find(name,{limit:300});return p?.records||p?.data?.records||p?.data||[]}const r=await fetch('/api/v1/data/'+name+'?$top=300',{credentials:'include'}),p=await r.json().catch(()=>({}));if(!r.ok)throw new Error(p.error?.message||p.message||'请求失败');return p.records||[]}
  async function load(){setState(s=>({...s,loading:true,error:''}));try{const names=['forge_subcontract_order','forge_subcontract_issue','forge_subcontract_receipt','forge_subcontract_ncr','forge_subcontract_stock_balance'],pairs=await Promise.all(names.map(async n=>[n,await request(n)]));setState({loading:false,error:'',data:Object.fromEntries(pairs)})}catch(e){setState({loading:false,error:String(e.message||e),data:{}})}}
  useEffect(()=>{load()},[]);
  if(state.loading)return <div className="forge-product forge-sc-portal"><style>{css}</style><div className="fp-shell"><ForgeLoading label="正在加载委外工作台"/></div></div>;
@@ -33,7 +33,7 @@ const guideSource = `
 const {useState}=React;
 const css=${JSON.stringify(forgeProductUiCss + portalCss)};
 ${forgeProductUiRuntime}
-function App(){const [role,setRole]=useState('委外业务员');const roles={
+function App(){const adapter=useAdapter();const [role,setRole]=useState('委外业务员');const roles={
 '委外业务员':[['01','准备供应商','确认已启用、加工能力、联系人和结算条件'],['02','创建并审核订单','选择甲供料或包工包料，录入加工件、交期与价格'],['03','协调执行','跟踪发料、回厂、异常和逾期'],['04','发起对账','核对加工费、赔偿、扣款和净应付']],
 '仓库人员':[['01','核对待发','只处理已审核甲供料订单和剩余计划'],['02','执行出库','把库存锁定转为原仓出库和委外仓入库'],['03','登记签收','确认交接，签收不等于生产开工'],['04','余料回收','退料不得超过供应商侧在外余量']],
 '质检 / 收货':[['01','登记回厂','回厂量不得超过订单未交数量'],['02','判定结果','合格与不良之和必须等于本次回厂'],['03','确认入库','良品入正式库存，甲供料按实际耗用倒冲'],['04','处理不良','从来源回厂进入受控处置并保存责任']],
@@ -44,7 +44,7 @@ export default App;`;
 const statusSource = (title: string, observed: string, available: string, missing: string) => `
 const css=${JSON.stringify(forgeProductUiCss + portalCss)};
 ${forgeProductUiRuntime}
-function App(){return <div className="forge-product forge-sc-portal"><style>{css}</style><div className="fp-shell"><div className="fp-list-context"><div><h1 style={{margin:'0 0 6px',fontSize:24}}>${title}</h1><p style={{margin:0,color:'var(--fp-muted)'}}>${observed}</p></div><span className="sp-badge">待交付能力</span></div><section className="fp-card sp-section"><h2>当前可用基础</h2><p>${available}</p></section><section className="fp-card sp-section"><h2>达到可用仍缺</h2><p>${missing}</p></section><ForgeNotice tone="warning">此页用于明确恢复状态，没有写入动作，也不表示该业务已经完成。</ForgeNotice></div></div>};export default App;`;
+function App(){const adapter=useAdapter();return <div className="forge-product forge-sc-portal"><style>{css}</style><div className="fp-shell"><div className="fp-list-context"><div><h1 style={{margin:'0 0 6px',fontSize:24}}>${title}</h1><p style={{margin:0,color:'var(--fp-muted)'}}>${observed}</p></div><span className="sp-badge">待交付能力</span></div><section className="fp-card sp-section"><h2>当前可用基础</h2><p>${available}</p></section><section className="fp-card sp-section"><h2>达到可用仍缺</h2><p>${missing}</p></section><ForgeNotice tone="warning">此页用于明确恢复状态，没有写入动作，也不表示该业务已经完成。</ForgeNotice></div></div>};export default App;`;
 
 const page = (name: string, label: string, description: string, source: string, icon: string) => ({
   name, label, description, icon, type: 'app' as const, kind: 'react' as const, source,
