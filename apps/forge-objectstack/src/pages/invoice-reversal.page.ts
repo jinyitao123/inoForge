@@ -2,9 +2,10 @@ import { forgeProductUiCss, forgeProductUiRuntime } from './product-ui.js';
 
 const invoiceReversalSource = `
 function App(){
+  const adapter=useAdapter();
   const today=new Date(Date.now()+8*60*60*1000).toISOString().slice(0,10);
   const [data,setData]=React.useState({loading:true,sales:[],purchase:[],logs:[],receivables:[],payables:[],customerOffsets:[],supplierOffsets:[],customerPrepayments:[],supplierPrepayments:[],error:''}),[busy,setBusy]=React.useState(false),[form,setForm]=React.useState({sales_code:'',purchase_code:'',purchase_number:'',sales_quantity:'',purchase_quantity:'',invoice_on:today,reason:'',offset_reason:''});
-  async function request(path,options){const r=await fetch('/api/v1'+path,{credentials:'include',headers:{'Content-Type':'application/json'},...options}),p=await r.json().catch(()=>({}));if(!r.ok)throw new Error(p.error?.message||p.message||'请求失败');return p;}
+  async function request(path,options={}){const headers={'Content-Type':'application/json',...(adapter?.getAuthHeaders?.()||{}),...(options.headers||{})},raw=String(adapter?.baseUrl||''),base=raw.endsWith('/')?raw.slice(0,-1):raw,transport=adapter?.fetchImpl||fetch,r=await transport(base+'/api/v1'+path,{credentials:'include',...options,headers}),p=await r.json().catch(()=>({}));if(!r.ok)throw new Error(p.error?.message||p.message||'请求失败');return p;}
   async function find(o){return(await request('/data/'+o+'?$top=200')).records||[];}
   async function load(){try{const v=await Promise.all(['forge_sales_invoice','forge_purchase_invoice','forge_invoice_reversal_log','forge_accounts_receivable','forge_accounts_payable','forge_customer_prepayment_offset','forge_supplier_prepayment_offset','forge_customer_prepayment','forge_supplier_prepayment'].map(find));setData({loading:false,sales:v[0],purchase:v[1],logs:v[2],receivables:v[3],payables:v[4],customerOffsets:v[5],supplierOffsets:v[6],customerPrepayments:v[7],supplierPrepayments:v[8],error:''});}catch(e){setData(d=>({...d,loading:false,error:String(e.message||e)}));}}
   React.useEffect(()=>{load();},[]);

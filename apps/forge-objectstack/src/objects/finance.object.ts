@@ -312,7 +312,16 @@ export const PurchaseInvoice = master('forge_purchase_invoice', '进项发票', 
   due_on: Field.date({ label: '应付日期', ...required }), total_amount: amount('价税合计'),
   red_reversed_amount: { ...amount('已红冲金额'), defaultValue: 0, readonly: true },
   tax_rate: Field.number({ label: '税率', min: 0, max: 100, scale: 4, defaultValue: 13 }),
-  deduction_status: Field.select([{ value: 'pending', label: '待抵扣' }, { value: 'deducted', label: '已抵扣' }, { value: 'non_deductible', label: '不可抵扣' }], { label: '抵扣状态', defaultValue: 'pending' }),
+  invoice_category: Field.select([
+    { value: 'vat_special', label: '增值税专用发票' }, { value: 'vat_general', label: '增值税普通发票' },
+    { value: 'electronic_special', label: '电子专票' }, { value: 'electronic_general', label: '电子普票' },
+  ], { label: '票种', defaultValue: 'vat_special' }),
+  deduction_status: { ...Field.select([
+    { value: 'pending', label: '待认证' }, { value: 'certified', label: '已认证抵扣' },
+    { value: 'not_deductible', label: '不抵扣' },
+  ], { label: '抵扣状态', defaultValue: 'pending' }), readonly: true },
+  deducted_at: Field.datetime({ label: '认证时间', readonly: true }), deduction_operator_id: Field.user({ label: '认证人', readonly: true }),
+  deduction_reason: Field.textarea({ label: '抵扣说明', readonly: true }),
   invoice_type: { ...Field.select([{ value: 'normal', label: '蓝字发票' }, { value: 'red', label: '红字发票' }], { label: '发票类型', defaultValue: 'normal' }), readonly: true },
   original_invoice_id: reference('forge_purchase_invoice', '被红冲发票'),
   status: { ...Field.select([
@@ -321,7 +330,7 @@ export const PurchaseInvoice = master('forge_purchase_invoice', '进项发票', 
   reversed_by: Field.user({ label: '红冲人', readonly: true }), reversed_at: Field.datetime({ label: '红冲时间', readonly: true }),
   reversal_reason: Field.textarea({ label: '红冲原因', readonly: true }),
   responsible_id: owner(true), remarks: remarks(),
-}, ['code', 'invoice_number', 'invoice_on', 'supplier_id', 'order_id', 'total_amount', 'red_reversed_amount', 'tax_rate', 'status', 'deduction_status', 'responsible_id']);
+}, ['code', 'invoice_number', 'invoice_on', 'supplier_id', 'order_id', 'total_amount', 'red_reversed_amount', 'tax_rate', 'invoice_category', 'deduction_status', 'status', 'responsible_id']);
 
 export const PurchaseInvoiceLine = master('forge_purchase_invoice_line', '进项发票明细', 'list', {
   name: text('物料名称', true), invoice_id: reference('forge_purchase_invoice', '进项发票', true),
