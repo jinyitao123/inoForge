@@ -66,5 +66,6 @@ export * from './other-inbound-workspace.page.js';
 export * from './opening-inbound-list.page.js';
 export * from './inbound-lines-list.page.js';
 export * from './inventory-overview.page.js';
+export * from './inventory-ncr.page.js';
 export * from './business-prerequisite-config.page.js';
 export * from './production-prerequisites.page.js';
