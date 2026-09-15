@@ -10,10 +10,12 @@
   "scripts": {
     "dev": "objectstack dev",
     "start": "objectstack start",
+    "prebuild": "node tests/page-polish.static.mjs",
     "build": "objectstack build",
     "validate": "objectstack validate",
     "typecheck": "tsc --noEmit",
     "acceptance:console-controls": "node tests/console-controls.static.mjs",
+    "acceptance:page-polish": "node tests/page-polish.static.mjs",
     "acceptance:product-structure": "node tests/risemap-product-structure.static.mjs",
     "acceptance:master-data": "node tests/master-data.integration.mjs",
     "acceptance:sales": "node tests/sales-foundation.integration.mjs",
