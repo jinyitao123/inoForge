@@ -13,6 +13,7 @@ export const Customer = master('forge_customer', '客户管理', 'building-2', {
   invoice_address: text('开票地址'), invoice_phone: text('开票电话'),
   payment_term: text('默认付款条件'), revenue_recognition: text('收入确认方式'),
   credit_limit: money('信用额度'), payment_days: Field.number({ label: '账期天数', defaultValue: 30 }),
+  credit_status: Field.select([{ value: 'active', label: '正常' }, { value: 'frozen', label: '已冻结' }], { label: '授信状态', defaultValue: 'active' }),
   address: text('详细地址'), province: text('省份'), city: text('城市'), remarks: remarks(),
 }, ['name', 'responsible_id', 'category_id', 'level_id', 'credit_limit', 'payment_days']);
 

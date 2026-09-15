@@ -126,13 +126,41 @@ export const FinanceLoan = master('forge_finance_loan', '借款贷款', 'hand-co
     { value: 'business', label: '业务支出' }, { value: 'travel', label: '差旅支出' },
     { value: 'purchase', label: '采购支出' }, { value: 'other', label: '其他' },
   ], { label: '用途分类', defaultValue: 'business', ...required }),
-  amount: amount('借款金额'), project_id: reference('forge_project', '关联项目'),
-  expected_repayment_on: Field.date({ label: '预计还款日期', ...required }), applicant_id: Field.user({ label: '申请人' }),
+  amount: amount('借款金额'), outstanding_amount: { ...amount('未还本金'), readonly: true }, repaid_amount: { ...amount('已还本金'), defaultValue: 0, readonly: true },
+  project_id: reference('forge_project', '关联项目'), fund_account_id: reference('forge_fund_account', '资金账户'),
+  expected_repayment_on: Field.date({ label: '预计还款日期' }), applicant_id: Field.user({ label: '申请人' }),
+  bank_name: text('贷款银行'), branch_name: text('分行/支行'), contract_number: text('贷款合同号'),
+  annual_interest_rate: Field.number({ label: '年化利率 (%)', min: 0, max: 100, scale: 4 }),
+  interest_rate_type: Field.select([{ value: 'fixed', label: '固定利率' }, { value: 'lpr_float', label: 'LPR浮动' }], { label: '利率类型', defaultValue: 'lpr_float' }),
+  interest_benchmark: text('利率基准'), bank_loan_type: Field.select([{ value: 'short_term', label: '短期流贷' }, { value: 'project', label: '项目贷款' }, { value: 'fixed_asset', label: '固定资产贷款' }, { value: 'other', label: '其他' }], { label: '贷款类型', defaultValue: 'short_term' }),
+  term_months: Field.number({ label: '贷款期限（月）', min: 1, scale: 0 }), repayment_method: Field.select([{ value: 'monthly_interest_balloon', label: '按月付息到期还本' }, { value: 'equal_principal_interest', label: '等额本息' }, { value: 'equal_principal', label: '等额本金' }, { value: 'balloon', label: '到期一次还本付息' }], { label: '还款方式', defaultValue: 'monthly_interest_balloon' }),
+  disbursed_on: Field.date({ label: '放款日' }), maturity_on: Field.date({ label: '到期日' }), next_payment_on: Field.date({ label: '下期应还日' }),
+  guarantee_type: Field.select([{ value: 'credit', label: '信用' }, { value: 'guarantee', label: '保证' }, { value: 'mortgage', label: '抵押' }, { value: 'pledge', label: '质押' }], { label: '担保方式', defaultValue: 'credit' }), collateral_or_guarantor: text('担保物/保证人'),
+  submitted_at: Field.datetime({ label: '提交时间', readonly: true }), approved_at: Field.datetime({ label: '审批时间', readonly: true }), approver_id: Field.user({ label: '审批人', readonly: true }), approval_comment: Field.textarea({ label: '审批意见', readonly: true }),
   status: Field.select([
     { value: 'draft', label: '草稿' }, { value: 'pending_review', label: '审批中' },
-    { value: 'approved', label: '已通过' }, { value: 'repaid', label: '已还清' }, { value: 'rejected', label: '已驳回' },
+    { value: 'approved', label: '已通过' }, { value: 'active', label: '还款中' }, { value: 'partially_repaid', label: '部分归还' }, { value: 'repaid', label: '已还清' }, { value: 'rejected', label: '已驳回' },
   ], { label: '状态', defaultValue: 'draft' }), responsible_id: owner(true), remarks: remarks(),
-}, ['code', 'name', 'loan_type', 'purpose_category', 'amount', 'project_id', 'expected_repayment_on', 'status']);
+}, ['code', 'name', 'loan_type', 'purpose_category', 'amount', 'outstanding_amount', 'repaid_amount', 'project_id', 'fund_account_id', 'expected_repayment_on', 'bank_name', 'contract_number', 'annual_interest_rate', 'disbursed_on', 'maturity_on', 'status']);
+
+export const FinanceLoanTransaction = master('forge_finance_loan_transaction', '借款还款流水', 'arrow-left-right', {
+  name: text('流水名称', true), code: code('流水编号'), loan_id: reference('forge_finance_loan', '借款贷款', true), account_id: reference('forge_fund_account', '资金账户', true),
+  transaction_type: Field.select([{ value: 'disbursement', label: '放款' }, { value: 'repayment', label: '还款' }], { label: '流水类型', ...required }), occurred_on: Field.date({ label: '业务日期', ...required }),
+  principal_amount: amount('本金金额'), interest_amount: amount('利息金额'), balance_after: { ...amount('交易后未还本金'), readonly: true }, responsible_id: owner(true), remarks: remarks(),
+}, ['code', 'loan_id', 'transaction_type', 'account_id', 'occurred_on', 'principal_amount', 'interest_amount', 'balance_after']);
+
+export const FinanceCreditRequest = master('forge_finance_credit_request', '客户授信申请', 'badge-check', {
+  name: text('申请名称', true), code: code('申请编号'), customer_id: reference('forge_customer', '客户', true), requested_limit: amount('申请额度'), payment_days: Field.number({ label: '申请账期天数', min: 0, scale: 0 }),
+  reason: Field.textarea({ label: '申请原因', ...required }), status: { ...Field.select([{ value: 'pending_review', label: '待审批' }, { value: 'approved', label: '已通过' }, { value: 'rejected', label: '已驳回' }], { label: '审批状态', defaultValue: 'pending_review' }), readonly: true },
+  applicant_id: Field.user({ label: '申请人', readonly: true }), submitted_at: Field.datetime({ label: '提交时间', readonly: true }), reviewer_id: Field.user({ label: '审批人', readonly: true }), reviewed_at: Field.datetime({ label: '审批时间', readonly: true }), review_comment: Field.textarea({ label: '审批意见', readonly: true }), responsible_id: owner(true), remarks: remarks(),
+}, ['code', 'customer_id', 'requested_limit', 'payment_days', 'reason', 'status', 'applicant_id', 'submitted_at', 'reviewer_id', 'reviewed_at']);
+
+export const SalesInvoiceRequest = master('forge_sales_invoice_request', '销项开票申请', 'file-check-2', {
+  name: text('申请名称', true), code: code('申请编号'), order_id: reference('forge_sales_order', '销售订单', true), customer_id: reference('forge_customer', '客户', true),
+  requested_quantity: quantity('申请开票数量'), requested_amount: amount('申请开票金额'), requested_on: Field.date({ label: '申请日期', ...required }), expected_invoice_on: Field.date({ label: '期望开票日期', ...required }), due_on: Field.date({ label: '应收日期', ...required }),
+  invoice_code: text('发票编号'), invoice_id: reference('forge_sales_invoice', '销项发票'), status: { ...Field.select([{ value: 'pending_review', label: '待审批' }, { value: 'approved', label: '待开票' }, { value: 'issued', label: '已开票' }, { value: 'rejected', label: '已驳回' }], { label: '任务状态', defaultValue: 'pending_review' }), readonly: true },
+  applicant_id: Field.user({ label: '申请人', readonly: true }), submitted_at: Field.datetime({ label: '提交时间', readonly: true }), reviewer_id: Field.user({ label: '审批人', readonly: true }), reviewed_at: Field.datetime({ label: '审批时间', readonly: true }), review_comment: Field.textarea({ label: '审批意见', readonly: true }), responsible_id: owner(true), remarks: remarks(),
+}, ['code', 'order_id', 'customer_id', 'requested_quantity', 'requested_amount', 'requested_on', 'expected_invoice_on', 'due_on', 'status', 'invoice_code', 'invoice_id']);
 
 export const CashReceipt = master('forge_cash_receipt', '收款流水', 'badge-dollar-sign', {
   name: text('收款流水名称', true), code: code('流水号'), customer_id: reference('forge_customer', '客户', true),
