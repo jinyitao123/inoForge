@@ -92,7 +92,7 @@ if (existing.length) throw new Error('该报价已转换为合同');
 const lines = await ctx.api.object('forge_quotation_line').find({ where: { quotation_id: id } });
 if (!lines.length) throw new Error('报价至少需要一条明细');
 let contractId = null;
-await ctx.api.transaction(async () => {
+{
   const created = await ctx.api.object('forge_sales_contract').insert({
     name: ctx.input.name, code: ctx.input.code, contract_type_id: ctx.input.contract_type_id,
     customer_id: quote.customer_id, contact_id: quote.contact_id || null, quotation_id: id,
@@ -114,7 +114,7 @@ await ctx.api.transaction(async () => {
       remarks: line.remarks || null,
     });
   }
-});
+}
 return { id: contractId, quotation_id: id, line_count: lines.length };
 `,
   },
@@ -195,7 +195,7 @@ const id = ctx.recordId || (ctx.record && ctx.record.id);
 if (ctx.recordLoadDenied === true || !id) throw new Error('当前订单不存在或不可访问');
 const record = ctx.record;
 if (!record || record.status !== 'pending_approval') throw new Error('订单状态已变化，请刷新后重试');
-await ctx.api.transaction(async () => {
+{
   await ctx.api.object('forge_sales_order').update({ id, status: 'active' });
   if (!record.contract_id) return;
   const orders = await ctx.api.object('forge_sales_order').find({ where: { contract_id: record.contract_id } });
@@ -216,7 +216,7 @@ await ctx.api.transaction(async () => {
   await ctx.api.object('forge_sales_contract').update({ id: record.contract_id,
     ordered_count: activeOrders.length, ordered_amount: orderedAmount, status: 'active'
   });
-});
+}
 return { id, status: 'active', contract_id: record.contract_id || null };
 `,
   },
@@ -260,7 +260,8 @@ for (const line of existingLines) {
 const remaining = Number(orderLine.quantity || 0) - plannedQuantity;
 if (requested > remaining) throw new Error('本次发货数量超过订单未建单数量');
 const round4 = value => Math.round((value + Number.EPSILON) * 10000) / 10000;
-const lineAmount = round4(Number(orderLine.taxed_unit_price || 0) * requested);
+const lineUnitAmount = round4(Number(orderLine.taxed_subtotal || 0) / Number(orderLine.quantity || 1));
+const lineAmount = round4(lineUnitAmount * requested);
 let shipmentId = null;
 const created = await ctx.api.object('forge_sales_shipment').insert({
     name: order.code + ' 发货 ' + ctx.input.code, code: ctx.input.code, customer_id: order.customer_id,
@@ -277,7 +278,7 @@ await ctx.api.object('forge_sales_shipment_line').insert({
     name: orderLine.name, shipment_id: shipmentId, order_id: id, order_line_id: orderLine.id,
     sku_id: orderLine.sku_id, item_code: orderLine.item_code || null, model: orderLine.model || null,
     specification: orderLine.specification || null, unit_name: orderLine.unit_name || null,
-    quantity: requested, outbound_quantity: 0, taxed_unit_price: Number(orderLine.taxed_unit_price || 0),
+    quantity: requested, outbound_quantity: 0, taxed_unit_price: lineUnitAmount,
     taxed_subtotal: lineAmount, remarks: orderLine.remarks || null,
 });
 
@@ -325,7 +326,7 @@ const order = await ctx.api.object('forge_sales_order').findOne({ where: { id: l
 const orderLine = orderLines.find(item => item.id === line.order_line_id); if (!orderLine) throw new Error('发货单关联的销售订单明细不存在');
 const shipped = Number(orderLines.reduce((sum, item) => sum + Number(item.shipped_quantity || 0), 0)) + quantity;
 await ctx.api.object('forge_sales_shipment').update({ id, outbound_quantity: already + quantity, outbound_count: Number(shipment.outbound_count || 0) + 1, status: nextStatus }); await ctx.api.object('forge_sales_shipment_line').update({ id: line.id, outbound_quantity: Number(line.outbound_quantity || 0) + quantity }); await ctx.api.object('forge_sales_order_line').update({ id: line.order_line_id, shipped_quantity: Number(orderLine.shipped_quantity || 0) + quantity });
-if (order) await ctx.api.object('forge_sales_order').update({ id: order.id, shipped_amount: Number(order.shipped_amount || 0) + quantity * Number(line.taxed_unit_price || 0), status: shipped >= Number(orderLines.reduce((sum, item) => sum + Number(item.quantity || 0), 0)) ? 'shipped' : 'partially_shipped' });
+if (order) { const shippedUnitAmount = round4(Number(line.taxed_subtotal || 0) / Number(line.quantity || 1)); await ctx.api.object('forge_sales_order').update({ id: order.id, shipped_amount: round4(Number(order.shipped_amount || 0) + quantity * shippedUnitAmount), status: shipped >= Number(orderLines.reduce((sum, item) => sum + Number(item.quantity || 0), 0)) ? 'shipped' : 'partially_shipped' }); }
 return { id: outboundId, shipment_id: id, quantity, status: nextStatus };
 ` },
 });
@@ -360,7 +361,7 @@ let orderId = null;
 let total = 0;
 for (const item of remaining) total += Number(item.line.taxed_subtotal || 0) * item.quantity / Number(item.line.quantity_limit || 1);
 total = round4(total);
-await ctx.api.transaction(async () => {
+{
   const created = await ctx.api.object('forge_sales_order').insert({
     name: ctx.input.name, code: ctx.input.code, source_type: 'contract', customer_id: contract.customer_id,
     contact_id: contract.contact_id || null, contract_id: id, quotation_id: contract.quotation_id || null,
@@ -385,7 +386,7 @@ await ctx.api.transaction(async () => {
       taxed_subtotal: lineTotal, planned_delivery_on: ctx.input.planned_delivery_on, remarks: line.remarks || null,
     });
   }
-});
+}
 return { id: orderId, contract_id: id, line_count: remaining.length, total_amount: total };
 `,
   },

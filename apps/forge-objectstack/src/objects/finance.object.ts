@@ -420,7 +420,8 @@ export const CounterpartyStatement = master('forge_counterparty_statement', '往
   period_start: Field.date({ label: '期间开始', ...required }), period_end: Field.date({ label: '期间结束', ...required }),
   dimension: Field.select([
     { value: 'party', label: '按往来单位' }, { value: 'contract', label: '按合同' }, { value: 'order', label: '按订单' },
-    { value: 'shipment_receipt', label: '按发货/收货' }, { value: 'invoice', label: '按发票' }, { value: 'balance', label: '按余额汇总' },
+    { value: 'shipment_receipt', label: '按发货/收货' }, { value: 'invoice', label: '按发票' },
+    { value: 'cash', label: '按收付款' }, { value: 'balance', label: '按余额汇总' },
   ], { label: '汇总维度', defaultValue: 'balance', ...required }),
   basis: Field.select([
     { value: 'balance', label: '余额口径' }, { value: 'invoice', label: '开票口径' },
@@ -453,14 +454,19 @@ export const CounterpartyStatementLine = master('forge_counterparty_statement_li
   direction: Field.select([{ value: 'increase', label: '增加余额' }, { value: 'decrease', label: '减少余额' }], { label: '余额方向', ...required }),
   source_key: text('来源键', true), receivable_id: reference('forge_accounts_receivable', '应收账款'), payable_id: reference('forge_accounts_payable', '应付账款'),
   collection_id: reference('forge_collection_allocation', '收款核销'), payment_writeoff_id: reference('forge_payment_writeoff', '付款核销'),
+  contract_id: reference('forge_sales_contract', '合同'), order_id: reference('forge_sales_order', '订单'),
+  shipment_id: reference('forge_sales_outbound', '发货单'), invoice_id: reference('forge_sales_invoice', '发票'),
+  cash_receipt_id: reference('forge_cash_receipt', '收款流水'), cash_payment_id: reference('forge_cash_payment', '付款流水'),
+  contract_key: text('合同维度键'), order_key: text('订单维度键'), shipment_key: text('发货/收货维度键'),
+  invoice_key: text('发票维度键'), cash_key: text('收付款维度键'),
   amount: amount('发生金额'), running_balance: { ...signedAmount('结余'), readonly: true }, description: text('摘要'),
-}, ['statement_id', 'line_no', 'occurred_on', 'entry_type', 'direction', 'source_key', 'amount', 'running_balance', 'description']);
+}, ['statement_id', 'line_no', 'occurred_on', 'entry_type', 'direction', 'source_key', 'contract_key', 'order_key', 'shipment_key', 'invoice_key', 'cash_key', 'amount', 'running_balance', 'description']);
 
 export const CounterpartyStatementLog = master('forge_counterparty_statement_log', '往来对账操作记录', 'history', {
   name: text('记录名称', true), event_key: code('事件键'), statement_id: reference('forge_counterparty_statement', '对账单', true),
   action: Field.select([
     { value: 'generated', label: '生成' }, { value: 'sent', label: '发送' }, { value: 'confirmed', label: '确认一致' },
-    { value: 'disputed', label: '反馈差异' }, { value: 'closed', label: '差异关闭' },
+    { value: 'disputed', label: '反馈差异' }, { value: 'closed', label: '差异关闭' }, { value: 'reopened', label: '重新发起确认' },
   ], { label: '动作', ...required }), from_status: text('原状态'), to_status: text('新状态'), comment: Field.textarea({ label: '说明' }),
   occurred_at: Field.datetime({ label: '操作时间', ...required, readonly: true }), operator_id: Field.user({ label: '操作人', ...required, readonly: true }),
 }, ['event_key', 'statement_id', 'action', 'from_status', 'to_status', 'comment', 'operator_id', 'occurred_at']);
