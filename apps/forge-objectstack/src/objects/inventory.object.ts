@@ -86,6 +86,26 @@ export const InventoryBalance = master('forge_inventory_balance', '库存余额'
   last_movement_at: Field.datetime({ label: '最近变动时间', readonly: true }), remarks: remarks(),
 }, ['warehouse_id', 'sku_id', 'on_hand_quantity', 'reserved_quantity', 'available_quantity', 'average_cost', 'inventory_value', 'last_movement_at']);
 
+// Global alert policy. Material-level thresholds on InventoryBalance take
+// precedence; zero values fall back to these defaults so the settings page
+// changes the actual alert calculation instead of merely storing preferences.
+export const InventoryAlertPolicy = master('forge_inventory_alert_policy', '库存预警设置', 'bell-ring', {
+  name: text('设置名称', true), code: code('设置编码'),
+  low_stock_enabled: Field.boolean({ label: '启用低库存预警', defaultValue: true }),
+  low_stock_lead_days: Field.number({ label: '低库存预警提前天数', min: 0, scale: 0, defaultValue: 7 }),
+  overstock_enabled: Field.boolean({ label: '启用超储预警', defaultValue: true }),
+  overstock_threshold_percent: Field.number({ label: '超储阈值百分比', min: 100, scale: 2, defaultValue: 120 }),
+  slow_stock_enabled: Field.boolean({ label: '启用呆滞库存预警', defaultValue: true }),
+  slow_stock_days: Field.number({ label: '呆滞天数', min: 1, scale: 0, defaultValue: 180 }),
+  delivery_alert_enabled: Field.boolean({ label: '启用交期预警', defaultValue: true }),
+  delivery_warning_days: Field.number({ label: '临近预警天数', min: 0, scale: 0, defaultValue: 7 }),
+  delivery_urgent_days: Field.number({ label: '紧急预警天数', min: 0, scale: 0, defaultValue: 2 }),
+  notification_positions: Field.textarea({ label: '通知角色' }),
+  updated_by: Field.user({ label: '最近设置人', readonly: true }),
+  updated_at: Field.datetime({ label: '最近设置时间', readonly: true }),
+  remarks: remarks(),
+}, ['code', 'low_stock_enabled', 'low_stock_lead_days', 'overstock_enabled', 'overstock_threshold_percent', 'slow_stock_enabled', 'slow_stock_days', 'delivery_alert_enabled', 'delivery_warning_days', 'delivery_urgent_days', 'notification_positions', 'updated_by', 'updated_at']);
+
 export const InventoryLedger = master('forge_inventory_ledger', '库存流水', 'book-open', {
   name: text('流水名称', true), code: code('流水号'), warehouse_id: reference('forge_warehouse', '仓库', true),
   sku_id: reference('forge_material_sku', '物料规格', true), direction: Field.select([
