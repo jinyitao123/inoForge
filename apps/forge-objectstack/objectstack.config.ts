@@ -41,7 +41,7 @@ export default defineStack({
       {
         id: 'supply_chain', label: '供应链', icon: 'boxes', navigation: [
           group('arrival_inspection', '到货检验', [
-            object('purchase_arrival_notices', '到货通知', 'forge_purchase_arrival_notice', 'package-search'),
+            page('purchase_arrival_notices', '到货通知', 'page_purchase_arrival_notice', 'package-search'),
             page('purchase_receipts', '到货登记', 'page_purchase_arrival_workspace', 'package-check'),
             page('pending_inspections', '待检验库存', 'page_pending_inspection_workspace', 'clipboard-clock'),
             page('purchase_inspections', '检验单', 'page_purchase_inspection_workspace', 'clipboard-check'),
@@ -70,14 +70,14 @@ export default defineStack({
             page('purchase_inbounds', '采购入库', 'page_purchase_inbound_workspace', 'package-plus'),
             page('production_inbounds', '生产入库', 'page_production_inbound_entry', 'package-plus'),
             page('other_inbounds', '其他入库', 'page_other_inbounds', 'package-plus'),
-            object('opening_inbounds', '期初入库', 'forge_opening_inbound', 'package-plus'),
+            page('opening_inbounds', '期初入库', 'page_opening_inbounds', 'package-plus'),
             page('inbound_lines', '入库明细', 'page_inbound_lines', 'list'),
           ]),
           group('inventory_management', '库存管理', [
-            object('inventory_balances', '库存总览', 'forge_inventory_balance', 'boxes'),
+            page('inventory_balances', '库存总览', 'page_inventory_overview', 'boxes'),
             page('inventory_ncr', '不合格处理', 'page_inventory_ncr', 'triangle-alert'),
             page('inventory_disposal_center', '处置执行中心', 'page_inventory_disposal_center', 'clipboard-check'),
-            object('inventory_ledgers', '库存流水', 'forge_inventory_ledger', 'book-open'),
+            page('inventory_ledgers', '库存流水', 'page_inventory_ledger', 'book-open'),
             page('inventory_locks', '库存锁定', 'page_inventory_locks', 'lock'),
             page('inventory_count', '库存盘点', 'page_inventory_count', 'clipboard-check'),
             page('inventory_transfer', '调拨与借出', 'page_inventory_transfer', 'arrow-left-right'),

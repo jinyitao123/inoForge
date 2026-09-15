@@ -1,6 +1,7 @@
 export * from './bom-workspace.page.js';
 export * from './drawing-workspace.page.js';
 export * from './purchase-order-workspace.page.js';
+export * from './purchase-arrival-notice.page.js';
 export * from './purchase-arrival-workspace.page.js';
 export * from './purchase-inspection-workspace.page.js';
 export * from './purchase-inbound-workspace.page.js';
@@ -62,5 +63,13 @@ export * from './supply-production-routing.page.js';
 
 export * from './inventory-operations.page.js';
 export * from './other-inbound-workspace.page.js';
+export * from './opening-inbound-list.page.js';
+export * from './inbound-lines-list.page.js';
+export * from './inventory-overview.page.js';
+export * from './inventory-ncr.page.js';
+export * from './inventory-disposal-center.page.js';
+export * from './inventory-ledger.page.js';
+export * from './inventory-count.page.js';
+export * from './inventory-transfer.page.js';
 export * from './business-prerequisite-config.page.js';
 export * from './production-prerequisites.page.js';
