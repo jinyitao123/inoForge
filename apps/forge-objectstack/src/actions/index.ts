@@ -31,3 +31,5 @@ export * from './subcontract-reconciliation.action.js';
 export * from './subcontract-return.action.js';
 
 export * from './inventory-operations.action.js';
+export * from './inventory-damage.action.js';
+export * from './other-outbound.action.js';
