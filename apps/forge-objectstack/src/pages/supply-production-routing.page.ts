@@ -152,7 +152,6 @@ function App(){
 export default App;
 `;
 
-export const InspectionRulesPage = makePage(pages[0]);
 export const MaterialCombinationsPage = makePage(pages[1]);
 export const MaterialSearchPage = makePage(pages[2]);
 export const ProductTracePage = makePage(pages[3]);
