@@ -25,12 +25,14 @@ ${productionDataTaskHelpers}
 `;
 
 const productionAssemblyParityPageSource=productionAssemblyPageSource
+ .replace('选择生效 BOM 与数量，系统展开需求并检查仓库库存','选择成品 BOM 与数量，系统展开物料需求并检查库存齐套情况')
  .replace('const query=new URLSearchParams(window.location.search),recordId=query.get(\'id\'),newMode=query.get(\'new\')===\'1\',editMode=query.get(\'edit\')===\'1\';',"const query=new URLSearchParams(window.location.search),recordId=query.get('id'),newMode=query.get('new')==='1',editMode=query.get('edit')==='1'; const [salesOrders,setSalesOrders]=React.useState([]);")
  .replace("remarks:''}),[quantities", "remarks:'',sales_order_id:''}),[quantities")
  .replace("React.useEffect(()=>{load();},[recordId,newMode,editMode,form.bom_id,form.planned_quantity]);", "React.useEffect(()=>{load();},[recordId,newMode,editMode,form.bom_id,form.planned_quantity]);React.useEffect(()=>{if(newMode||editMode||recordId)request('/data/forge_sales_order?$top=100').then(p=>setSalesOrders(p.records||[])).catch(()=>{});},[newMode,editMode,recordId]);")
  .replace("remarks:form.remarks}),saveDraft", "remarks:form.remarks,sales_order_id:form.sales_order_id}),saveDraft")
  .replace('<div className="field"><label>计划完工日期</label>',String.raw`<div className="field"><label>关联销售订单</label><ForgeSelectControl aria-label="关联销售订单" value={form.sales_order_id} onChange={e=>setForm({...form,sales_order_id:e.target.value})}><option value="">请选择销售订单（选填）</option>{salesOrders.map(x=><option key={x.id} value={x.id}>{x.code} · {x.name||x.customer_name||'销售订单'}</option>)}</ForgeSelectControl></div><div className="field"><label>计划完工日期</label>`)
  .replace('<label>出入库仓库 *</label>', '<label>入库仓库（选填）</label>')
+ .replace('aria-label="出入库仓库"', 'aria-label="入库仓库（选填）"')
  .replace('<div className="value"><small>计划数量</small>',String.raw`<div className="value"><small>来源销售订单</small>{salesOrders.find(x=>x.id===order.sales_order_id)?.code||'—'}</div><div className="value"><small>计划数量</small>`)
  .replace('<div className="field"><label>BOM *</label>',String.raw`<div className="field"><label>成品 *</label><ForgeSelectControl aria-label="成品" value={form.product_id} disabled={editMode} onChange={e=>setForm({...form,product_id:e.target.value,bom_id:''})}><option value="">请选择成品</option>{state.products.map(x=><option key={x.id} value={x.id}>{x.code} · {x.name}</option>)}</ForgeSelectControl></div><div className="field"><label>BOM *</label>`)
  .replace('<div className="field"><label>组装数量 *',String.raw`<div className="field"><label>BOM版本 *</label><ForgeSelectControl aria-label="BOM版本" value={form.bom_id} disabled={editMode||!form.product_id} onChange={e=>setForm({...form,bom_id:e.target.value})}><option value="">请选择生效版本</option>{state.boms.filter(x=>!form.product_id||x.material_id===form.product_id).map(x=><option key={x.id} value={x.id}>{x.version} · {x.name}</option>)}</ForgeSelectControl></div><div className="field"><label>组装数量 *`)
