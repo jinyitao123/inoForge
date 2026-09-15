@@ -29,6 +29,7 @@
     "acceptance:outbound-list-readback": "node tests/outbound-list-readback.mjs",
     "acceptance:production-outbound-list-readback": "node tests/production-outbound-list-readback.mjs",
     "acceptance:inspection-rules-readback": "node tests/inspection-rules-readback.mjs",
+    "acceptance:material-combinations-readback": "node tests/material-combinations-readback.mjs",
     "acceptance:sales-finance": "node tests/sales-finance.integration.mjs",
     "acceptance:sales-finance-restart": "node tests/sales-finance-restart-readback.mjs",
     "acceptance:sales-restart": "node tests/sales-restart-readback.mjs",
