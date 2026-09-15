@@ -1,4 +1,5 @@
 import { forgeProductUiCss, forgeProductUiRuntime } from './product-ui.js';
+import { PurchaseTodoPoolStandalonePage } from './purchase-todo-pool.page.js';
 
 type SourceConfig = {
   object: string;
@@ -152,20 +153,10 @@ function App(){
 export default App;
 `;
 
-export const InspectionRulesPage = makePage(pages[0]);
-export const MaterialCombinationsPage = makePage(pages[1]);
-export const MaterialSearchPage = makePage(pages[2]);
-export const ProductTracePage = makePage(pages[3]);
-export const PurchaseInvoiceEntryPage = makePage(pages[4]);
-export const PurchaseRequestPoolPage = makePage(pages[5]);
-export const PurchaseTodoPoolPage = makePage(pages[6]);
+export const PurchaseTodoPoolPage = PurchaseTodoPoolStandalonePage;
 export const PurchaseInquiryPage = makePage(pages[7]);
 export const SupplierPriceBookPage = makePage(pages[8]);
 export const AllInboundsPage = { name: pages[9].name, label: pages[9].label, description: pages[9].description, icon: 'package-plus', type: 'app' as const, kind: 'react' as const, source: allInboundsSource };
-export const OtherOutboundsPage = makePage(pages[21]);
-export const SalesDirectOutboundsPage = makePage(pages[22]);
-export const PurchaseReturnOutboundsPage = makePage(pages[23]);
-export const OutboundLinesPage = makePage(pages[24]);
 export const DrawingGuidePage = makePage(pages[25]);
 export const SubcontractGuidePage = {
   name: 'page_subcontract_guide',

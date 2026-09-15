@@ -2,6 +2,63 @@ import { defineAction } from '@objectstack/spec';
 
 const locations = ['record_header', 'record_more'] as const;
 
+export const PurchaseRequestSubmit = defineAction({
+  name: 'purchase_request_submit', label: '提交审批', objectName: 'forge_purchase_request', icon: 'send',
+  locations: [...locations], order: 10, visible: `record.status == 'draft' || record.status == 'rejected'`, refreshAfter: true,
+  confirmText: '提交前将校验基本信息与采购明细，是否继续？', successMessage: '采购申请已提交审批',
+  body: { language: 'js', capabilities: ['api.read', 'api.write'], source: `
+const id=ctx.recordId||(ctx.record&&ctx.record.id),request=ctx.record,actor=ctx.session&&ctx.session.userId;
+if(ctx.recordLoadDenied===true||!id||!request)throw new Error('当前采购申请不存在或不可访问');
+if(!['draft','rejected'].includes(request.status))throw new Error('仅草稿或已驳回申请可以提交审批');
+if(!actor)throw new Error('无法识别当前操作人');
+if(!request.name||!request.expected_arrival_on||!request.responsible_id||!String(request.purchase_reason||'').trim())throw new Error('申请标题、期望到货日期、负责人和采购原因不能为空');
+const lines=await ctx.api.object('forge_purchase_request_line').find({where:{request_id:id}});if(!lines.length)throw new Error('采购申请至少需要一条物料明细');
+const round4=v=>Math.round((Number(v)+Number.EPSILON)*10000)/10000;
+for(const line of lines)if(!(Number(line.quantity||0)>0))throw new Error('采购数量必须大于0');
+const totalQuantity=round4(lines.reduce((s,x)=>s+Number(x.quantity||0),0)),totalAmount=round4(lines.reduce((s,x)=>s+Number(x.taxed_subtotal||0),0)),now=new Date().toISOString();
+await ctx.api.object('forge_purchase_request').update({id,line_count:lines.length,total_quantity:totalQuantity,estimated_taxed_amount:totalAmount,status:'pending_approval',submitted_at:now,submitted_by:actor,approval_comment:null});
+await ctx.api.object('forge_purchase_request_approval_log').insert({name:request.code+' 提交审批',request_id:id,action:'submitted',from_status:request.status,to_status:'pending_approval',comment:'提交审批',occurred_at:now,operator_id:actor});
+return{id,status:'pending_approval',line_count:lines.length,total_quantity:totalQuantity,estimated_taxed_amount:totalAmount};
+` },
+});
+
+export const PurchaseRequestApprove = defineAction({
+  name: 'purchase_request_approve', label: '审批通过', objectName: 'forge_purchase_request', icon: 'circle-check',
+  locations: [...locations], order: 20, visible: `record.status == 'pending_approval'`, refreshAfter: true,
+  params: [{ name: 'approval_comment', label: '审批意见', type: 'textarea', required: true }], successMessage: '采购申请已审批通过',
+  body: { language: 'js', capabilities: ['api.read', 'api.write'], source: `
+const id=ctx.recordId||(ctx.record&&ctx.record.id),request=ctx.record,actor=ctx.session&&ctx.session.userId,note=String(ctx.input.approval_comment||'').trim();
+if(ctx.recordLoadDenied===true||!id||!request)throw new Error('当前采购申请不存在或不可访问');if(request.status!=='pending_approval')throw new Error('采购申请状态已变化，请刷新后重试');if(!actor)throw new Error('无法识别当前操作人');if(!note)throw new Error('审批意见不能为空');
+const lines=await ctx.api.object('forge_purchase_request_line').find({where:{request_id:id}}),existing=await ctx.api.object('forge_purchase_pending_item').find({where:{request_id:id}});
+if(!lines.length)throw new Error('采购申请没有物料明细，不能审批通过');if(existing.length)throw new Error('该采购申请已生成采购待办，请刷新后核对');
+const now=new Date().toISOString();await ctx.api.object('forge_purchase_request').update({id,status:'approved',approved_at:now,approved_by:actor,approval_comment:note});
+for(let index=0;index<lines.length;index++){const line=lines[index],quantity=Number(line.quantity||0);await ctx.api.object('forge_purchase_pending_item').insert({name:line.name,code:'POOL-'+String(request.code||id)+'-'+String(index+1).padStart(3,'0'),request_id:id,request_line_id:line.id,request_code:request.code,line_number:index+1,applicant_id:request.submitted_by||request.responsible_id,department_name:'',project_id:request.project_id||null,item_code:line.item_code||'',model:line.model||'',specification:line.specification||'',unit_name:line.unit_name||'',requested_quantity:quantity,locked_quantity:0,ordered_quantity:0,remaining_quantity:quantity,suggested_supplier_id:line.suggested_supplier_id||request.suggested_supplier_id||null,assigned_supplier_id:null,purchase_category:'',required_on:line.expected_arrival_on||request.expected_arrival_on,requested_at:request.submitted_at||now,priority:request.priority||'medium',status:'ready',responsible_id:request.responsible_id,remarks:line.remarks||null});}
+await ctx.api.object('forge_purchase_request_approval_log').insert({name:request.code+' 审批通过',request_id:id,action:'approved',from_status:'pending_approval',to_status:'approved',comment:note,occurred_at:now,operator_id:actor});return{id,status:'approved'};
+` },
+});
+
+export const PurchaseRequestReject = defineAction({
+  name: 'purchase_request_reject', label: '驳回', objectName: 'forge_purchase_request', icon: 'circle-x',
+  locations: [...locations], order: 30, visible: `record.status == 'pending_approval'`, refreshAfter: true,
+  params: [{ name: 'approval_comment', label: '驳回原因', type: 'textarea', required: true }], successMessage: '采购申请已驳回',
+  body: { language: 'js', capabilities: ['api.write'], source: `
+const id=ctx.recordId||(ctx.record&&ctx.record.id),request=ctx.record,actor=ctx.session&&ctx.session.userId,note=String(ctx.input.approval_comment||'').trim();
+if(ctx.recordLoadDenied===true||!id||!request)throw new Error('当前采购申请不存在或不可访问');if(request.status!=='pending_approval')throw new Error('采购申请状态已变化，请刷新后重试');if(!actor)throw new Error('无法识别当前操作人');if(!note)throw new Error('驳回原因不能为空');
+const now=new Date().toISOString();await ctx.api.object('forge_purchase_request').update({id,status:'rejected',approval_comment:note});await ctx.api.object('forge_purchase_request_approval_log').insert({name:request.code+' 审批驳回',request_id:id,action:'rejected',from_status:'pending_approval',to_status:'rejected',comment:note,occurred_at:now,operator_id:actor});return{id,status:'rejected'};
+` },
+});
+
+export const PurchaseRequestCancel = defineAction({
+  name: 'purchase_request_cancel', label: '取消申请', objectName: 'forge_purchase_request', icon: 'ban',
+  locations: [...locations], order: 40, visible: `record.status == 'draft' || record.status == 'rejected'`, refreshAfter: true,
+  params: [{ name: 'cancel_reason', label: '取消原因', type: 'textarea', required: true }], successMessage: '采购申请已取消',
+  body: { language: 'js', capabilities: ['api.write'], source: `
+const id=ctx.recordId||(ctx.record&&ctx.record.id),request=ctx.record,actor=ctx.session&&ctx.session.userId,note=String(ctx.input.cancel_reason||'').trim();
+if(ctx.recordLoadDenied===true||!id||!request)throw new Error('当前采购申请不存在或不可访问');if(!['draft','rejected'].includes(request.status))throw new Error('仅草稿或已驳回申请可以取消');if(!actor)throw new Error('无法识别当前操作人');if(!note)throw new Error('取消原因不能为空');
+const now=new Date().toISOString();await ctx.api.object('forge_purchase_request').update({id,status:'cancelled',approval_comment:note});await ctx.api.object('forge_purchase_request_approval_log').insert({name:request.code+' 取消',request_id:id,action:'cancelled',from_status:request.status,to_status:'cancelled',comment:note,occurred_at:now,operator_id:actor});return{id,status:'cancelled'};
+` },
+});
+
 export const BomShortageCreatePurchaseOrder = defineAction({
   name: 'bom_shortage_create_purchase_order', label: '提交采购审核', objectName: 'forge_bom_shortage_analysis', icon: 'shopping-cart',
   locations: [...locations], order: 10, visible: `record.status == 'completed'`, refreshAfter: true,

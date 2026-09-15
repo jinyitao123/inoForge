@@ -50,4 +50,3 @@ ${productionDataTaskHelpers}
 `;
 
 export const ProductionInboundWorkspacePage = {name:'page_production_inbound_entry',label:'生产入库',description:'查询生产完工入库并追溯来源组装单与库存流水',icon:'package-plus',type:'app' as const,kind:'react' as const,source:inboundSource};
-export const ProductionOutboundWorkspacePage = {name:'page_production_outbounds',label:'生产出库',description:'汇总组装出库与委外出库并追溯来源单据',icon:'package-minus',type:'app' as const,kind:'react' as const,source:outboundSource};
