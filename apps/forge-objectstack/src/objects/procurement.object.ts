@@ -96,6 +96,30 @@ export const PurchaseRequestApprovalLog = master('forge_purchase_request_approva
   occurred_at: Field.datetime({ label: '操作时间', ...required, readonly: true }), operator_id: Field.user({ label: '操作人', ...required, readonly: true }),
 }, ['request_id', 'action', 'from_status', 'to_status', 'comment', 'operator_id', 'occurred_at']);
 
+// RISEMAP /purchase/pending-pool splits an approved request into material-line
+// tasks. Quantities remain on this durable allocation layer while orders and
+// RFQs are created in batches, so partial procurement never loses its source.
+export const PurchasePendingItem = master('forge_purchase_pending_item', '采购待办', 'list-todo', {
+  name: text('物料名称', true), code: code('池编号'),
+  request_id: reference('forge_purchase_request', '来源申请', true),
+  request_line_id: reference('forge_purchase_request_line', '来源申请明细', true),
+  request_code: text('来源单号', true), line_number: Field.number({ label: '行号', min: 1, scale: 0, ...required }),
+  applicant_id: Field.user({ label: '申请人' }), department_name: text('申请部门'),
+  project_id: reference('forge_project', '项目/工单'), item_code: text('物料编码'), model: text('型号'),
+  specification: text('规格'), unit_name: text('单位'),
+  requested_quantity: positiveQuantity('申请数量'), locked_quantity: nonNegativeQuantity('已锁定'),
+  ordered_quantity: nonNegativeQuantity('已下单'), remaining_quantity: nonNegativeQuantity('剩余可下单'),
+  suggested_supplier_id: reference('forge_supplier', '建议供应商'), assigned_supplier_id: reference('forge_supplier', '指定供应商'),
+  purchase_category: text('采购分类'), required_on: Field.date({ label: '需求日期' }),
+  requested_at: Field.datetime({ label: '申请时间', readonly: true }),
+  priority: select('优先级', [['high', '高'], ['medium', '中'], ['low', '低']], 'medium'),
+  status: select('状态', [
+    ['ready', '待处理'], ['assigned', '已指定供应商'], ['inquiring', '询价中'],
+    ['partially_ordered', '部分下单'], ['ordered', '已下单'], ['on_hold', '暂缓'], ['closed', '已关闭'],
+  ], 'ready'),
+  responsible_id: owner(true), remarks: remarks(),
+}, ['code', 'request_code', 'line_number', 'applicant_id', 'department_name', 'project_id', 'item_code', 'name', 'model', 'specification', 'unit_name', 'requested_quantity', 'locked_quantity', 'ordered_quantity', 'remaining_quantity', 'suggested_supplier_id', 'assigned_supplier_id', 'purchase_category', 'required_on', 'requested_at', 'priority', 'status', 'responsible_id']);
+
 // RM-021 / DR-0048 to DR-0050. The order is the commercial source for later arrival, inspection and inbound work.
 export const PurchaseOrder = master('forge_purchase_order', '采购订单', 'shopping-cart', {
   name: text('订单名称', true), code: code('采购订单号'), supplier_id: reference('forge_supplier', '供应商', true),
@@ -104,6 +128,7 @@ export const PurchaseOrder = master('forge_purchase_order', '采购订单', 'sho
     ['bom_shortage', 'BOM缺料'], ['purchase_request', '采购申请'],
   ], 'inventory_replenishment'),
   bom_id: reference('forge_bom', '关联BOM'), shortage_analysis_id: reference('forge_bom_shortage_analysis', '缺料分析快照'),
+  purchase_request_id: reference('forge_purchase_request', '来源采购申请'),
   project_id: reference('forge_project', '关联项目'), warehouse_id: reference('forge_warehouse', '目标仓库'),
   expected_arrival_on: Field.date({ label: '期望到货日期', ...required }), order_on: Field.date({ label: '下单日期' }),
   payment_condition_id: reference('forge_payment_condition', '付款条件配置'), payment_term: text('付款条件', true), payment_method: select('付款方式', [
@@ -124,7 +149,7 @@ export const PurchaseOrder = master('forge_purchase_order', '采购订单', 'sho
   ], 'draft'), readonly: true },
   submitted_at: Field.datetime({ label: '提交时间', readonly: true }), submitted_by: Field.user({ label: '提交人', readonly: true }),
   approved_at: Field.datetime({ label: '审核时间', readonly: true }), approved_by: Field.user({ label: '审核人', readonly: true }), remarks: remarks(),
-}, ['code', 'name', 'supplier_id', 'bom_id', 'expected_arrival_on', 'warehouse_id', 'total_amount', 'arrived_quantity', 'inbound_quantity', 'status', 'responsible_id']);
+}, ['code', 'name', 'supplier_id', 'bom_id', 'purchase_request_id', 'expected_arrival_on', 'warehouse_id', 'total_amount', 'arrived_quantity', 'inbound_quantity', 'status', 'responsible_id']);
 
 export const PurchaseOrderLine = master('forge_purchase_order_line', '采购订单明细', 'list', {
   name: text('物料名称', true), order_id: reference('forge_purchase_order', '采购订单', true),
@@ -136,8 +161,9 @@ export const PurchaseOrderLine = master('forge_purchase_order_line', '采购订�
   taxed_unit_price: nonNegativeMoney('含税单价'), untaxed_unit_price: nonNegativeMoney('不含税单价'),
   tax_rate: percentage('税率'), taxed_subtotal: nonNegativeMoney('含税小计'),
   source_bom_id: reference('forge_bom', '来源BOM'), source_analysis_line_id: reference('forge_bom_shortage_line', '来源缺料明细'),
+  purchase_request_line_id: reference('forge_purchase_request_line', '来源采购申请明细'),
   expected_arrival_on: Field.date({ label: '期望到货日期' }), remarks: remarks(),
-}, ['order_id', 'item_code', 'name', 'model', 'quantity', 'arrived_quantity', 'inspected_quantity', 'inbound_quantity', 'taxed_unit_price', 'taxed_subtotal']);
+}, ['order_id', 'purchase_request_line_id', 'item_code', 'name', 'model', 'quantity', 'arrived_quantity', 'inspected_quantity', 'inbound_quantity', 'taxed_unit_price', 'taxed_subtotal']);
 
 // Live RISEMAP evidence: approval produces one order-level notice with multiple material lines; it does not record physical receipt.
 export const PurchaseArrivalNotice = master('forge_purchase_arrival_notice', '采购到货通知', 'package-search', {

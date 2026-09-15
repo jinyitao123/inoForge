@@ -26,10 +26,13 @@ export const PurchaseRequestApprove = defineAction({
   name: 'purchase_request_approve', label: '审批通过', objectName: 'forge_purchase_request', icon: 'circle-check',
   locations: [...locations], order: 20, visible: `record.status == 'pending_approval'`, refreshAfter: true,
   params: [{ name: 'approval_comment', label: '审批意见', type: 'textarea', required: true }], successMessage: '采购申请已审批通过',
-  body: { language: 'js', capabilities: ['api.write'], source: `
+  body: { language: 'js', capabilities: ['api.read', 'api.write'], source: `
 const id=ctx.recordId||(ctx.record&&ctx.record.id),request=ctx.record,actor=ctx.session&&ctx.session.userId,note=String(ctx.input.approval_comment||'').trim();
 if(ctx.recordLoadDenied===true||!id||!request)throw new Error('当前采购申请不存在或不可访问');if(request.status!=='pending_approval')throw new Error('采购申请状态已变化，请刷新后重试');if(!actor)throw new Error('无法识别当前操作人');if(!note)throw new Error('审批意见不能为空');
+const lines=await ctx.api.object('forge_purchase_request_line').find({where:{request_id:id}}),existing=await ctx.api.object('forge_purchase_pending_item').find({where:{request_id:id}});
+if(!lines.length)throw new Error('采购申请没有物料明细，不能审批通过');if(existing.length)throw new Error('该采购申请已生成采购待办，请刷新后核对');
 const now=new Date().toISOString();await ctx.api.object('forge_purchase_request').update({id,status:'approved',approved_at:now,approved_by:actor,approval_comment:note});
+for(let index=0;index<lines.length;index++){const line=lines[index],quantity=Number(line.quantity||0);await ctx.api.object('forge_purchase_pending_item').insert({name:line.name,code:'POOL-'+String(request.code||id)+'-'+String(index+1).padStart(3,'0'),request_id:id,request_line_id:line.id,request_code:request.code,line_number:index+1,applicant_id:request.submitted_by||request.responsible_id,department_name:'',project_id:request.project_id||null,item_code:line.item_code||'',model:line.model||'',specification:line.specification||'',unit_name:line.unit_name||'',requested_quantity:quantity,locked_quantity:0,ordered_quantity:0,remaining_quantity:quantity,suggested_supplier_id:line.suggested_supplier_id||request.suggested_supplier_id||null,assigned_supplier_id:null,purchase_category:'',required_on:line.expected_arrival_on||request.expected_arrival_on,requested_at:request.submitted_at||now,priority:request.priority||'medium',status:'ready',responsible_id:request.responsible_id,remarks:line.remarks||null});}
 await ctx.api.object('forge_purchase_request_approval_log').insert({name:request.code+' 审批通过',request_id:id,action:'approved',from_status:'pending_approval',to_status:'approved',comment:note,occurred_at:now,operator_id:actor});return{id,status:'approved'};
 ` },
 });
