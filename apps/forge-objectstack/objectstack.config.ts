@@ -70,7 +70,7 @@ export default defineStack({
             page('purchase_inbounds', '采购入库', 'page_purchase_inbound_workspace', 'package-plus'),
             page('production_inbounds', '生产入库', 'page_production_inbound_entry', 'package-plus'),
             page('other_inbounds', '其他入库', 'page_other_inbounds', 'package-plus'),
-            object('opening_inbounds', '期初入库', 'forge_opening_inbound', 'package-plus'),
+            page('opening_inbounds', '期初入库', 'page_opening_inbounds', 'package-plus'),
             page('inbound_lines', '入库明细', 'page_inbound_lines', 'list'),
           ]),
           group('inventory_management', '库存管理', [
