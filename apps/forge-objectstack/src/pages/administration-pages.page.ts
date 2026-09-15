@@ -67,7 +67,6 @@ const pages = Object.fromEntries(definitions.map(def => [def.name, {
   type: 'app' as const, kind: 'react' as const, source: sourceFor(def),
 }]));
 
-export const AdministrationRequestsPage=pages.page_administration_requests;
 export const AdministrationNoticePage=pages.page_administration_notice; export const SealManagementPage=pages.page_seal_management;
 export const MeetingMinutesPage=pages.page_meeting_minutes; export const WorkReportsPage=pages.page_work_reports;
 export const DocumentCenterPage=pages.page_document_center; export const FixedAssetsPage=pages.page_fixed_assets;
@@ -80,5 +79,3 @@ export const SalaryBenefitsPage=pages.page_salary_benefits; export const RulesPo
 export const DirectoryPage=pages.page_directory; export const OvertimeRequestsPage=pages.page_overtime_requests;
 export const LeaveManagementPage=pages.page_leave_management; export const BusinessTripPage=pages.page_business_trip;
 export const AttendanceManagementPage=pages.page_attendance_management; export const AttendanceStatisticsPage=pages.page_attendance_statistics;
-export const ApprovalRecordsPage=pages.page_approval_records; export const StartProcessPage=pages.page_start_process;
-export const ProcessDefinitionsPage=pages.page_process_definitions; export const ProcessCategoriesPage=pages.page_process_categories;

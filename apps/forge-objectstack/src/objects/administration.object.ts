@@ -139,3 +139,38 @@ export const ApprovalCc = ObjectSchema.create({
   indexes: [{ fields: ['read_status', 'copied_at'] }, { fields: ['instance_id'] }],
   enable: { apiEnabled: true, searchable: true, trackHistory: true, feeds: false, activities: true },
 });
+
+export const ProcessCategory = ObjectSchema.create({
+  name: 'forge_process_category', label: '流程分类', pluralLabel: '流程分类', icon: 'tags',
+  sharingModel: 'private', nameField: 'title',
+  fields: {
+    title: Field.text({ label: '分类名称', maxLength: 120, ...required }),
+    code: Field.text({ label: '分类编码', maxLength: 80, ...required }),
+    status: Field.select([option('active', '已启用'), option('inactive', '已停用')], { label: '状态', defaultValue: 'active', ...required }),
+    sort_order: Field.number({ label: '显示顺序', min: 0, scale: 0, defaultValue: 100 }),
+    description: Field.textarea({ label: '分类说明' }),
+  },
+  searchableFields: ['title', 'code', 'description'],
+  listViews: { all: { label: '全部', type: 'grid', columns: ['code', 'title', 'status', 'sort_order'] } },
+  indexes: [{ fields: ['code'], unique: 'organization' }, { fields: ['status', 'sort_order'] }],
+  enable: { apiEnabled: true, searchable: true, trackHistory: true, feeds: false, activities: true },
+});
+
+export const ProcessDefinition = ObjectSchema.create({
+  name: 'forge_process_definition', label: '流程定义', pluralLabel: '流程定义', icon: 'git-branch',
+  sharingModel: 'private', nameField: 'title',
+  fields: {
+    title: Field.text({ label: '流程名称', maxLength: 160, ...required }),
+    code: Field.text({ label: '流程编码', maxLength: 80, ...required }),
+    category_id: Field.lookup('forge_process_category', { label: '流程分类', ...required }),
+    status: Field.select([option('active', '已启用'), option('inactive', '已停用')], { label: '状态', defaultValue: 'active', ...required }),
+    process_type: Field.select([option('approval', '审批流程'), option('business', '业务流程')], { label: '流程类型', defaultValue: 'approval', ...required }),
+    version: Field.text({ label: '版本号', maxLength: 30, defaultValue: 'V1.0', ...required }),
+    default_approver: Field.text({ label: '默认审批人', maxLength: 100, ...required }),
+    description: Field.textarea({ label: '流程说明' }),
+  },
+  searchableFields: ['title', 'code', 'default_approver', 'description'],
+  listViews: { all: { label: '全部', type: 'grid', columns: ['code', 'title', 'category_id', 'status', 'process_type', 'version', 'default_approver'] } },
+  indexes: [{ fields: ['code'], unique: 'organization' }, { fields: ['category_id', 'status'] }],
+  enable: { apiEnabled: true, searchable: true, trackHistory: true, feeds: false, activities: true },
+});
