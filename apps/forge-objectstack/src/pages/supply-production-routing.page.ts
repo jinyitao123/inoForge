@@ -152,7 +152,6 @@ function App(){
 export default App;
 `;
 
-export const PurchaseRequestPoolPage = makePage(pages[5]);
 export const PurchaseTodoPoolPage = makePage(pages[6]);
 export const PurchaseInquiryPage = makePage(pages[7]);
 export const SupplierPriceBookPage = makePage(pages[8]);
