@@ -1,4 +1,4 @@
-import { forgeProductUiCss, forgeProductUiRuntime } from './product-ui.js';
+import { forgeProductUiCss, forgeProductUiRuntime, forgeWorkPageUiCss } from './product-ui.js';
 
 const timesheetCss = `
 div:has(>.forge-time){max-width:none!important;margin:0!important}
@@ -8,7 +8,7 @@ div:has(>.forge-time)>div.space-y-2{display:none!important}
 `;
 
 const projectTimesheetCostSource = `
-const css=${JSON.stringify(forgeProductUiCss + timesheetCss)};
+const css=${JSON.stringify(forgeProductUiCss + forgeWorkPageUiCss + timesheetCss)};
 function App(){
   const adapter=useAdapter(),now=new Date(),today=now.toLocaleDateString('sv-SE',{timeZone:'Asia/Shanghai'}),weekStartDate=new Date(now);weekStartDate.setDate(now.getDate()-((now.getDay()+6)%7));const weekEndDate=new Date(weekStartDate);weekEndDate.setDate(weekStartDate.getDate()+6);const iso=date=>date.toLocaleDateString('sv-SE',{timeZone:'Asia/Shanghai'}),defaultStart=iso(weekStartDate),defaultEnd=iso(weekEndDate);
   const [data,setData]=React.useState({loading:true,projects:[],timesheets:[],costs:[],items:[],members:[],users:[],currentUser:null,errors:[]}),[busy,setBusy]=React.useState(false),[decision,setDecision]=React.useState(null),[showForm,setShowForm]=React.useState(false),[rangeStart,setRangeStart]=React.useState(defaultStart),[rangeEnd,setRangeEnd]=React.useState(defaultEnd),[reviewStatus,setReviewStatus]=React.useState('all'),[projectFilter,setProjectFilter]=React.useState(''),[form,setForm]=React.useState({project_id:'',worker_id:'',code:'',work_item_id:'',work_on:today,work_content:'',time_type:'normal',hours:'',hourly_rate:'0',review_comment:''});
@@ -31,7 +31,7 @@ function App(){
   function downloadCsv(filename,rows){const csv=rows.map(row=>row.map(value=>'"'+String(value??'').replaceAll('"','""')+'"').join(',')).join('\\n'),blob=new Blob(['\\ufeff'+csv],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),anchor=document.createElement('a');anchor.href=url;anchor.download=filename;anchor.click();URL.revokeObjectURL(url)}
   const decisionLabel={project_record_timesheet:'保存工时草稿',project_timesheet_submit:'提交工时审核',project_timesheet_approve:'审核通过',project_timesheet_reject:'驳回工时'},decisionMessage=current=>current.step!=='confirm'?'请核对工时记录与业务影响，下一步进入最终确认。':current.action==='project_timesheet_reject'?'驳回后不会形成项目人工成本，审核意见将保留。':current.action==='project_timesheet_approve'?'审核通过后将形成可追溯的项目人工成本。':current.action==='project_timesheet_submit'?'提交后进入待审核状态，需项目负责人处理。':'保存后形成草稿，可继续提交审核。';
   if(data.loading)return <div className="forge-product forge-time"><style>{css}</style><ForgeLoading label="正在加载工时管理"/></div>;
-  return <><div className="forge-product forge-time"><style>{css}</style><div className="time-shell">
+  return <><div className="forge-product forge-work-page forge-time"><style>{css}</style><div className="time-shell">
     <header className="time-header"><div><div className="time-crumb"><Icon icon="briefcase-business" size={14}/><span>项目管理</span><span>/</span><strong>工时管理</strong></div><h1>工时管理</h1><p>记录项目工时，审核通过后自动进入项目人工成本。</p></div><div className="time-actions time-header-actions"><div className="time-export-group"><button className="fp-button time-header-button" onClick={downloadTimesheets}><Icon icon="download" size={14}/><span>导出工时</span></button><button className="fp-button time-header-button" onClick={downloadTasks}><Icon icon="list-checks" size={14}/><span>导出任务</span></button></div><button className="fp-button primary time-header-button" onClick={openForm}><Icon icon="plus" size={15}/><span>填报工时</span></button></div></header>
     {data.errors.length>0&&<ForgeNotice tone="error" onClose={()=>setData(current=>({...current,errors:[]}))}>{data.errors.join('；')}</ForgeNotice>}
     <section className="fp-card"><div className="time-range"><span className="time-range-label"><Icon icon="calendar-range" size={15}/> 日期范围</span><ForgeDateInput aria-label="工时开始日期" value={rangeStart} onChange={event=>setRangeStart(event.target.value)}/><span className="fp-secondary">至</span><ForgeDateInput aria-label="工时结束日期" value={rangeEnd} onChange={event=>setRangeEnd(event.target.value)}/><button className="fp-button small" onClick={()=>{setRangeStart(defaultStart);setRangeEnd(defaultEnd)}}>本周</button></div></section>
