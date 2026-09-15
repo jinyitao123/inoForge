@@ -2,7 +2,7 @@
 
 日期：2026-09-15
 
-分支：`codex/supply-chain-pages`
+分支：`codex/supply-chain-next`
 
 独立工作树：`/Users/jinyitao/Developer/inoForge-supply-chain-pages`
 
@@ -42,6 +42,7 @@
 - 期初入库：`https://risemap.cn/inventory/inbound/opening`，当前页包含打印条码、导出、刷新、入库单号/批次搜索、状态/来源筛选、12 列和 20 条分页；当前有 `IN-2026-0001`，仓库贯联验证原料仓、金额 ¥54,000.00、状态已入库。
 - 入库明细：`https://risemap.cn/inventory/inbound/details`，当前页包含导出、刷新、入库单号搜索、物料搜索、状态、业务类型、日期范围、20 列明细和 20 条分页；当前 1 条期初入库物料，来源 `IN-2026-0001`。
 - 库存总览：`https://risemap.cn/inventory/overview`，已实时核对总览、物料库存、在途库存、分类汇总和仓库视图五个页签；当前 RISEMAP 为 1 个成品 SKU、账面/可用 1、采购在途 5（4 种物料）。Forge 当前仍为 7 条真实库存余额通用对象表，页面与交互未复刻，合同见 `docs/forge-inventory-overview-page-contract-20260915.md`。
+- 销售直接出库：`https://risemap.cn/inventory/outbound/sales-direct`，当前页无新建入口，包含刷新、直接出库单号/订单号/客户单号/客户搜索、待出库/部分出库/已完成筛选、7 列表格和 20 条分页；当前租户为空。
 
 RISEMAP 当前列表事实为：标题说明“处理质量不符/规格异常的退货流程，跟进供应商退款”，工具栏包含新建退换货、导出、导入/导出任务、刷新；包含全文搜索、全部/退货退款/换货补货、状态筛选、12 列表格和分页。当前租户列表为空。
 
@@ -95,6 +96,8 @@ SN 码管理已拆为 `page_inventory_sn` 专用双页签页面，按保存的 R
 
 其他出库已从来源导航页升级为 `page_other_outbounds` 可办理业务页。RISEMAP 实时核对 `/inventory/outbound/other` 及其新建页，覆盖 8 列列表、草稿/待审批/已审批/已出库状态、多物料、往来单位和项目联动、五种发货方式、快递信息、备注及附件区域。Forge 内置浏览器实际创建 `OUT-2026-69789043`，新增“样机领用”类型，保存后编辑草稿数量 0.1→0.2，提交审批、填写审批意见并二次确认扣库，最终页面回读 0.2 件、¥1,360.00、客户自取和已出库。API 另完成两物料正常链、超库存提交阻断与取消，并验证重复确认出库在服务端状态校验处阻断且库存不变。同一 SQLite 完整停服重启后，API 和页面均回读成功。RISEMAP 当前无启用出库类型且列表为空，线上同材料状态办理保持待复核；Forge 附件存储未接入，页面只显示明确说明而不提供假上传控件。
 
+销售直接出库已从来源导航页升级为 `page_sales_direct_outbounds` 聚合业务页。RISEMAP 实时核对 `/inventory/outbound/sales-direct`，确认无独立新建、三种进度状态、7 列和 20 条分页。Forge 浏览器从待出库任务 `DN-CONVERT-20260915112205-001` 进入办理页，选择真实有库存仓库，经二次确认生成 `OUT-FORGE-20260915-001`；聚合页回读来源销售订单、客户、`1 / 1`、`100%` 和“已完成”。API 确认出库、发货、订单、客户、库存流水来源关系和数量一致；同一 SQLite 完整停服重启后 API 与浏览器继续回读。RISEMAP 当前租户为空，有数据行操作和多物料直接出库仍待同材料复核。
+
 此前浏览器已将 `UI-RET-20260915-001` 从草稿依次办理到提交、财务审批、仓库确认、退货出库和供应商退款，页面最终回读“已完成 / 已收款 ¥1,360.00”。API/SQLite 回读为 `status=completed`、`refund_status=received`、`outbound_status=outbounded`、资金账户余额 ¥1,360.00；停服重启后页面仍可回读。
 
 ## 页面覆盖
@@ -146,6 +149,7 @@ SN 码管理已拆为 `page_inventory_sn` 专用双页签页面，按保存的 R
 - `pnpm acceptance:inventory-damage-sn-restart`：同一 SQLite 停服重启后报损单、两条明细、库存结果、流水、SN 记录与两条验证历史回读通过
 - `pnpm acceptance:other-outbound`：两物料提交、审批、扣库、逐物料流水、重复出库幂等阻断、超库存阻断与取消均通过
 - `pnpm acceptance:other-outbound-restart`：同一 SQLite 停服重启后其他出库头、明细、库存流水及异常取消单回读通过
+- `pnpm acceptance:sales-direct-outbound-readback`：出库单、发货单、销售订单、客户、累计进度和库存流水来源关系通过；同一 SQLite 停服重启后再次通过
 - `pnpm acceptance:other-inbound-prerequisite`：4 项通过
 - `pnpm acceptance:other-inbound-prerequisite-restart`：同一 SQLite 停服重启回读通过
 - `pnpm acceptance:procurement-receipt-inbound-restart`：同一 SQLite 重启回读通过；断言已改为来源入库流水持久存在且当前余额匹配该物料最新流水，兼容后续合法退货变动
@@ -153,7 +157,7 @@ SN 码管理已拆为 `page_inventory_sn` 专用双页签页面，按保存的 R
 
 ## 边界
 
-物料组合、综合物料搜索、产品实例追溯、采购申请、采购待办池、询价、供应商价格本、销售直接出库、采购退换货出库、出库明细等页面已经有独立入口、来源对象、数据汇总、筛选和跳转，但其中部分动作仍由来源单据页办理。它们是“页面与入口已覆盖”，不是“每个菜单都已经有独立单据写入闭环”。
+物料组合、综合物料搜索、产品实例追溯、采购申请、采购待办池、询价、供应商价格本、采购退换货出库、出库明细等页面已经有独立入口、来源对象、数据汇总、筛选和跳转，但其中部分动作仍由来源单据页办理。它们是“页面与入口已覆盖”，不是“每个菜单都已经有独立单据写入闭环”。销售直接出库已完成真实聚合页及来源办理闭环，但多物料与 RISEMAP 有数据行操作仍待同材料复核。
 
 采购退换货附件存储尚未接入；Forge 页面明确展示缺口，不提供无结果的上传控件。RISEMAP 当前新建页支持订单自动带出多条物料，Forge 当前执行 Action 仍限定一次创建一条订单物料；该项尚未达到完整复刻。
 

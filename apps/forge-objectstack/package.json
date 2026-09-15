@@ -21,6 +21,7 @@
     "acceptance:sales-conversion": "node tests/sales-conversion.integration.mjs",
     "acceptance:sales-shipment": "node tests/sales-shipment.integration.mjs",
     "acceptance:sales-outbound": "node tests/sales-outbound.integration.mjs",
+    "acceptance:sales-direct-outbound-readback": "node tests/sales-direct-outbound-readback.mjs",
     "acceptance:sales-finance": "node tests/sales-finance.integration.mjs",
     "acceptance:sales-finance-restart": "node tests/sales-finance-restart-readback.mjs",
     "acceptance:sales-restart": "node tests/sales-restart-readback.mjs",

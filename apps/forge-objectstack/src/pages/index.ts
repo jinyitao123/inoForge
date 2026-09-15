@@ -17,6 +17,7 @@ export * from './sales-order-workspace.page.js';
 export * from './sales-shipment-workspace.page.js';
 export * from './pending-outbound-shipments.page.js';
 export * from './sales-outbound-list.page.js';
+export * from './sales-direct-outbounds.page.js';
 export * from './sales-contract-workspace.page.js';
 export * from './project-operating-analysis.page.js';
 export * from './project-settings.page.js';
