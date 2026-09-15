@@ -65,6 +65,7 @@ export * from './supply-production-routing.page.js';
 export * from './inventory-operations.page.js';
 export * from './inventory-damage.page.js';
 export * from './inventory-sn.page.js';
+export * from './other-outbound-workspace.page.js';
 export * from './other-inbound-workspace.page.js';
 export * from './opening-inbound-list.page.js';
 export * from './inbound-lines-list.page.js';
