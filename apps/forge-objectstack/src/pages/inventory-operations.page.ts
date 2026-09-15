@@ -65,15 +65,3 @@ export const InventoryAlertsPage = page(
   "bell-ring",
   "alerts",
 );
-export const InventoryLossPage = page(
-  "page_inventory_loss",
-  "报损单",
-  "file-warning",
-  "damage",
-);
-export const InventorySnPage = page(
-  "page_inventory_sn",
-  "SN码管理",
-  "scan-line",
-  "sn",
-);

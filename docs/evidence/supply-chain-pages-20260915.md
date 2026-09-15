@@ -87,6 +87,12 @@ RISEMAP 当前新建页事实为：处理方式、可留空自动编码的退货
 
 调拨与借出已从共享库存作业简表拆为 `page_inventory_transfer` 专用业务页，并按 RISEMAP 当前页补齐单据/明细双视图、新建、导出、刷新、搜索、类型/状态筛选及两套表格列。浏览器实际创建并办结普通调拨 `UI-TRF-20260915-001`，从委外发料仓向贯联验证原料仓调拨 1 件冷轧钢板，草稿提交后库存未变，审核执行后页面回读已完成、¥12.50；另创建借出 `UI-LOAN-20260915-001`，向汇川项目现场借出 0.1 件 PLC，审核执行后为借出中，经二次确认归还后回读已归还、¥680.00。明细视图同步回读两条物料行。RISEMAP 当前租户为空；变价调拨、多物料头/明细、库内移位及承运字段的执行结果保持待同材料复核，不提供假入口。
 
+报损单已从共享单物料作业页拆为 `page_inventory_loss` 专用业务页。依据此前保存的 RISEMAP 当前页面证据，补齐报损单号、仓库、报损类型、物料种类、数量、金额、经手人、状态、日期和操作列，以及可快捷新增类型的多物料新建表单。Forge 内置浏览器实际创建 `DMG-2026-66759459`，先验证空提交同时提示仓库、类型和物料，再保存并编辑草稿，提交后库存保持不变，填写审批意见后审核扣减两条物料并生成逐物料流水，最终回读 0.3 件、¥1,820.00 和已完成。API 另验证超库存数量被阻断且不生成流水，异常草稿随后作废。同一 SQLite 完整停服重启后，页面仍回读单号、两条明细、总量、金额、状态和审批意见。
+
+SN 码管理已拆为 `page_inventory_sn` 专用双页签页面，按保存的 RISEMAP 证据补齐记录表 9 列、搜索、出库状态筛选、刷新、分页和轨迹查看，并移除无 RISEMAP 依据的手工登记入口。内置浏览器对 `SN2609092289-00001` 验证成功，对 `INVALID-SN-NO-DATA` 返回“可能来自其他渠道或入库时未扫描”的未找到说明；两条最近验证记录均写入数据库。同一 SQLite 停服重启后，SN 记录与两条验证历史继续在页面回读。
+
+本轮尝试实时打开 RISEMAP `/inventory/damage` 时会话跳转至登录页，因此上述 RISEMAP 内容来自项目此前已保存的当前页面、DOM 和操作证据，不能写成“本轮实时对照通过”。Forge 页面、API 和重启证据已经完成；RISEMAP 同材料实时办理仍待登录恢复后补验。
+
 此前浏览器已将 `UI-RET-20260915-001` 从草稿依次办理到提交、财务审批、仓库确认、退货出库和供应商退款，页面最终回读“已完成 / 已收款 ¥1,360.00”。API/SQLite 回读为 `status=completed`、`refund_status=received`、`outbound_status=outbounded`、资金账户余额 ¥1,360.00；停服重启后页面仍可回读。
 
 ## 页面覆盖
@@ -134,6 +140,8 @@ RISEMAP 当前新建页事实为：处理方式、可留空自动编码的退货
 - `pnpm acceptance:inventory-count-page-readback`：重启后 `CHK-1789460997443` 状态、来源仓库、SKU、账面/实盘/差异、余额及零差异不生成盘盈盘亏流水均回读通过
 - RISEMAP / Forge 调拨与借出实时对照：双视图、列表字段、新建普通调拨/借出联动、草稿、提交、审核执行和归还均在浏览器验证（RISEMAP 当前租户为空，可写路径待同材料复核）
 - `pnpm acceptance:inventory-transfer-page-readback`：重启后普通调拨、借出归还、两端余额及 `transfer_out`/`transfer_in`/`loan_out`/`loan_return` 四类流水回读通过
+- `pnpm acceptance:inventory-damage-sn`：多物料报损正常路径、审核前后库存、逐物料流水、超库存阻断与作废，以及 SN 成功/未找到验证历史均通过
+- `pnpm acceptance:inventory-damage-sn-restart`：同一 SQLite 停服重启后报损单、两条明细、库存结果、流水、SN 记录与两条验证历史回读通过
 - `pnpm acceptance:other-inbound-prerequisite`：4 项通过
 - `pnpm acceptance:other-inbound-prerequisite-restart`：同一 SQLite 停服重启回读通过
 - `pnpm acceptance:procurement-receipt-inbound-restart`：同一 SQLite 重启回读通过；断言已改为来源入库流水持久存在且当前余额匹配该物料最新流水，兼容后续合法退货变动
