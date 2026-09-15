@@ -198,6 +198,8 @@
     "acceptance:inventory-daily-operations": "node tests/inventory-daily-operations-readback.mjs",
     "acceptance:inventory-damage-sn": "node tests/inventory-damage-sn.integration.mjs",
     "acceptance:inventory-damage-sn-restart": "node tests/inventory-damage-sn-restart-readback.mjs",
+    "acceptance:other-outbound": "node tests/other-outbound.integration.mjs",
+    "acceptance:other-outbound-restart": "node tests/other-outbound-restart-readback.mjs",
     "acceptance:production-assembly-draft-safety": "node tests/production-assembly-draft-safety.integration.mjs",
     "acceptance:production-assembly-draft-safety-restart": "node tests/production-assembly-draft-safety-restart-readback.mjs",
     "acceptance:other-inbound-prerequisite": "node tests/other-inbound-prerequisite.integration.mjs",

@@ -53,6 +53,32 @@ export const OtherInboundLine = master('forge_other_inbound_line', '其他入库
   ], { label: '明细状态', defaultValue: 'draft', readonly: true }), remarks: remarks(),
 }, ['inbound_id', 'item_code', 'name', 'specification', 'quantity', 'taxed_unit_price', 'taxed_amount', 'batch_number', 'status']);
 
+export const OtherOutboundType = master('forge_other_outbound_type', '其他出库类型', 'tags', {
+  name: text('类型名称', true), code: code('类型编码'), color: text('标识颜色'),
+  status: Field.select([{ value: 'active', label: '启用' }, { value: 'inactive', label: '停用' }], { label: '状态', defaultValue: 'active' }),
+  description: Field.textarea({ label: '用途说明' }), remarks: remarks(),
+}, ['name', 'code', 'status', 'description']);
+
+export const OtherOutbound = master('forge_other_outbound', '其他出库单', 'package-minus', {
+  name: text('出库单名称', true), code: code('出库单号'), outbound_type_id: reference('forge_other_outbound_type', '出库类型', true),
+  outbound_on: Field.date({ label: '出库日期', ...required }), customer_id: reference('forge_customer', '客户'),
+  project_id: reference('forge_project', '关联项目'), reason: Field.textarea({ label: '出库原因' }), handler_id: owner(true),
+  shipping_method: Field.select([{ value: 'express', label: '快递' }, { value: 'freight', label: '物流' }, { value: 'pickup', label: '客户自取' }, { value: 'delivery', label: '送货' }, { value: 'other', label: '其他' }], { label: '发货方式', defaultValue: 'express' }),
+  logistics_company: text('物流公司'), tracking_number: text('快递/物流单号'), recipient: text('收件人'), phone: text('联系电话'), address: Field.textarea({ label: '收货地址' }),
+  line_count: quantity('物料种类', false, 0), total_quantity: quantity('出库总数量', false, 0), total_amount: nonNegativeMoney('出库总金额'),
+  status: Field.select([{ value: 'draft', label: '草稿' }, { value: 'pending_approval', label: '待审批' }, { value: 'approved', label: '已审批' }, { value: 'outbounded', label: '已出库' }, { value: 'rejected', label: '已驳回' }, { value: 'cancelled', label: '已取消' }], { label: '出库状态', defaultValue: 'draft', readonly: true }),
+  approval_note: Field.textarea({ label: '审批意见', readonly: true }), approved_by: owner(), approved_at: Field.datetime({ label: '审批时间', readonly: true }),
+  outbounded_by: owner(), outbounded_at: Field.datetime({ label: '出库时间', readonly: true }), cancel_reason: Field.textarea({ label: '取消原因', readonly: true }),
+  cancelled_by: owner(), cancelled_at: Field.datetime({ label: '取消时间', readonly: true }), remarks: remarks(),
+}, ['code', 'outbound_type_id', 'outbound_on', 'customer_id', 'project_id', 'line_count', 'total_quantity', 'total_amount', 'status', 'handler_id']);
+
+export const OtherOutboundLine = master('forge_other_outbound_line', '其他出库明细', 'list', {
+  name: text('物料名称', true), outbound_id: reference('forge_other_outbound', '其他出库单', true), warehouse_id: reference('forge_warehouse', '出库仓库', true),
+  sku_id: reference('forge_material_sku', '物料规格', true), item_code: text('物料编码', true), specification: text('规格'), unit_name: text('单位'),
+  quantity: quantity('出库数量', true), unit_cost: nonNegativeMoney('含税单位成本'), amount: nonNegativeMoney('出库金额'), batch_number: text('批次号'), warehouse_location: text('库位'),
+  status: Field.select([{ value: 'draft', label: '草稿' }, { value: 'pending_approval', label: '待审批' }, { value: 'approved', label: '已审批' }, { value: 'outbounded', label: '已出库' }, { value: 'rejected', label: '已驳回' }, { value: 'cancelled', label: '已取消' }], { label: '明细状态', defaultValue: 'draft', readonly: true }), remarks: remarks(),
+}, ['outbound_id', 'warehouse_id', 'item_code', 'name', 'specification', 'quantity', 'unit_cost', 'amount', 'status']);
+
 // RM-028 runtime evidence. Header and lines remain separate so approval can audit
 // the exact quantity and value that produced each balance movement.
 export const OpeningInbound = master('forge_opening_inbound', '期初入库单', 'package-plus', {
@@ -128,7 +154,7 @@ export const InventoryLedger = master('forge_inventory_ledger', '库存流水', 
     { value: 'count_gain', label: '盘盈入库' }, { value: 'count_loss', label: '盘亏出库' },
     { value: 'transfer_out', label: '调拨出库' }, { value: 'transfer_in', label: '调拨入库' },
     { value: 'loan_out', label: '借出出库' }, { value: 'loan_return', label: '借出归还' },
-    { value: 'damage_out', label: '报损出库' },
+    { value: 'damage_out', label: '报损出库' }, { value: 'other_outbound', label: '其他出库' },
   ], { label: '流水类型', ...required }),
   quantity: quantity('变动数量', true), before_on_hand: quantity('变动前库存'), after_on_hand: quantity('变动后库存'),
   before_available: quantity('变动前可用库存'), after_available: quantity('变动后可用库存'),
