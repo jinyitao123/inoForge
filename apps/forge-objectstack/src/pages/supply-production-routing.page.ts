@@ -154,8 +154,6 @@ export default App;
 `;
 
 export const PurchaseTodoPoolPage = PurchaseTodoPoolStandalonePage;
-export const PurchaseInquiryPage = makePage(pages[7]);
-export const SupplierPriceBookPage = makePage(pages[8]);
 export const AllInboundsPage = { name: pages[9].name, label: pages[9].label, description: pages[9].description, icon: 'package-plus', type: 'app' as const, kind: 'react' as const, source: allInboundsSource };
 export const DrawingGuidePage = makePage(pages[25]);
 export const SubcontractGuidePage = {

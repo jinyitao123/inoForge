@@ -96,6 +96,19 @@ export const PurchaseRequestApprovalLog = master('forge_purchase_request_approva
   occurred_at: Field.datetime({ label: '操作时间', ...required, readonly: true }), operator_id: Field.user({ label: '操作人', ...required, readonly: true }),
 }, ['request_id', 'action', 'from_status', 'to_status', 'comment', 'operator_id', 'occurred_at']);
 
+export const PurchaseInquiry = master('forge_purchase_inquiry', '询价单', 'messages-square', {
+  name: text('询价标题', true), code: code('询价单号'), source_type: select('来源', [['purchase_request', '采购申请'], ['manual', '手工创建'], ['shortage', '缺料分析']], 'manual'),
+  responsible_id: owner(true), supplier_count: Field.number({ label: '供应商数', min: 0, scale: 0, defaultValue: 0 }), line_count: Field.number({ label: '物料数', min: 0, scale: 0, defaultValue: 0 }),
+  due_on: Field.date({ label: '报价截止日期' }), status: select('状态', [['draft', '待发布'], ['published', '报价中'], ['compared', '已完成比价'], ['converted', '已转采购单'], ['closed', '已关闭']], 'draft'),
+  remarks: remarks(),
+}, ['code', 'name', 'source_type', 'responsible_id', 'supplier_count', 'line_count', 'due_on', 'status']);
+
+export const SupplierPriceBook = master('forge_supplier_price_book', '供应商价格本', 'book-open', {
+  name: text('价格本名称', true), code: code('价格本编号'), supplier_id: reference('forge_supplier', '供应商', true),
+  currency: select('币种', [['cny', '人民币'], ['usd', '美元'], ['eur', '欧元']], 'cny'), valid_from: Field.date({ label: '生效日期' }), valid_to: Field.date({ label: '失效日期' }),
+  line_count: Field.number({ label: '价格条目数', min: 0, scale: 0, defaultValue: 0 }), status: select('状态', [['draft', '草稿'], ['active', '生效中'], ['expired', '已过期'], ['voided', '已废弃']], 'draft'), remarks: remarks(),
+}, ['code', 'name', 'supplier_id', 'currency', 'valid_from', 'valid_to', 'line_count', 'status']);
+
 // RISEMAP /purchase/pending-pool splits an approved request into material-line
 // tasks. Quantities remain on this durable allocation layer while orders and
 // RFQs are created in batches, so partial procurement never loses its source.
