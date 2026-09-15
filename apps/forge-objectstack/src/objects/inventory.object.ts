@@ -181,3 +181,53 @@ export const InventorySerialNumber = master('forge_inventory_serial_number', 'SN
   outbound_code: text('出库单号'), verified_at: Field.datetime({ label: '最近验证时间', readonly: true }),
   responsible_id: owner(true), remarks: remarks(),
 }, ['code', 'sku_id', 'inbound_code', 'batch_number', 'supplier_id', 'status', 'outbound_code']);
+
+// RM-037: report loss is a header plus multiple inventory lines. Inventory is
+// changed only by the approval action so the exact quantity and value of every
+// loss remains auditable after restart.
+export const InventoryDamageType = master('forge_inventory_damage_type', '报损类型', 'tags', {
+  name: text('类型名称', true), code: code('类型编码'), description: Field.textarea({ label: '类型描述' }),
+  color: text('标识颜色'), status: Field.select([
+    { value: 'active', label: '启用' }, { value: 'inactive', label: '停用' },
+  ], { label: '状态', defaultValue: 'active' }), remarks: remarks(),
+}, ['name', 'code', 'description', 'color', 'status']);
+
+export const InventoryDamage = master('forge_inventory_damage', '报损单', 'file-warning', {
+  name: text('报损单名称', true), code: code('报损单号'),
+  warehouse_id: reference('forge_warehouse', '所在仓库', true),
+  damage_type_id: reference('forge_inventory_damage_type', '报损类型', true),
+  damage_on: Field.date({ label: '报损日期', ...required }),
+  line_count: quantity('物料种类', false, 0), total_quantity: quantity('报损总量', false, 0),
+  total_amount: nonNegativeMoney('报损金额'), status: Field.select([
+    { value: 'draft', label: '草稿' }, { value: 'pending_approval', label: '待审批' },
+    { value: 'completed', label: '已完成' }, { value: 'rejected', label: '已驳回' },
+    { value: 'voided', label: '已作废' },
+  ], { label: '状态', defaultValue: 'draft', readonly: true }),
+  handler_id: owner(true), submitted_at: Field.datetime({ label: '提交时间', readonly: true }),
+  approved_by: owner(), approved_at: Field.datetime({ label: '审批时间', readonly: true }),
+  approval_note: Field.textarea({ label: '审批意见', readonly: true }),
+  void_reason: Field.textarea({ label: '作废原因', readonly: true }),
+  voided_by: owner(), voided_at: Field.datetime({ label: '作废时间', readonly: true }), remarks: remarks(),
+}, ['code', 'warehouse_id', 'damage_type_id', 'damage_on', 'line_count', 'total_quantity', 'total_amount', 'status', 'handler_id']);
+
+export const InventoryDamageLine = master('forge_inventory_damage_line', '报损物料明细', 'list', {
+  name: text('物料名称', true), damage_id: reference('forge_inventory_damage', '报损单', true),
+  warehouse_id: reference('forge_warehouse', '所在仓库', true),
+  sku_id: reference('forge_material_sku', '物料规格', true), item_code: text('物料编码'),
+  specification: text('规格'), unit_name: text('单位'), quantity: quantity('报损数量', true),
+  unit_cost: nonNegativeMoney('含税单位成本'), amount: nonNegativeMoney('报损金额'),
+  status: Field.select([
+    { value: 'draft', label: '草稿' }, { value: 'pending_approval', label: '待审批' },
+    { value: 'completed', label: '已完成' }, { value: 'rejected', label: '已驳回' },
+    { value: 'voided', label: '已作废' },
+  ], { label: '明细状态', defaultValue: 'draft', readonly: true }), remarks: remarks(),
+}, ['damage_id', 'item_code', 'name', 'specification', 'quantity', 'unit_cost', 'amount', 'status']);
+
+export const InventorySerialVerification = master('forge_inventory_serial_verification', 'SN码验证记录', 'scan-search', {
+  name: text('验证记录', true), query_code: text('验证序列号', true),
+  serial_id: reference('forge_inventory_serial_number', '匹配SN记录'),
+  result: Field.select([
+    { value: 'found', label: '验证通过' }, { value: 'not_found', label: '未找到匹配记录' },
+  ], { label: '验证结果', ...required }),
+  verified_at: Field.datetime({ label: '验证时间', ...required }), responsible_id: owner(true), remarks: remarks(),
+}, ['query_code', 'result', 'serial_id', 'verified_at', 'responsible_id']);
