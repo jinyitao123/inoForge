@@ -13,6 +13,7 @@ export * from './production-inventory-workspace.page.js';
 export * from './production-outbound-list.page.js';
 export * from './inspection-rules.page.js';
 export * from './material-combinations.page.js';
+export * from './material-search.page.js';
 export { ProductionDataTaskPage } from './production-data-task.page.js';
 export * from './delivery-acceptance-workspace.page.js';
 export * from './collection-settlement-workspace.page.js';
