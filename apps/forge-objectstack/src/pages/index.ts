@@ -16,6 +16,7 @@ export * from './material-combinations.page.js';
 export * from './material-search.page.js';
 export * from './product-trace.page.js';
 export * from './purchase-invoice.page.js';
+export * from './purchase-request.page.js';
 export { ProductionDataTaskPage } from './production-data-task.page.js';
 export * from './delivery-acceptance-workspace.page.js';
 export * from './collection-settlement-workspace.page.js';

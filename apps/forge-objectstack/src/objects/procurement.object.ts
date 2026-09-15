@@ -61,6 +61,41 @@ export const PaymentCondition = master('forge_payment_condition', '付款条件'
   remarks: remarks(),
 }, ['code', 'name', 'settlement_basis', 'payment_days', 'status', 'description']);
 
+// Live RISEMAP /purchase/requests: independent request header and material-detail views.
+export const PurchaseRequest = master('forge_purchase_request', '采购申请', 'file-plus-2', {
+  name: text('申请标题', true), code: code('申请编号'),
+  priority: select('优先级', [['high', '高'], ['medium', '中'], ['low', '低']], 'medium'),
+  project_id: reference('forge_project', '关联项目'), customer_id: reference('forge_customer', '关联客户'),
+  responsible_id: owner(true), suggested_supplier_id: reference('forge_supplier', '建议供应商'),
+  currency: select('币种', [['cny', '人民币'], ['usd', '美元'], ['eur', '欧元']], 'cny'),
+  request_on: Field.date({ label: '申请日期', ...required }), expected_arrival_on: Field.date({ label: '期望到货日期', ...required }),
+  purchase_reason: Field.textarea({ label: '采购原因', ...required }),
+  line_count: Field.number({ label: '物料数', min: 0, scale: 0, defaultValue: 0, readonly: true }),
+  total_quantity: nonNegativeQuantity('总数量', true), estimated_taxed_amount: nonNegativeMoney('预估含税金额'),
+  status: { ...select('状态', [
+    ['draft', '草稿'], ['pending_approval', '审批中'], ['approved', '已通过'], ['rejected', '已驳回'],
+    ['converted', '已转采购'], ['cancelled', '已取消'],
+  ], 'draft'), readonly: true },
+  submitted_at: Field.datetime({ label: '提交时间', readonly: true }), submitted_by: Field.user({ label: '提交人', readonly: true }),
+  approved_at: Field.datetime({ label: '审批时间', readonly: true }), approved_by: Field.user({ label: '审批人', readonly: true }),
+  approval_comment: Field.textarea({ label: '审批意见', readonly: true }), remarks: remarks(),
+}, ['code', 'name', 'priority', 'project_id', 'customer_id', 'responsible_id', 'line_count', 'total_quantity', 'estimated_taxed_amount', 'currency', 'expected_arrival_on', 'suggested_supplier_id', 'status', 'request_on']);
+
+export const PurchaseRequestLine = master('forge_purchase_request_line', '采购申请明细', 'list', {
+  name: text('物料名称', true), request_id: reference('forge_purchase_request', '采购申请', true),
+  sku_id: reference('forge_material_sku', '物料规格', true), item_code: text('物料编码'), model: text('型号'),
+  specification: text('规格'), unit_name: text('单位'), quantity: positiveQuantity(),
+  taxed_unit_price: nonNegativeMoney('预估含税单价'), tax_rate: percentage('税率'), taxed_subtotal: nonNegativeMoney('预估含税小计'),
+  expected_arrival_on: Field.date({ label: '期望到货日期' }), suggested_supplier_id: reference('forge_supplier', '建议供应商'), remarks: remarks(),
+}, ['request_id', 'item_code', 'name', 'model', 'specification', 'unit_name', 'quantity', 'taxed_unit_price', 'tax_rate', 'taxed_subtotal', 'expected_arrival_on', 'suggested_supplier_id']);
+
+export const PurchaseRequestApprovalLog = master('forge_purchase_request_approval_log', '采购申请审批记录', 'history', {
+  name: text('记录名称', true), request_id: reference('forge_purchase_request', '采购申请', true),
+  action: select('动作', [['submitted', '提交审批'], ['approved', '审批通过'], ['rejected', '审批驳回'], ['cancelled', '取消']]),
+  from_status: text('原状态'), to_status: text('新状态'), comment: Field.textarea({ label: '意见' }),
+  occurred_at: Field.datetime({ label: '操作时间', ...required, readonly: true }), operator_id: Field.user({ label: '操作人', ...required, readonly: true }),
+}, ['request_id', 'action', 'from_status', 'to_status', 'comment', 'operator_id', 'occurred_at']);
+
 // RM-021 / DR-0048 to DR-0050. The order is the commercial source for later arrival, inspection and inbound work.
 export const PurchaseOrder = master('forge_purchase_order', '采购订单', 'shopping-cart', {
   name: text('订单名称', true), code: code('采购订单号'), supplier_id: reference('forge_supplier', '供应商', true),

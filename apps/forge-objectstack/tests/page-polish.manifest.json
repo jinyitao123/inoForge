@@ -318,7 +318,7 @@
       "designStatus": "review_required"
     },
     {
-      "file": "supply-production-routing.page.ts",
+      "file": "purchase-request.page.ts",
       "pages": [
         "page_purchase_request_pool"
       ],
