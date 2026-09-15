@@ -2,6 +2,7 @@ import { defineStack, type NavigationItemInput } from '@objectstack/spec';
 import * as objects from './src/objects/index.js';
 import * as actions from './src/actions/index.js';
 import * as pages from './src/pages/index.js';
+import * as hooks from './src/hooks/index.js';
 
 const object = (id: string, label: string, objectName: string, icon?: string) => ({
   id, type: 'object' as const, label, objectName, ...(icon ? { icon } : {}),
@@ -22,6 +23,7 @@ export default defineStack({
   },
   objects: Object.values(objects),
   actions: Object.values(actions),
+  hooks: Object.values(hooks),
   pages: Object.values(pages),
   apps: [{
     name: 'forge', label: 'Forge', icon: 'factory', active: true, isDefault: true,
@@ -239,29 +241,29 @@ export default defineStack({
       {
         id: 'finance', label: '财务', icon: 'landmark', navigation: [
           group('fund_management', '资金管理', [
-            page('fund_accounts', '资金账户', 'page_finance_gap', 'wallet'),
+            page('fund_accounts', '资金账户', 'page_fund_accounts', 'wallet'),
             page('bank_flow', '资金流水', 'page_bank_flow', 'landmark'),
             page('bank_statement', '银行余额对账', 'page_bank_statement', 'file-check-2'),
             page('opening_balance', '期初往来账与对冲', 'page_opening_balance', 'book-open-check'),
-            page('receivables_payables', '应收应付', 'page_finance_gap', 'scale'),
+            page('receivables_payables', '应收应付', 'page_receivables_payables', 'scale'),
             page('customer_prepayment', '收款管理', 'page_customer_prepayment', 'badge-dollar-sign'),
             page('purchase_payment', '付款管理', 'page_purchase_payment', 'send-horizontal'),
             page('refunds', '退款申请', 'page_supplier_refund', 'undo-2'),
-            page('credit_limits', '授信额度管理', 'page_finance_gap', 'gauge'),
-            page('loans', '借款贷款管理', 'page_finance_gap', 'hand-coins'),
+            page('credit_limits', '授信额度管理', 'page_credit_management', 'gauge'),
+            page('loans', '借款贷款管理', 'page_finance_loans', 'hand-coins'),
           ]),
           group('business_confirmation', '业务确认', [
             page('revenue_recognition', '销售收入确认', 'page_revenue_recognition', 'badge-dollar-sign'),
-            page('cost_center', '成本中心', 'page_finance_gap', 'chart-pie'),
-            page('expense_center', '费用中心', 'page_finance_gap', 'receipt'),
-            page('reimbursement', '报销管理', 'page_finance_gap', 'file-spreadsheet'),
+            page('cost_center', '成本中心', 'page_finance_cost_center', 'chart-pie'),
+            page('expense_center', '费用中心', 'page_finance_expense_center', 'receipt'),
+            page('reimbursement', '报销管理', 'page_finance_reimbursement', 'file-spreadsheet'),
             page('counterparty_reconciliation', '对账单', 'page_counterparty_reconciliation', 'file-check-2'),
           ]),
           group('invoice_management', '发票管理', [
-            page('invoice_overview', '发票总览', 'page_finance_gap', 'files'),
-            page('output_invoices', '销项发票', 'page_finance_gap', 'receipt-text'),
-            page('input_invoices', '进项发票', 'page_finance_gap', 'receipt-text'),
-            page('invoice_tasks', '开票任务', 'page_finance_gap', 'list-todo'),
+            page('invoice_overview', '发票总览', 'page_invoice_overview', 'files'),
+            page('output_invoices', '销项发票', 'page_output_invoices', 'receipt-text'),
+            page('input_invoices', '进项发票', 'page_input_invoices', 'receipt-text'),
+            page('invoice_tasks', '开票任务', 'page_invoice_tasks', 'list-todo'),
             page('finance_adjustments', '调整记录', 'page_invoice_reversal', 'receipt-text'),
             page('collection_settlement', '开票与结算', 'page_collection_settlement_workspace', 'wallet-cards'),
           ]),

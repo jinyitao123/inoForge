@@ -118,6 +118,22 @@ export const FundAccount = master('forge_fund_account', '资金账户', 'landmar
   responsible_id: owner(true), remarks: remarks(),
 }, ['code', 'name', 'account_type', 'bank_name', 'account_number', 'currency', 'opening_balance', 'current_balance', 'status']);
 
+export const FinanceLoan = master('forge_finance_loan', '借款贷款', 'hand-coins', {
+  name: text('借款标题', true), code: code('借款单号'), loan_type: Field.select([
+    { value: 'employee', label: '员工借款' }, { value: 'bank', label: '银行贷款' },
+  ], { label: '借款类型', defaultValue: 'employee', ...required }),
+  purpose: Field.textarea({ label: '借款用途', ...required }), purpose_category: Field.select([
+    { value: 'business', label: '业务支出' }, { value: 'travel', label: '差旅支出' },
+    { value: 'purchase', label: '采购支出' }, { value: 'other', label: '其他' },
+  ], { label: '用途分类', defaultValue: 'business', ...required }),
+  amount: amount('借款金额'), project_id: reference('forge_project', '关联项目'),
+  expected_repayment_on: Field.date({ label: '预计还款日期', ...required }), applicant_id: Field.user({ label: '申请人' }),
+  status: Field.select([
+    { value: 'draft', label: '草稿' }, { value: 'pending_review', label: '审批中' },
+    { value: 'approved', label: '已通过' }, { value: 'repaid', label: '已还清' }, { value: 'rejected', label: '已驳回' },
+  ], { label: '状态', defaultValue: 'draft' }), responsible_id: owner(true), remarks: remarks(),
+}, ['code', 'name', 'loan_type', 'purpose_category', 'amount', 'project_id', 'expected_repayment_on', 'status']);
+
 export const CashReceipt = master('forge_cash_receipt', '收款流水', 'badge-dollar-sign', {
   name: text('收款流水名称', true), code: code('流水号'), customer_id: reference('forge_customer', '客户', true),
   account_id: reference('forge_fund_account', '收款账户', true), received_on: Field.date({ label: '收款日期', ...required }),

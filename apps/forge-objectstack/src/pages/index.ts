@@ -36,6 +36,7 @@ export * from './project-center.page.js';
 export * from './bank-flow.page.js';
 export * from './opening-balance.page.js';
 export * from './bank-statement.page.js';
+export * from './finance-management.page.js';
 export * from './subcontract-workspace.page.js';
 export * from './subcontract-pricing.page.js';
 export * from './subcontract-policy.page.js';
