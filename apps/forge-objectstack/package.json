@@ -28,6 +28,7 @@
     "acceptance:procurement-restart": "node tests/procurement-restart-readback.mjs",
     "acceptance:inventory": "node tests/inventory-opening.integration.mjs",
     "acceptance:inventory-restart": "node tests/inventory-restart-readback.mjs",
+    "acceptance:inventory-ncr-readback": "node tests/inventory-ncr-readback.mjs",
     "acceptance:inbound-lines-readback": "node tests/inbound-lines-readback.mjs",
     "acceptance:procurement-receipt-inbound": "node tests/procurement-receipt-inbound.integration.mjs",
     "acceptance:procurement-receipt-inbound-restart": "node tests/procurement-receipt-inbound-restart-readback.mjs",
