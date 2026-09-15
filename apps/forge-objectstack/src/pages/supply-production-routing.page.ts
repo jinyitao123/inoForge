@@ -162,7 +162,6 @@ export const PurchaseTodoPoolPage = makePage(pages[6]);
 export const PurchaseInquiryPage = makePage(pages[7]);
 export const SupplierPriceBookPage = makePage(pages[8]);
 export const AllInboundsPage = { name: pages[9].name, label: pages[9].label, description: pages[9].description, icon: 'package-plus', type: 'app' as const, kind: 'react' as const, source: allInboundsSource };
-export const InboundLinesPage = makePage(pages[11]);
 export const InventoryNcrPage = makePage(pages[12]);
 export const InventoryDisposalCenterPage = makePage(pages[13]);
 export const OtherOutboundsPage = makePage(pages[21]);
