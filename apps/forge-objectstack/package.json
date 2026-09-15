@@ -32,6 +32,7 @@
     "acceptance:inventory-disposal-center-readback": "node tests/inventory-disposal-center-readback.mjs",
     "acceptance:inventory-ledger-page-readback": "node tests/inventory-ledger-page-readback.mjs",
     "acceptance:inventory-count-page-readback": "node tests/inventory-count-page-readback.mjs",
+    "acceptance:inventory-transfer-page-readback": "node tests/inventory-transfer-page-readback.mjs",
     "acceptance:inbound-lines-readback": "node tests/inbound-lines-readback.mjs",
     "acceptance:procurement-receipt-inbound": "node tests/procurement-receipt-inbound.integration.mjs",
     "acceptance:procurement-receipt-inbound-restart": "node tests/procurement-receipt-inbound-restart-readback.mjs",

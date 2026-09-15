@@ -85,6 +85,8 @@ RISEMAP 当前新建页事实为：处理方式、可留空自动编码的退货
 
 库存盘点已从共享库存作业页拆为 `page_inventory_count` 专用业务页，并按 RISEMAP 当前页补齐新建、导出、刷新、搜索、状态/类型/仓库筛选、14 列和 20 条分页。RISEMAP 当前租户为空；Forge 浏览器在独立 SQLite 新建 `CHK-1789460997443`，选择贯联验证原料仓的 `RM-CAB-800`，以账面 1 / 实盘 1 创建草稿，经二次确认完成后回读 100%、差异项 0、盘差 0、已完成和已回写。完整停服重启后页面仍保留同一结果；API 确认余额仍为 1，且零差异没有生成 `count_gain` 或 `count_loss` 流水。Forge 当前一张盘点单对应一个仓库 SKU，多物料盘点头/明细及 RISEMAP 有数据后的行内动作保持待同材料复核。
 
+调拨与借出已从共享库存作业简表拆为 `page_inventory_transfer` 专用业务页，并按 RISEMAP 当前页补齐单据/明细双视图、新建、导出、刷新、搜索、类型/状态筛选及两套表格列。浏览器实际创建并办结普通调拨 `UI-TRF-20260915-001`，从委外发料仓向贯联验证原料仓调拨 1 件冷轧钢板，草稿提交后库存未变，审核执行后页面回读已完成、¥12.50；另创建借出 `UI-LOAN-20260915-001`，向汇川项目现场借出 0.1 件 PLC，审核执行后为借出中，经二次确认归还后回读已归还、¥680.00。明细视图同步回读两条物料行。RISEMAP 当前租户为空；变价调拨、多物料头/明细、库内移位及承运字段的执行结果保持待同材料复核，不提供假入口。
+
 此前浏览器已将 `UI-RET-20260915-001` 从草稿依次办理到提交、财务审批、仓库确认、退货出库和供应商退款，页面最终回读“已完成 / 已收款 ¥1,360.00”。API/SQLite 回读为 `status=completed`、`refund_status=received`、`outbound_status=outbounded`、资金账户余额 ¥1,360.00；停服重启后页面仍可回读。
 
 ## 页面覆盖
@@ -130,6 +132,8 @@ RISEMAP 当前新建页事实为：处理方式、可留空自动编码的退货
 - `pnpm acceptance:inventory-ledger-page-readback`：重启后 13 条流水、7 条余额及所有来源单据 API 回读通过，余额与各仓库 SKU 最新流水一致
 - RISEMAP / Forge 库存盘点列表实时对照：页面结构通过；Forge 新建草稿、完成二次确认、100% 完成状态与停服重启页面回读均在浏览器验证（RISEMAP 当前租户为空，可写路径待同材料复核）
 - `pnpm acceptance:inventory-count-page-readback`：重启后 `CHK-1789460997443` 状态、来源仓库、SKU、账面/实盘/差异、余额及零差异不生成盘盈盘亏流水均回读通过
+- RISEMAP / Forge 调拨与借出实时对照：双视图、列表字段、新建普通调拨/借出联动、草稿、提交、审核执行和归还均在浏览器验证（RISEMAP 当前租户为空，可写路径待同材料复核）
+- `pnpm acceptance:inventory-transfer-page-readback`：重启后普通调拨、借出归还、两端余额及 `transfer_out`/`transfer_in`/`loan_out`/`loan_return` 四类流水回读通过
 - `pnpm acceptance:other-inbound-prerequisite`：4 项通过
 - `pnpm acceptance:other-inbound-prerequisite-restart`：同一 SQLite 停服重启回读通过
 - `pnpm acceptance:procurement-receipt-inbound-restart`：同一 SQLite 重启回读通过；断言已改为来源入库流水持久存在且当前余额匹配该物料最新流水，兼容后续合法退货变动
