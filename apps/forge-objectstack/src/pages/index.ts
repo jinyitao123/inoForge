@@ -70,5 +70,6 @@ export * from './inventory-ncr.page.js';
 export * from './inventory-disposal-center.page.js';
 export * from './inventory-ledger.page.js';
 export * from './inventory-count.page.js';
+export * from './inventory-transfer.page.js';
 export * from './business-prerequisite-config.page.js';
 export * from './production-prerequisites.page.js';

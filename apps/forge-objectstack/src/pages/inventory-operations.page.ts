@@ -54,12 +54,6 @@ export const InventoryLocksPage = page(
   "lock",
   "lock",
 );
-export const InventoryTransferPage = page(
-  "page_inventory_transfer",
-  "调拨与借出",
-  "arrow-left-right",
-  "transfer",
-);
 export const InventoryAlertsPage = page(
   "page_inventory_alerts",
   "库存预警",
