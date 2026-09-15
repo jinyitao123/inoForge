@@ -29,4 +29,4 @@ const css=BASE_CSS+'div:has(>.bank-flow){max-width:none!important;margin:0!impor
 ${forgeProductUiRuntime}
 `;
 
-export const BankFlowPage = { name: 'page_bank_flow', label: '银行对账', description: '银行流水勾兑与资金账户财务期间', icon: 'landmark', type: 'app' as const, kind: 'react' as const, source: bankFlowSource.replace('BASE_CSS', JSON.stringify(forgeProductUiCss)) };
+export const BankFlowPage = { name: 'page_bank_flow', label: '银行对账', description: '银行流水勾兑与资金账户财务期间', icon: 'landmark', type: 'app' as const, kind: 'react' as const, source: bankFlowSource.replace('BASE_CSS', JSON.stringify(forgeProductUiCss)).replace('max-width:1500px','width:min(1380px,100%);max-width:1380px') };

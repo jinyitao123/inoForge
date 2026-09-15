@@ -8,4 +8,4 @@ if(data.loading)return <div className="forge-product forge-opening"><style>{css}
 ${forgeProductUiRuntime}
 `;
 
-export const OpeningBalancePage = { name: 'page_opening_balance', label: '期初往来账与对冲', description: '期初应收应付建账、原到期日管理与同一往来单位对冲', icon: 'book-open-check', type: 'app' as const, kind: 'react' as const, source: openingBalanceSource };
+export const OpeningBalancePage = { name: 'page_opening_balance', label: '期初往来账与对冲', description: '期初应收应付建账、原到期日管理与同一往来单位对冲', icon: 'book-open-check', type: 'app' as const, kind: 'react' as const, source: openingBalanceSource.replace('border-radius:7px','border-radius:10px').replace('border-radius:4px','border-radius:8px').replace('border-radius:5px','border-radius:9px') };
