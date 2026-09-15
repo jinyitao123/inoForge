@@ -88,3 +88,4 @@ export * from './inventory-count.page.js';
 export * from './inventory-transfer.page.js';
 export * from './business-prerequisite-config.page.js';
 export * from './production-prerequisites.page.js';
+export * from './administration-pages.page.js';

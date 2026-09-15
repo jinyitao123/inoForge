@@ -20,3 +20,4 @@ export * from './production.object.js';
 export * from './production-prerequisite.object.js';
 export * from './delivery.object.js';
 export * from './workspace.object.js';
+export * from './administration.object.js';
