@@ -53,6 +53,131 @@ export const AdministrationRecord = ObjectSchema.create({
   enable: { apiEnabled: true, searchable: true, trackHistory: true, feeds: false, activities: true },
 });
 
+export const OvertimeRequest = ObjectSchema.create({
+  name: 'forge_overtime_request', label: '加班申请', pluralLabel: '加班申请', icon: 'clock-3',
+  sharingModel: 'private', nameField: 'code',
+  fields: {
+    code: Field.text({ label: '单号', maxLength: 80, ...required }),
+    applicant_name: Field.text({ label: '申请人', maxLength: 100, ...required }),
+    department: Field.text({ label: '部门', maxLength: 120 }),
+    starts_at: Field.datetime({ label: '开始时间', ...required }),
+    ends_at: Field.datetime({ label: '结束时间', ...required }),
+    duration_hours: Field.number({ label: '加班时长', min: 0.5, scale: 2, ...required }),
+    compensation_method: Field.select([option('time_off', '调休'), option('overtime_pay', '加班费')], { label: '补偿方式', defaultValue: 'time_off', ...required }),
+    reason: Field.textarea({ label: '加班事由', ...required }),
+    customer_id: Field.lookup('forge_customer', { label: '关联客户' }),
+    project_id: Field.lookup('forge_project', { label: '关联项目' }),
+    contract_id: Field.lookup('forge_sales_contract', { label: '关联合同' }),
+    status: Field.select([option('draft', '草稿'), option('submitted', '待审批'), option('approved', '已通过'), option('rejected', '已驳回'), option('cancelled', '已取消')], { label: '状态', defaultValue: 'draft', ...required }),
+    submitted_at: Field.datetime({ label: '提交时间' }),
+    decision_comment: Field.textarea({ label: '审批意见' }),
+  },
+  searchableFields: ['code', 'applicant_name', 'department', 'reason'],
+  listViews: { all: { label: '全部', type: 'grid', columns: ['code', 'applicant_name', 'department', 'starts_at', 'ends_at', 'duration_hours', 'compensation_method', 'status'] } },
+  indexes: [{ fields: ['status', 'starts_at'] }, { fields: ['applicant_name', 'status'] }],
+  enable: { apiEnabled: true, searchable: true, trackHistory: true, feeds: false, activities: true },
+});
+
+export const LeaveType = ObjectSchema.create({
+  name: 'forge_leave_type', label: '假期类型', pluralLabel: '假期类型', icon: 'calendar-range',
+  sharingModel: 'private', nameField: 'name',
+  fields: {
+    name: Field.text({ label: '假期名称', maxLength: 100, ...required }),
+    code: Field.text({ label: '假期编码', maxLength: 60, ...required }),
+    unit: Field.select([option('hours', '小时'), option('days', '天')], { label: '核算单位', defaultValue: 'hours', ...required }),
+    entitlement_hours: Field.number({ label: '额度（小时）', min: 0, scale: 2, defaultValue: 0, ...required }),
+    used_hours: Field.number({ label: '已使用（小时）', min: 0, scale: 2, defaultValue: 0, ...required }),
+    pending_hours: Field.number({ label: '审批占用（小时）', min: 0, scale: 2, defaultValue: 0, ...required }),
+    requires_attachment: Field.boolean({ label: '要求附件', defaultValue: false }),
+    status: Field.select([option('active', '启用'), option('inactive', '停用')], { label: '状态', defaultValue: 'active', ...required }),
+    description: Field.textarea({ label: '使用说明' }),
+  },
+  searchableFields: ['name', 'code', 'description'],
+  listViews: { all: { label: '全部', type: 'grid', columns: ['code', 'name', 'unit', 'entitlement_hours', 'used_hours', 'pending_hours', 'status'] } },
+  indexes: [{ fields: ['code'], unique: 'organization' }, { fields: ['status', 'name'] }],
+  enable: { apiEnabled: true, searchable: true, trackHistory: true, feeds: false, activities: true },
+});
+
+export const LeaveRequest = ObjectSchema.create({
+  name: 'forge_leave_request', label: '请假申请', pluralLabel: '请假申请', icon: 'calendar-off',
+  sharingModel: 'private', nameField: 'code',
+  fields: {
+    code: Field.text({ label: '单号', maxLength: 80, ...required }),
+    applicant_name: Field.text({ label: '申请人', maxLength: 100, ...required }),
+    department: Field.text({ label: '部门', maxLength: 120 }),
+    leave_type_id: Field.lookup('forge_leave_type', { label: '假别', ...required }),
+    starts_at: Field.datetime({ label: '开始时间', ...required }),
+    ends_at: Field.datetime({ label: '结束时间', ...required }),
+    duration_hours: Field.number({ label: '请假时长', min: 0.5, scale: 2, ...required }),
+    reason: Field.textarea({ label: '请假事由', ...required }),
+    status: Field.select([option('draft', '草稿'), option('submitted', '待审批'), option('approved', '已通过'), option('rejected', '已驳回'), option('cancelled', '已取消')], { label: '状态', defaultValue: 'draft', ...required }),
+    submitted_at: Field.datetime({ label: '提交时间' }),
+    decision_comment: Field.textarea({ label: '审批意见' }),
+  },
+  searchableFields: ['code', 'applicant_name', 'department', 'reason'],
+  listViews: { all: { label: '全部', type: 'grid', columns: ['code', 'applicant_name', 'department', 'leave_type_id', 'starts_at', 'ends_at', 'duration_hours', 'status'] } },
+  indexes: [{ fields: ['status', 'starts_at'] }, { fields: ['leave_type_id', 'status'] }],
+  enable: { apiEnabled: true, searchable: true, trackHistory: true, feeds: false, activities: true },
+});
+
+export const BusinessTripRequest = ObjectSchema.create({
+  name: 'forge_business_trip_request', label: '出差申请', pluralLabel: '出差申请', icon: 'plane',
+  sharingModel: 'private', nameField: 'code',
+  fields: {
+    code: Field.text({ label: '单号', maxLength: 80, ...required }),
+    applicant_name: Field.text({ label: '申请人', maxLength: 100, ...required }),
+    department: Field.text({ label: '部门', maxLength: 120 }),
+    reason: Field.textarea({ label: '出差事由', ...required }),
+    destination: Field.text({ label: '目的地', maxLength: 200, ...required }),
+    departure_on: Field.date({ label: '出发日期', ...required }),
+    return_on: Field.date({ label: '返回日期', ...required }),
+    duration_days: Field.number({ label: '出差天数', min: 1, scale: 1, ...required }),
+    transport_method: Field.select([option('airplane', '飞机'), option('high_speed_rail', '高铁'), option('train', '火车'), option('self_drive', '自驾'), option('coach', '大巴'), option('other', '其他')], { label: '交通方式', defaultValue: 'high_speed_rail', ...required }),
+    customer_names: Field.text({ label: '关联客户', maxLength: 500 }),
+    companion_names: Field.text({ label: '同行人员', maxLength: 500 }),
+    estimated_amount: Field.currency({ label: '预计费用', precision: 18, scale: 2, min: 0, defaultValue: 0, ...required }),
+    remarks: Field.textarea({ label: '备注' }),
+    status: Field.select([option('draft', '草稿'), option('submitted', '待审批'), option('approved', '已通过'), option('rejected', '已驳回'), option('cancelled', '已取消')], { label: '状态', defaultValue: 'draft', ...required }),
+    submitted_at: Field.datetime({ label: '提交时间' }),
+    decision_comment: Field.textarea({ label: '审批意见' }),
+  },
+  searchableFields: ['code', 'applicant_name', 'department', 'reason', 'destination', 'customer_names', 'companion_names'],
+  listViews: { all: { label: '全部', type: 'grid', columns: ['code', 'applicant_name', 'department', 'destination', 'transport_method', 'departure_on', 'return_on', 'duration_days', 'estimated_amount', 'status'] } },
+  indexes: [{ fields: ['status', 'departure_on'] }, { fields: ['applicant_name', 'status'] }],
+  enable: { apiEnabled: true, searchable: true, trackHistory: true, feeds: false, activities: true },
+});
+
+export const BusinessTripExpense = ObjectSchema.create({
+  name: 'forge_business_trip_expense', label: '出差费用明细', pluralLabel: '出差费用明细', icon: 'receipt',
+  sharingModel: 'controlled_by_parent', nameField: 'category',
+  fields: {
+    trip_id: Field.masterDetail('forge_business_trip_request', { label: '出差申请', deleteBehavior: 'cascade', inlineEdit: 'grid', ...required }),
+    category: Field.select([option('transport', '交通费'), option('lodging', '住宿费'), option('meal', '餐饮费'), option('local_transport', '市内交通'), option('other', '其他费用')], { label: '费用类别', ...required }),
+    description: Field.text({ label: '说明', maxLength: 255 }),
+    amount: Field.currency({ label: '金额', precision: 18, scale: 2, min: 0, ...required }),
+  },
+  listViews: { all: { label: '全部', type: 'grid', columns: ['trip_id', 'category', 'description', 'amount'] } },
+  indexes: [{ fields: ['trip_id', 'category'] }],
+  enable: { apiEnabled: true, searchable: false, trackHistory: true, feeds: false, activities: false },
+});
+
+export const BusinessTripItinerary = ObjectSchema.create({
+  name: 'forge_business_trip_itinerary', label: '出差行程', pluralLabel: '出差行程', icon: 'route',
+  sharingModel: 'controlled_by_parent', nameField: 'origin',
+  fields: {
+    trip_id: Field.masterDetail('forge_business_trip_request', { label: '出差申请', deleteBehavior: 'cascade', inlineEdit: 'grid', ...required }),
+    sequence: Field.number({ label: '顺序', min: 1, scale: 0, ...required }),
+    departure_at: Field.datetime({ label: '出发时间', ...required }),
+    arrival_at: Field.datetime({ label: '到达时间', ...required }),
+    origin: Field.text({ label: '起点', maxLength: 120, ...required }),
+    destination: Field.text({ label: '终点', maxLength: 120, ...required }),
+    transport_method: Field.select([option('airplane', '飞机'), option('high_speed_rail', '高铁'), option('train', '火车'), option('self_drive', '自驾'), option('coach', '大巴'), option('other', '其他')], { label: '交通方式', ...required }),
+  },
+  listViews: { all: { label: '全部', type: 'grid', columns: ['trip_id', 'sequence', 'departure_at', 'arrival_at', 'origin', 'destination', 'transport_method'] } },
+  indexes: [{ fields: ['trip_id', 'sequence'] }],
+  enable: { apiEnabled: true, searchable: false, trackHistory: true, feeds: false, activities: false },
+});
+
 export const ApprovalInstance = ObjectSchema.create({
   name: 'forge_approval_instance',
   label: '审批实例',
