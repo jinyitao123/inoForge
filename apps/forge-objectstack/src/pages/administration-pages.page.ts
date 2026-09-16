@@ -75,7 +75,7 @@ export const EquipmentMaintenancePage=pages.page_equipment_maintenance; export c
 export const LoanManagementPage=pages.page_loan_management; export const VehicleManagementPage=pages.page_vehicle_management;
 export const HrWorkspacePage=pages.page_hr_workspace; export const EmployeeRecordsPage=pages.page_employee_records;
 export const RecruitmentPage=pages.page_recruitment; export const OnboardingOffboardingPage=pages.page_onboarding_offboarding;
-export const SalaryBenefitsPage=pages.page_salary_benefits; export const RulesPoliciesPage=pages.page_rules_policies;
+export const SalaryBenefitsPage=pages.page_salary_benefits;
 export const DirectoryPage=pages.page_directory; export const OvertimeRequestsPage=pages.page_overtime_requests;
 export const LeaveManagementPage=pages.page_leave_management; export const BusinessTripPage=pages.page_business_trip;
 export const AttendanceManagementPage=pages.page_attendance_management; export const AttendanceStatisticsPage=pages.page_attendance_statistics;

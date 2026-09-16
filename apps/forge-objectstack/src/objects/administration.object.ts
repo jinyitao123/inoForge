@@ -236,3 +236,22 @@ export const DocumentEntry = ObjectSchema.create({
   indexes: [{ fields: ['code'], unique: 'organization' }, { fields: ['entry_type','parent_id'] }, { fields: ['favorite','updated_at'] }],
   enable: { apiEnabled: true, searchable: true, trackHistory: true, feeds: false, activities: true },
 });
+
+export const RulePolicy = ObjectSchema.create({
+  name: 'forge_rule_policy', label: '规章制度', pluralLabel: '规章制度', icon: 'book-open', sharingModel: 'private', nameField: 'title',
+  fields: {
+    title: Field.text({ label: '制度名称', maxLength: 200, ...required }),
+    code: Field.text({ label: '制度编号', maxLength: 80, ...required }),
+    category: Field.text({ label: '分类', maxLength: 100, ...required }),
+    status: Field.select([option('draft','草稿'), option('published','已发布'), option('inactive','已停用')], { label: '状态', defaultValue: 'draft', ...required }),
+    scope: Field.text({ label: '适用范围', maxLength: 200 }),
+    effective_on: Field.date({ label: '生效日期' }),
+    version: Field.text({ label: '版本', maxLength: 30, defaultValue: 'V1.0', ...required }),
+    owner_name: Field.text({ label: '创建人', maxLength: 100, ...required }),
+    summary: Field.textarea({ label: '制度摘要' }),
+  },
+  searchableFields: ['title','code','category','scope','owner_name','summary'],
+  listViews: { all: { label: '全部', type: 'grid', columns: ['code','title','category','status','scope','effective_on','version','owner_name'] } },
+  indexes: [{ fields: ['code'], unique: 'organization' }, { fields: ['status','effective_on'] }, { fields: ['category','status'] }],
+  enable: { apiEnabled: true, searchable: true, trackHistory: true, feeds: false, activities: true },
+});
