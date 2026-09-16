@@ -38,6 +38,8 @@
     "acceptance:sales-restart": "node tests/sales-restart-readback.mjs",
     "acceptance:procurement": "node tests/procurement-chain.integration.mjs",
     "acceptance:supply-receipt-pages": "node tests/supply-receipt-pages.static.mjs",
+    "acceptance:supply-inbound-pages": "node tests/supply-inbound-pages.static.mjs && node tests/other-inbound-pages.integration.mjs",
+    "acceptance:supply-inbound-pages-restart": "node tests/other-inbound-pages-restart-readback.mjs",
     "acceptance:procurement-restart": "node tests/procurement-restart-readback.mjs",
     "acceptance:inventory": "node tests/inventory-opening.integration.mjs",
     "acceptance:inventory-restart": "node tests/inventory-restart-readback.mjs",
