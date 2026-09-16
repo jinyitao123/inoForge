@@ -227,6 +227,8 @@
       ],
       "archetype": "task_workspace",
       "reference": "project-task-workspace.page.ts",
+      "contract": "docs/forge-finance-sales-cycle-page-delivery-20260916.md",
+      "acceptance": "docs/evidence/finance-invoice-tasks-narrow-20260916/acceptance.json",
       "designStatus": "review_required"
     }
   ],

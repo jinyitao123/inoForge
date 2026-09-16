@@ -64,7 +64,11 @@
 - 操作与结果证据：`docs/evidence/finance-invoice-tasks-20260916/acceptance.md`。
 - 独立复核：待独立验收。
 - 实际耗时、调用、费用：无可靠统一来源，记为未知。
-- 追加整改（2026-09-16，待复测）：按补充要求把期间选择保持在指标之前、行操作保持不折行，并把窄屏 760px 以下的指标区从单列改为两列紧凑显示，同时让列表标题与记录数量在窄屏换行而不是互相挤压；这三项 CSS 调整已提交，修复后需要重新在内置浏览器做 390×844 复测后才能计入通过。
+- 追加整改（2026-09-16，已复测）：期间选择保持在指标之前（桌面实测期间区 208px、指标区 267px），行操作实测 `white-space: nowrap`；窄屏 390×844 指标区由单列 322px 改为两列 157px、块高由 271px 降到 178px，列表标题由 622px 上移到 530px，记录数量换行显示且无横向溢出。复测使用无头 Chrome CDP 会话（内置浏览器通道当轮不可用），证据见 `docs/evidence/finance-invoice-tasks-narrow-20260916/`。
+
+| 要求编号 | 当前事实或明确决策与证据 | 区域/控件及实现位置 | 操作步骤 | 预期结果 | 当前状态/缺口 |
+| --- | --- | --- | --- | --- | --- |
+| INV-TASK-011 | 补充要求：窄屏按钮、页签、记录数量与筛选不得重叠或挤压；压缩指标占位 | `finance-management.page.ts` 的 760px 规则与列表标题行 | 390×844 下用旧规则复现再比对修复后，读取指标列数与首屏位置 | 指标两列紧凑、记录数量不挤压、主工作区尽早出现 | pass：指标 322px 单列→157px 两列，块高 271→178，列表标题 622→530，无横向溢出 |
 
 ## 逐页设计：销项发票
 
@@ -211,15 +215,16 @@
 | FUND-002 | RISEMAP 实时新增账户字段 | 标准弹窗 | 打开双侧表单逐项核对 | 字段、必填、帮助说明和默认值完整 | pass：15 个字段齐全且顺序与观察一致，银行必填标记随类型联动 |
 | FUND-003 | Forge 明确资金账决策 | 创建账户 | 空字段、银行信息缺失、正常创建和重复编码 | 阻断清楚；期初余额同步为当前余额 | pass：两类阻断提示清楚；创建后 API 回读期初与当前余额均为 8800.00 |
 | FUND-004 | RISEMAP 搜索、类型、状态和视图切换 | 列表工具区 | 搜索、筛选、切换视图并重置 | 卡片和表格使用同一结果集 | pass：搜索 1/0 条、类型筛选 0 条、重置 2 条，卡片与表格同结果集 |
-| FUND-005 | 页面精修基线 | 页面整体 | 桌面与 390×844 检查有数据、空态和弹窗 | 信息密度适当，弹窗字段完整可达 | 桌面与弹窗 pass；窄屏指标改两列后未复测，修复后截图待补 |
+| FUND-005 | 页面精修基线 | 页面整体 | 桌面与 390×844 检查有数据、空态和弹窗 | 信息密度适当，弹窗字段完整可达，窄屏尽早出现主工作区 | pass：窄屏指标 433→214px、列表标题 684→466px；弹窗顶部 12px、底部按钮常驻、正文可滚动 |
 | FUND-006 | 资金账户承接本批 126,000 元余额 | API 与同库重启 | 创建测试账户并读取当前账户、收款账户和重启结果 | 期初与当前余额、状态和来源保持一致 | pass：同库停服重启后新账户 8800.00 与既有账户 126,000.00 均一致；RISEMAP 同材料待复核 |
 
 ### 资金账户验收与交接
 
-- 四维结果：replication `blocked`；visual `pending`；interaction `pending`；business `pending`。阻断与待复核项为 RISEMAP 本轮未重新打开、窄屏指标压缩修复后未复测、独立验收未发生。
+- 四维结果：replication `blocked`；visual `pass`；interaction `pass`；business `pending`。阻断与待复核项为 RISEMAP 本轮未重新打开、内置浏览器严格复核未覆盖窄屏复测、独立验收未发生。
 - 本轮实时打开页面：Forge `http://localhost:4441/_console/apps/forge/page/page_fund_accounts?nav=fund_accounts`；RISEMAP `https://risemap.cn/finance/bank-accounts` 本轮未打开，字段与空态引用前次实时观察。
 - 内置浏览器实际操作：新增账户弹窗全字段核对；空提交与银行信息缺失阻断；完整创建并回读；搜索命中与无匹配空态；账户类型筛选；卡片/表格切换；重置筛选。
 - API 与持久化：新建 `FA-1789552353699` 期初与当前余额 8800.00；完整停服后用同一 SQLite 重启，新账户与既有账户 126,000.00 均保持一致。
 - 工程门禁：`pnpm typecheck`、`pnpm validate`、`pnpm build` 通过（导航静态检查 211 个入口）；`pnpm acceptance:page-polish` 通过；`node --test tests/page-delivery-gate.test.mjs` 9/9 通过。
 - 证据：`docs/evidence/finance-fund-accounts-20260916/acceptance.md`、`acceptance.json`、`desktop-card-view.png`、`desktop-table-view.png`、`narrow-table-view-before-metric-fix.png`。
-- 未决项：窄屏 390×844 指标压缩修复后复测；RISEMAP 同材料账户办理；独立验收。本页保持 `review_required`。
+- 未决项：RISEMAP 同材料账户办理；独立验收。窄屏 390×844 指标与弹窗已在无头 Chrome 复测（指标 433→214px、列表标题 684→466px、弹窗顶部 12px 且底部按钮常驻），严格按项目规定在内置浏览器复核同一视口仍待补一次确认。本页保持 `review_required`。
+- 共享层建议：窄屏弹窗越界是 `product-ui.ts` 中 `.fp-modal` 的通用问题，本批只落地了本页隔离补丁；建议共享修复为 `.fp-modal{max-height:calc(100vh - 24px)}` + 纵向弹性布局、`.fp-modal-body{overflow:auto}`、760px 以下 `.fp-modal-backdrop` 顶部对齐，由集成负责人决定合入时机。
