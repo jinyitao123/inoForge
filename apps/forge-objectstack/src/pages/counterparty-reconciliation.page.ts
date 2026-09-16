@@ -30,4 +30,4 @@ export const CounterpartyReconciliationPage = { name: 'page_counterparty_reconci
 
 export const ReconciliationPoolPage = { ...CounterpartyReconciliationPage, name: 'page_reconciliation_pool', label: '待对账池', description: '按往来单位、合同、订单、发货收货、发票和收付款维度汇集待对账来源' };
 export const CustomerReconciliationPage = { ...CounterpartyReconciliationPage, name: 'page_customer_reconciliation', label: '客户对账', description: '客户应收对账单生成、发送、确认和差异处理' };
-export const SupplierReconciliationPage = { ...CounterpartyReconciliationPage, name: 'page_supplier_reconciliation', label: '供应商对账', description: '供应商应付对账单生成、发送、确认和差异处理' };
+export const SupplierReconciliationPage = { ...CounterpartyReconciliationPage, name: 'page_supplier_reconciliation', label: '供应商对账', description: '核对供应商应付、付款及对账确认结果' };
