@@ -99,3 +99,4 @@ export * from './work-report.page.js';
 export * from './document-center.page.js';
 export * from './rules-policies.page.js';
 export * from './employee-records.page.js';
+export * from './meeting-minutes.page.js';

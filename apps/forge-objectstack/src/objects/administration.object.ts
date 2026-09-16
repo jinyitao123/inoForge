@@ -278,3 +278,24 @@ export const EmployeeRecord = ObjectSchema.create({
   indexes: [{ fields: ['employee_code'], unique: 'organization' }, { fields: ['department','status'] }, { fields: ['contract_end_on','status'] }],
   enable: { apiEnabled: true, searchable: true, trackHistory: true, feeds: false, activities: true },
 });
+
+export const MeetingMinute = ObjectSchema.create({
+  name: 'forge_meeting_minute', label: '会议纪要', pluralLabel: '会议纪要', icon: 'calendar', sharingModel: 'private', nameField: 'title',
+  fields: {
+    title: Field.text({ label: '会议主题', maxLength: 200, ...required }),
+    code: Field.text({ label: '会议编号', maxLength: 80, ...required }),
+    meeting_type: Field.text({ label: '会议类型', maxLength: 100 }),
+    meeting_at: Field.datetime({ label: '日期/时间', ...required }),
+    host_name: Field.text({ label: '主持人', maxLength: 100 }),
+    attendee_count: Field.number({ label: '参会人数', min: 0, scale: 0, defaultValue: 0 }),
+    todo_count: Field.number({ label: '待办', min: 0, scale: 0, defaultValue: 0 }),
+    status: Field.select([option('draft','草稿'), option('confirmed','已确认'), option('archived','已归档')], { label: '状态', defaultValue: 'draft', ...required }),
+    decisions: Field.textarea({ label: '会议决议' }),
+    todos: Field.textarea({ label: '待办事项' }),
+    remarks: Field.textarea({ label: '备注' }),
+  },
+  searchableFields: ['title','code','meeting_type','host_name','decisions','todos'],
+  listViews: { all: { label: '全部', type: 'grid', columns: ['code','title','meeting_type','meeting_at','host_name','attendee_count','todo_count','status'] } },
+  indexes: [{ fields: ['code'], unique: 'organization' }, { fields: ['meeting_at','status'] }, { fields: ['host_name','meeting_at'] }],
+  enable: { apiEnabled: true, searchable: true, trackHistory: true, feeds: false, activities: true },
+});
