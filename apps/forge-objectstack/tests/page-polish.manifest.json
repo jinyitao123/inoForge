@@ -1,6 +1,7 @@
 {
   "administration": [
-    {"file":"approval-center.page.ts","pages":["page_my_approvals","page_cc_to_me","page_initiated_by_me"],"archetype":"task_workspace","reference":"project-task-workspace.page.ts","designStatus":"review_required"},
+    {"file":"approval-center.page.ts","pages":["page_my_approvals"],"archetype":"task_workspace","reference":"project-task-workspace.page.ts","designStatus":"review_required","contract":"docs/forge-procurement-approval-page-contract-20260916.md","acceptance":"apps/forge-objectstack/tests/page-acceptance/page_my_approvals.json"},
+    {"file":"approval-center.page.ts","pages":["page_cc_to_me","page_initiated_by_me"],"archetype":"task_workspace","reference":"project-task-workspace.page.ts","designStatus":"review_required"},
     {"file":"administration-workflow.page.ts","pages":["page_administration_requests","page_start_process"],"archetype":"workbench","reference":"workbench.page.ts","designStatus":"review_required"},
     {"file":"administration-pages.page.ts","pages":["page_hr_workspace"],"archetype":"workbench","reference":"workbench.page.ts","designStatus":"review_required"},
     {"file":"administration-notice.page.ts","pages":["page_administration_notice"],"archetype":"task_workspace","reference":"project-task-workspace.page.ts","designStatus":"review_required"},
@@ -245,7 +246,9 @@
       ],
       "archetype": "task_workspace",
       "reference": "project-task-workspace.page.ts",
-      "designStatus": "review_required"
+      "designStatus": "review_required",
+      "contract": "docs/forge-purchase-order-page-contract-20260916.md",
+      "acceptance": "apps/forge-objectstack/tests/page-acceptance/page_purchase_order_workspace.json"
     },
     {
       "file": "other-inbound-workspace.page.ts",
@@ -362,7 +365,9 @@
       ],
       "archetype": "task_workspace",
       "reference": "project-task-workspace.page.ts",
-      "designStatus": "review_required"
+      "designStatus": "review_required",
+      "contract": "docs/forge-purchase-request-page-contract-20260916.md",
+      "acceptance": "apps/forge-objectstack/tests/page-acceptance/page_purchase_request_pool.json"
     },
     {
       "file": "purchase-todo-pool.page.ts",
@@ -371,7 +376,9 @@
       ],
       "archetype": "task_workspace",
       "reference": "project-task-workspace.page.ts",
-      "designStatus": "review_required"
+      "designStatus": "review_required",
+      "contract": "docs/forge-purchase-todo-pool-page-contract-20260915.md",
+      "acceptance": "apps/forge-objectstack/tests/page-acceptance/page_purchase_todo_pool.json"
     },
     {
       "file": "purchase-inquiry.page.ts",
@@ -380,7 +387,9 @@
       ],
       "archetype": "task_workspace",
       "reference": "project-task-workspace.page.ts",
-      "designStatus": "review_required"
+      "designStatus": "review_required",
+      "contract": "docs/forge-purchase-inquiry-page-contract-20260916.md",
+      "acceptance": "apps/forge-objectstack/tests/page-acceptance/page_purchase_inquiry.json"
     },
     {
       "file": "supplier-price-book.page.ts",
