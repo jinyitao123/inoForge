@@ -221,3 +221,18 @@ export const WorkReport = ObjectSchema.create({
   indexes: [{ fields: ['code'], unique: 'organization' }, { fields: ['status','period_end'] }, { fields: ['owner_name','period_start'] }],
   enable: { apiEnabled: true, searchable: true, trackHistory: true, feeds: false, activities: true },
 });
+
+export const DocumentEntry = ObjectSchema.create({
+  name: 'forge_document_entry', label: '文档条目', pluralLabel: '文档条目', icon: 'folder', sharingModel: 'private', nameField: 'title',
+  fields: {
+    title: Field.text({ label: '名称', maxLength: 200, ...required }), code: Field.text({ label: '文档编号', maxLength: 80, ...required }),
+    entry_type: Field.select([option('folder','文件夹'), option('document','文档')], { label: '条目类型', defaultValue: 'folder', ...required }),
+    parent_id: Field.lookup('forge_document_entry', { label: '上级目录' }), description: Field.textarea({ label: '描述' }),
+    access: Field.select([option('company','全员可见'), option('restricted','限制访问')], { label: '访问权限', defaultValue: 'company', ...required }),
+    owner_name: Field.text({ label: '负责人', maxLength: 100, ...required }), favorite: Field.boolean({ label: '收藏', defaultValue: false }),
+    updated_at: Field.datetime({ label: '更新时间', ...required }), file_name: Field.text({ label: '文件名', maxLength: 255 }), file_size: Field.number({ label: '文件大小', min: 0, scale: 0 }),
+  }, searchableFields: ['title','code','description','file_name','owner_name'],
+  listViews: { all: { label: '全部', type: 'grid', columns: ['entry_type','code','title','access','owner_name','updated_at','favorite'] } },
+  indexes: [{ fields: ['code'], unique: 'organization' }, { fields: ['entry_type','parent_id'] }, { fields: ['favorite','updated_at'] }],
+  enable: { apiEnabled: true, searchable: true, trackHistory: true, feeds: false, activities: true },
+});
