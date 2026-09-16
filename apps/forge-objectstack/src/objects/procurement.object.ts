@@ -111,7 +111,7 @@ export const PurchaseInquiry = master('forge_purchase_inquiry', '询价单', 'me
 
 export const PurchaseInquiryLine = master('forge_purchase_inquiry_line', '询价物料', 'list', {
   name: text('物料名称', true), inquiry_id: reference('forge_purchase_inquiry', '询价单', true),
-  sku_id: reference('forge_material_sku', '物料规格', true), item_code: text('物料编码'), model: text('型号'),
+  sku_id: reference('forge_material_sku', '物料规格'), item_code: text('物料编码'), model: text('型号'),
   specification: text('规格'), unit_name: text('单位'), quantity: positiveQuantity('询价数量'),
   required_on: Field.date({ label: '需求日期' }), purchase_request_line_id: reference('forge_purchase_request_line', '来源申请明细'),
   sales_contract_line_id: reference('forge_sales_contract_line', '来源合同明细'), remarks: remarks(),
@@ -184,6 +184,7 @@ export const PurchasePendingItem = master('forge_purchase_pending_item', '采购
   requested_quantity: positiveQuantity('申请数量'), locked_quantity: nonNegativeQuantity('已锁定'),
   ordered_quantity: nonNegativeQuantity('已下单'), remaining_quantity: nonNegativeQuantity('剩余可下单'),
   suggested_supplier_id: reference('forge_supplier', '建议供应商'), assigned_supplier_id: reference('forge_supplier', '指定供应商'),
+  inquiry_id: reference('forge_purchase_inquiry', '关联询价单'),
   purchase_category: text('采购分类'), required_on: Field.date({ label: '需求日期' }),
   requested_at: Field.datetime({ label: '申请时间', readonly: true }),
   priority: select('优先级', [['high', '高'], ['medium', '中'], ['low', '低']], 'medium'),
@@ -192,7 +193,7 @@ export const PurchasePendingItem = master('forge_purchase_pending_item', '采购
     ['partially_ordered', '部分下单'], ['ordered', '已下单'], ['on_hold', '暂缓'], ['closed', '已关闭'],
   ], 'ready'),
   responsible_id: owner(true), remarks: remarks(),
-}, ['code', 'request_code', 'line_number', 'applicant_id', 'department_name', 'project_id', 'item_code', 'name', 'model', 'specification', 'unit_name', 'requested_quantity', 'locked_quantity', 'ordered_quantity', 'remaining_quantity', 'suggested_supplier_id', 'assigned_supplier_id', 'purchase_category', 'required_on', 'requested_at', 'priority', 'status', 'responsible_id']);
+}, ['code', 'request_code', 'line_number', 'applicant_id', 'department_name', 'project_id', 'item_code', 'name', 'model', 'specification', 'unit_name', 'requested_quantity', 'locked_quantity', 'ordered_quantity', 'remaining_quantity', 'suggested_supplier_id', 'assigned_supplier_id', 'inquiry_id', 'purchase_category', 'required_on', 'requested_at', 'priority', 'status', 'responsible_id']);
 
 // RM-021 / DR-0048 to DR-0050. The order is the commercial source for later arrival, inspection and inbound work.
 export const PurchaseOrder = master('forge_purchase_order', '采购订单', 'shopping-cart', {
