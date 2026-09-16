@@ -83,11 +83,12 @@ export const PurchaseRequest = master('forge_purchase_request', '采购申请', 
 
 export const PurchaseRequestLine = master('forge_purchase_request_line', '采购申请明细', 'list', {
   name: text('物料名称', true), request_id: reference('forge_purchase_request', '采购申请', true),
-  sku_id: reference('forge_material_sku', '物料规格', true), item_code: text('物料编码'), model: text('型号'),
-  specification: text('规格'), unit_name: text('单位'), quantity: positiveQuantity(),
+  entry_mode: select('明细来源', [['library', '物料库'], ['manual', '手动录入'], ['paste', '快速粘贴']], 'library'),
+  sku_id: reference('forge_material_sku', '物料规格'), item_code: text('物料编码'), model: text('型号'),
+  specification: text('规格'), category_name: text('物料分类'), unit_name: text('单位'), quantity: positiveQuantity(),
   taxed_unit_price: nonNegativeMoney('预估含税单价'), tax_rate: percentage('税率'), taxed_subtotal: nonNegativeMoney('预估含税小计'),
   expected_arrival_on: Field.date({ label: '期望到货日期' }), suggested_supplier_id: reference('forge_supplier', '建议供应商'), remarks: remarks(),
-}, ['request_id', 'item_code', 'name', 'model', 'specification', 'unit_name', 'quantity', 'taxed_unit_price', 'tax_rate', 'taxed_subtotal', 'expected_arrival_on', 'suggested_supplier_id']);
+}, ['request_id', 'entry_mode', 'item_code', 'name', 'model', 'specification', 'category_name', 'unit_name', 'quantity', 'taxed_unit_price', 'tax_rate', 'taxed_subtotal', 'expected_arrival_on', 'suggested_supplier_id']);
 
 export const PurchaseRequestApprovalLog = master('forge_purchase_request_approval_log', '采购申请审批记录', 'history', {
   name: text('记录名称', true), request_id: reference('forge_purchase_request', '采购申请', true),
