@@ -69,7 +69,7 @@ const pages = Object.fromEntries(definitions.map(def => [def.name, {
 
 export const SealManagementPage=pages.page_seal_management;
 export const MeetingMinutesPage=pages.page_meeting_minutes;
-export const DocumentCenterPage=pages.page_document_center; export const FixedAssetsPage=pages.page_fixed_assets;
+export const FixedAssetsPage=pages.page_fixed_assets;
 export const QualificationDeclarationPage=pages.page_qualification_declaration; export const MaterialPickupPage=pages.page_material_pickup;
 export const EquipmentMaintenancePage=pages.page_equipment_maintenance; export const GiftManagementPage=pages.page_gift_management;
 export const LoanManagementPage=pages.page_loan_management; export const VehicleManagementPage=pages.page_vehicle_management;
