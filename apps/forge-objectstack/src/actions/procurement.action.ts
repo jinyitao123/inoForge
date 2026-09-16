@@ -59,6 +59,36 @@ const now=new Date().toISOString();await ctx.api.object('forge_purchase_request'
 ` },
 });
 
+export const SupplierPriceBookActivate = defineAction({
+  name: 'supplier_price_book_activate', label: '启用价格本', objectName: 'forge_supplier_price_book', icon: 'badge-check',
+  locations: [...locations], order: 10, visible: `record.status == 'draft'`, refreshAfter: true,
+  confirmText: '启用后该价格本将参与采购定价，是否继续？', successMessage: '供应商价格本已生效',
+  body: { language: 'js', capabilities: ['api.read', 'api.write'], source: `
+const id=ctx.recordId||(ctx.record&&ctx.record.id),book=ctx.record,actor=ctx.session&&ctx.session.userId;
+if(ctx.recordLoadDenied===true||!id||!book)throw new Error('当前价格本不存在或不可访问');
+if(book.status!=='draft')throw new Error('仅草稿价格本可以启用');if(!actor)throw new Error('无法识别当前操作人');
+if(book.valid_from&&book.valid_to&&book.valid_to<book.valid_from)throw new Error('失效日期不能早于生效日期');
+const lines=await ctx.api.object('forge_supplier_price_book_line').find({where:{price_book_id:id}});if(!lines.length)throw new Error('价格本至少需要一条物料价格后才能启用');
+const now=new Date().toISOString();await ctx.api.object('forge_supplier_price_book').update({id,status:'active',line_count:lines.length,activated_at:now,activated_by:actor});
+await ctx.api.object('forge_supplier_price_book_status_log').insert({name:String(book.code||book.name)+' 生效',price_book_id:id,action:'activated',from_status:'draft',to_status:'active',comment:'启用价格本',operator_id:actor,occurred_at:now});
+return{id,status:'active',line_count:lines.length};
+` },
+});
+
+export const SupplierPriceBookVoid = defineAction({
+  name: 'supplier_price_book_void', label: '废弃价格本', objectName: 'forge_supplier_price_book', icon: 'ban',
+  locations: [...locations], order: 20, visible: `record.status == 'draft' || record.status == 'active'`, refreshAfter: true,
+  params: [{ name: 'void_reason', label: '废弃原因', type: 'textarea', required: true }], successMessage: '供应商价格本已废弃',
+  body: { language: 'js', capabilities: ['api.write'], source: `
+const id=ctx.recordId||(ctx.record&&ctx.record.id),book=ctx.record,actor=ctx.session&&ctx.session.userId,note=String(ctx.input.void_reason||'').trim();
+if(ctx.recordLoadDenied===true||!id||!book)throw new Error('当前价格本不存在或不可访问');
+if(!['draft','active'].includes(book.status))throw new Error('仅草稿或生效中价格本可以废弃');if(!actor)throw new Error('无法识别当前操作人');if(!note)throw new Error('废弃原因不能为空');
+const now=new Date().toISOString();await ctx.api.object('forge_supplier_price_book').update({id,status:'voided',void_reason:note});
+await ctx.api.object('forge_supplier_price_book_status_log').insert({name:String(book.code||book.name)+' 废弃',price_book_id:id,action:'voided',from_status:book.status,to_status:'voided',comment:note,operator_id:actor,occurred_at:now});
+return{id,status:'voided'};
+` },
+});
+
 export const BomShortageCreatePurchaseOrder = defineAction({
   name: 'bom_shortage_create_purchase_order', label: '提交采购审核', objectName: 'forge_bom_shortage_analysis', icon: 'shopping-cart',
   locations: [...locations], order: 10, visible: `record.status == 'completed'`, refreshAfter: true,
