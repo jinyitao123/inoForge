@@ -299,3 +299,23 @@ export const MeetingMinute = ObjectSchema.create({
   indexes: [{ fields: ['code'], unique: 'organization' }, { fields: ['meeting_at','status'] }, { fields: ['host_name','meeting_at'] }],
   enable: { apiEnabled: true, searchable: true, trackHistory: true, feeds: false, activities: true },
 });
+
+export const SealApplication = ObjectSchema.create({
+  name: 'forge_seal_application', label: '用章申请', pluralLabel: '用章申请', icon: 'stamp', sharingModel: 'private', nameField: 'title',
+  fields: {
+    title: Field.text({ label: '文件名称', maxLength: 200, ...required }),
+    code: Field.text({ label: '申请编号', maxLength: 80, ...required }),
+    company_name: Field.text({ label: '公司抬头', maxLength: 200 }),
+    applicant_name: Field.text({ label: '申请人', maxLength: 100, ...required }),
+    seal_type: Field.text({ label: '印章类型', maxLength: 100, ...required }),
+    reason: Field.textarea({ label: '用章事由', ...required }),
+    status: Field.select([option('draft','草稿'), option('pending','待审批'), option('approved','已通过'), option('rejected','已驳回'), option('completed','已盖章')], { label: '状态', defaultValue: 'draft', ...required }),
+    applied_on: Field.date({ label: '申请日期', ...required }),
+    external_use: Field.boolean({ label: '是否外带', defaultValue: false }),
+    remarks: Field.textarea({ label: '备注' }),
+  },
+  searchableFields: ['title','code','company_name','applicant_name','seal_type','reason'],
+  listViews: { all: { label: '全部', type: 'grid', columns: ['code','company_name','applicant_name','seal_type','title','reason','status','applied_on'] } },
+  indexes: [{ fields: ['code'], unique: 'organization' }, { fields: ['status','applied_on'] }, { fields: ['applicant_name','applied_on'] }],
+  enable: { apiEnabled: true, searchable: true, trackHistory: true, feeds: false, activities: true },
+});
