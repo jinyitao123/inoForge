@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+import { checkPageDelivery } from './page-delivery-gate.mjs';
 
 const manifest = JSON.parse(await readFile(new URL('./page-polish.manifest.json', import.meta.url), 'utf8'));
 const pagesDir = new URL('../src/pages/', import.meta.url);
@@ -17,10 +18,11 @@ for (const [area, entries] of Object.entries(manifest)) {
     if (!allowedArchetypes.has(entry.archetype)) findings.push(`${area}/${entry.file}: 缺少有效页面主原型`);
     if (!allowedDesignStatuses.has(entry.designStatus)) findings.push(`${area}/${entry.file}: 缺少有效设计验收状态`);
     if (!allowedReferences.has(entry.reference)) findings.push(`${area}/${entry.file}: 缺少有效参考页面`);
+    for (const issue of await checkPageDelivery(entry)) findings.push(`${area}/${entry.file}: ${issue}`);
     if (entry.designStatus === 'accepted') {
       acceptedPages += entry.pages.length;
       if (entry.pages.length !== 1) findings.push(`${area}/${entry.file}: accepted 必须逐页登记，不能批量验收`);
-      if (!entry.evidence?.trim()) findings.push(`${area}/${entry.file}: accepted 页面缺少浏览器对照证据路径`);
+      if (typeof entry.evidence !== 'string' || !entry.evidence.trim()) findings.push(`${area}/${entry.file}: accepted 页面缺少浏览器对照证据路径`);
     } else {
       reviewRequiredPages += entry.pages.length;
       if (entry.evidence) findings.push(`${area}/${entry.file}: review_required 页面不得记录为已验收证据`);
