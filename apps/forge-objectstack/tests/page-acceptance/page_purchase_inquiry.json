@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "pageId": "page_purchase_inquiry",
+  "archetype": "task_workspace",
+  "checks": {
+    "replication": { "status": "blocked", "notes": "本轮未实时打开 RISEMAP 询价管理页面，缺少当前页面证据。", "evidence": [] },
+    "visual": { "status": "pending", "notes": "页面已使用共享 ForgePageHeader；精修与截图待内置浏览器恢复。", "evidence": [] },
+    "interaction": { "status": "pending", "notes": "待实际操作：创建询价、邀请供应商、录入/比较报价、选中报价转订单。", "evidence": [] },
+    "business": { "status": "pending", "notes": "询价→报价→按行转采购订单链路经 API 验收通过，并通过同库重启回读。", "evidence": ["apps/forge-objectstack/tests/page-acceptance/procurement-chain-api-readback-20260916.json"] }
+  }
+}

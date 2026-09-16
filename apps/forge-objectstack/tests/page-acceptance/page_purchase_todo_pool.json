@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "pageId": "page_purchase_todo_pool",
+  "archetype": "task_workspace",
+  "checks": {
+    "replication": { "status": "blocked", "notes": "本轮未实时打开 RISEMAP 采购待办池，缺少当前页面证据；仅保留 Forge 侧结构事实。", "evidence": [] },
+    "visual": { "status": "pending", "notes": "已把页面自绘面包屑与旧标题区收敛到共享 ForgePageHeader，下一步入口移到标题工具栏；桌面与窄屏截图、密度复核待内置浏览器恢复。", "evidence": [] },
+    "interaction": { "status": "pending", "notes": "待实际操作：导出、刷新、页签/视图切换、筛选、行内指派供应商与转询价。", "evidence": [] },
+    "business": { "status": "pending", "notes": "待办池数据契约经 API 验收：已审批申请生成一条持久待办、重复审批不重复、无明细被阻断，并通过同库重启回读。", "evidence": ["apps/forge-objectstack/tests/page-acceptance/procurement-chain-api-readback-20260916.json"] }
+  }
+}

@@ -1,52 +1,42 @@
 # Forge 采购申请页面合同（2026-09-16）
 
-## 入口与职责
+## 页面职责与原型
 
-- RISEMAP 当前入口：`https://risemap.cn/purchase/requests`，新建入口 `/purchase/requests/new`。
-- Forge 入口：`/_console/apps/forge/page/page_purchase_request_pool`。
-- 页面职责：采购申请人编制申请及物料明细，提交审批；审批人给出意见，通过后生成采购待办。
-- 主原型：任务执行型。参考 `project-task-workspace.page.ts` 的标题区、筛选、结果卡片与标准弹窗语言。
-- 首屏顺序：页面标题与主动作 → 申请/明细页签 → 搜索、状态和日期筛选 → 状态统计 → 申请列表 → 分页。
-- 主单据：`forge_purchase_request`；明细：`forge_purchase_request_line`；审批记录：`forge_purchase_request_approval_log`。
-- 下一岗位入口：采购待办池。
+- Forge：`page_purchase_request_pool`（`purchase-request.page.ts`）；RISEMAP 对应入口：`https://risemap.cn/purchase/requests`。
+- 岗位：采购申请人与采购主管；主单据：采购申请（含物料明细）。
+- 主原型：任务执行型，参考 `project-task-workspace.page.ts`。首屏顺序：标题与下一步入口 → 申请列表 / 物料明细页签 → 列表筛选 → 表格 → 分页；空态给出新建入口。
+- 主动作：新建申请（工具栏最右主按钮）；次动作：批量导入、导出、刷新；下一步入口：采购待办池。
 
-## RISEMAP 当前已观察事实
+## 本轮事实与处理
 
-- 列表标题为“采购申请”，说明为“发起采购申请、审批流转、转询价/订单全流程跟踪”，下一步入口为“采购待办池”。
-- 列表包含“申请列表 / 物料明细”两个页签；提供新建、导入/导出、刷新、搜索、状态和日期筛选。
-- 申请列表列包括申请编号、标题、优先级、项目、客户、负责人、物料数、总数量、预估含税金额、币种、期望到货日期、建议供应商、采购原因、备注、状态和申请日期。
-- 新建页提供“保存草稿 / 提交审批”；基本信息包含编号、标题、优先级、项目、客户、币种、申请日期、期望到货日期、负责人、建议供应商、采购原因、附件和备注。
-- 物料明细入口包含物料库、手动新增、快速粘贴、Excel 导入、添加组合、关联销售订单。
-- 手动明细已观察字段包括物料编码、名称、型号、规格、分类、单位、数量、含税/未税单价、税率和小计。
-- 本轮 RISEMAP 列表为空，未在 RISEMAP 写入业务数据。
+### RISEMAP 已保存证据（非本轮实时）
 
-## Forge 处理结论
+- 来源：`docs/references/risemap-capture/deep/supply-chain/purchasing/rm-018/493-rm-018-purchase-request-list-pass1.txt`。
+- 页面结构：面包屑“采购管理 / 采购申请”紧接标题“采购申请”、说明文案与“下一步操作 采购待办池”按钮；页签为申请列表、物料明细；工具栏为新建申请、导入/导出、刷新。
+- 筛选：搜索框、状态下拉、一对日期输入并以 `~` 连接，右侧分页“共 0 条记录 每页 20 条”。
+- 列顺序：申请编号、申请标题、优先级、关联项目、关联客户、负责人、物料数、总数量、预估含税金额、币种、期望到货日期、建议供应商、采购原因、备注、状态、申请日期、操作。Forge 现有列与顺序一致，未删列。
+- 空态：RISEMAP 表格内显示“暂无采购申请”。
 
-- 已实现独立职责页面，不再由通用 `forge_administration_record` 页面承载。
-- 已实现申请列表、物料明细、筛选、分页、导出、新建、编辑、查看、提交、同意、驳回、取消和采购待办入口。
-- 已实现物料库选择、手动新增、快速粘贴；手工/粘贴明细不要求既有 SKU，但提交时必须具有名称、型号、物料分类、单位和正数量。
-- “保存并提交审批”为真实连续动作：先持久化申请与明细，再执行提交 Action；审批通过生成具有申请与申请明细来源的采购待办。
-- 附件存储尚未接入，因此页面只显示能力说明，不提供假上传按钮。
-- Forge 使用 Console 标准对话框承载新建、编辑和审批；RISEMAP 当前为独立新建页。这属于平台统一页面语言差异，不改变字段和业务动作。
+### 本轮 Forge 决策（页面质量标准，非 RISEMAP 业务事实）
 
-## 状态、阻断与来源
+1. 删除页面自绘的“申 采购管理 / 采购申请”面包屑。Console 外壳与 `ForgePageHeader` 已经呈现同一路径，重复堆叠会挤占首屏；`ForgePageHeader` 保留为唯一标题区。
+2. “下一步操作　采购待办池”按钮从独立条带移入标题右侧工具栏首位，位置与 RISEMAP 一致，删除条带后不丢失该入口。
+3. 两个日期输入合并为一个“申请日期”范围控件，中间以 `~` 标明起止，无障碍标签为“申请开始日期 / 申请结束日期”；清空筛选同时重置起止。
+4. `pr-table` 宽表（min-width 1540px）下把申请编号列固定在左侧、操作列固定在右侧并加分隔阴影，状态与行操作在横向滚动时始终可见；申请标题、采购原因、备注列限定宽度并允许换行，避免单行被撑到不可读。
 
-- 状态：草稿、审批中、已通过、已驳回、已转采购、已取消。
-- 提交阻断：基本信息不完整、无明细、数量不大于零、手工/粘贴明细缺名称/型号/分类/单位。
-- 审批阻断：非审批中状态、审批意见为空、重复生成采购待办。
-- 来源关系：采购待办保存 `request_id` 与 `request_line_id`，支持回溯申请与具体明细。
-- 取消使用标准二次确认弹窗并要求原因；不使用浏览器原生弹框。
+## 未决与证据边界
 
-## 待 RISEMAP 同材料复核
+- 本轮没有实时打开 RISEMAP 当前页面，也没有完成 Forge 桌面 / 窄屏浏览与控件实操，因此复刻一致性、结构视觉、交互完整性、业务正确性四项均未判定通过，页面保持 `review_required`。
+- 未经页面验证：申请 → 审批 → 待办 → 询价/订单承接的推进已在 API 层跑通（见下节），但未在同一浏览器会话里逐控件办理；附件能力（页面已标明“附件存储尚未接入”）与导入 / 导出的真实文件回读仍未验证。
+- 静态职责与精修断言：`apps/forge-objectstack/tests/purchase-request-dedicated-page.static.mjs`。
+- 验收记录：`apps/forge-objectstack/tests/page-acceptance/page_purchase_request_pool.json`。
 
-- RISEMAP 当前无可办理数据，本轮未验证保存草稿、提交后的审批状态、审批意见、取消以及转询价/订单的真实反馈。
-- Excel 文件格式、添加组合、关联销售订单、附件存储和下载行为尚未获得可执行证据；Forge 不把这些入口包装为已完成能力。
-- 页面精修状态保持 `review_required`；只有 RISEMAP 与 Forge 使用同一材料完成双侧办理后才能改为 `accepted`。
+## 同批页面与 API 验收（2026-09-16）
 
-## 验收材料
-
-- API：`tests/purchase-request-entry-modes.integration.mjs`
-- 重启回读：`tests/purchase-request-entry-modes-restart-readback.mjs`
-- 页面结构：`tests/purchase-request-dedicated-page.static.mjs`
-- 工程门禁：`pnpm typecheck`、`pnpm validate`、`pnpm build`
-- 浏览器：RISEMAP `/purchase/requests`、`/purchase/requests/new` 与 Forge `page_purchase_request_pool` 的操作前、表单阻断、提交反馈、审批结果和重启后回读。
+- 本批覆盖采购申请、采购待办池、询价管理三页；采购订单承接由既有 `procurement-chain` 脚本一并验收。
+- 采购待办池改动：删除页面自绘的“采 采购管理 / 采购待办池”面包屑，把旧 `fp-page-header` / `fp-header-actions` 标题区改为共享 `ForgePageHeader`，并把“下一步操作　询价管理”移入标题右侧工具栏首位。属 Forge 页面质量标准整改，非 RISEMAP 业务事实。
+- 询价管理页面本轮未改动，仅登记验收状态。
+- 独立端口 `http://localhost:4496`、数据库 `file:.objectstack/production-placeholders-batch1.sqlite` 上的 API 结果：`purchase-request-entry-modes` passed（手工明细 + 快速粘贴 + 审批阻断）、`purchase-todo-pool` 3/3 PASS、`purchase-inquiry` 4/4 PASS、`procurement-chain` 7/7 PASS。
+- 停服重建后同库重启回读：`purchase-request-entry-modes-restart-readback` passed（申请、两条明细、两条待办 ID 一致）、`purchase-inquiry-restart-readback` PASS、`procurement-restart-readback` PASS。
+- 完整记录：`apps/forge-objectstack/tests/page-acceptance/procurement-chain-api-readback-20260916.json`。
+- 仍缺：同一组材料在 RISEMAP 与 Forge 两侧的页面办理对照，以及三页的控件实操、桌面 / 窄屏截图与控制台扫描。缺口未闭合前不宣称页面已复刻或精修通过。

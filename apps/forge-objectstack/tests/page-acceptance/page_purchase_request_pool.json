@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "pageId": "page_purchase_request_pool",
+  "archetype": "task_workspace",
+  "checks": {
+    "replication": { "status": "blocked", "notes": "列顺序与空态口径已用已保存 RISEMAP 采购申请取证（rm-018）核对；本轮未实时打开 RISEMAP，缺少当前页面证据，禁止表述为已复刻。", "evidence": ["docs/references/risemap-capture/deep/supply-chain/purchasing/rm-018/493-rm-018-purchase-request-list-pass1.txt"] },
+    "visual": { "status": "pending", "notes": "重复导航已移除、日期起止已标明、宽表首末列改为固定；桌面与窄屏截图、指标区与工具栏密度复核待内置浏览器恢复后执行。", "evidence": [] },
+    "interaction": { "status": "pending", "notes": "页面控件实操待内置浏览器恢复后执行：筛选（状态、申请日期起止、清空）、申请列表 / 物料明细切换、分页、新建/批量导入/导出、行操作与审批弹窗。本轮只完成静态精修断言。", "evidence": ["apps/forge-objectstack/tests/purchase-request-dedicated-page.static.mjs"] },
+    "business": { "status": "pending", "notes": "申请→审批→待办→询价→订单链已在独立端口 4496 用 API 验收脚本跑通，并完成同一 SQLite 停服重启回读；缺的是同材料的内置浏览器办理与 RISEMAP 并排对照。", "evidence": ["apps/forge-objectstack/tests/page-acceptance/procurement-chain-api-readback-20260916.json"] }
+  }
+}
