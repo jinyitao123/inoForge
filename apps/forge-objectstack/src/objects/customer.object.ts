@@ -1,5 +1,5 @@
 import { Field } from '@objectstack/spec/data';
-import { master, text, reference, choice, owner, remarks, money } from '../model.js';
+import { master, text, reference, choice, owner, remarks, money, code } from '../model.js';
 
 // Source: DP008/2068 form and DP008/2069 saved list.
 export const Customer = master('forge_customer', '客户管理', 'building-2', {
@@ -16,6 +16,15 @@ export const Customer = master('forge_customer', '客户管理', 'building-2', {
   credit_status: Field.select([{ value: 'active', label: '正常' }, { value: 'frozen', label: '已冻结' }], { label: '授信状态', defaultValue: 'active' }),
   address: text('详细地址'), province: text('省份'), city: text('城市'), remarks: remarks(),
 }, ['name', 'responsible_id', 'category_id', 'level_id', 'credit_limit', 'payment_days']);
+
+// RISEMAP /base/customers: “标签与团队 → 团队成员” and the
+// “我参与的 / 下属参与的” customer-owner scopes.
+export const CustomerTeamMember = master('forge_customer_team_member', '客户团队成员', 'users', {
+  name: text('成员名称', true), membership_key: code('成员关系键'),
+  customer_id: reference('forge_customer', '客户', true), user_id: Field.user({ label: '团队成员', required: true, storage: { notNull: true } }),
+  member_duty: Field.select([{ value: 'collaborator', label: '协同销售' }], { label: '成员职责', defaultValue: 'collaborator' }),
+  active: Field.boolean({ label: '有效成员', defaultValue: true }), remarks: remarks(),
+}, ['customer_id', 'user_id', 'member_duty', 'active']);
 
 export const Contact = master('forge_contact', '联系人管理', 'contact', {
   name: text('姓名', true), customer_id: reference('forge_customer', '客户', true),
