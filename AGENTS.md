@@ -1,5 +1,11 @@
 # inoForge Agent Instructions
 
+## 文档入口与维护
+
+- 当前资料入口为 `docs/README.md`，根 README 仅说明目标和启动入口。按当前任务读取对应合同和证据，不默认加载全部历史资料。
+- `docs/archive/` 和明确标为历史快照的计划、矩阵、交接记录不构成当前执行队列或验收通过证据。新报告写明被验收版本、范围和证据；旧记录不得因整理文档改写为当前通过。
+- 项目规则只在本文件维护；应用 `AGENTS.md` 仅补充局部事实，兼容入口引用规则，不复制全文。归档必须保留原文、迁移记录并修复引用，不能删除仍被合同或验收记录依赖的证据。
+
 ## 默认交付与持续执行
 
 - 新增页面、精修、功能修复默认采用 `docs/forge-page-delivery-standard.md`；逐页合同使用 `docs/templates/forge-page-delivery.md`。视觉细则只维护在 `docs/forge-page-polish-baseline.md`，不要在会话和其他规则文件复制整套正文。
