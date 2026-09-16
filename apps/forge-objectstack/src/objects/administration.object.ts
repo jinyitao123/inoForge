@@ -319,3 +319,16 @@ export const SealApplication = ObjectSchema.create({
   indexes: [{ fields: ['code'], unique: 'organization' }, { fields: ['status','applied_on'] }, { fields: ['applicant_name','applied_on'] }],
   enable: { apiEnabled: true, searchable: true, trackHistory: true, feeds: false, activities: true },
 });
+
+export const FixedAsset = ObjectSchema.create({
+  name: 'forge_fixed_asset', label: '固定资产', pluralLabel: '固定资产', icon: 'box', sharingModel: 'private', nameField: 'title',
+  fields: {
+    title: Field.text({ label: '资产名称', maxLength: 200, ...required }), code: Field.text({ label: '资产编号', maxLength: 80, ...required }),
+    category: Field.text({ label: '资产分类', maxLength: 100, ...required }), owner_name: Field.text({ label: '责任人', maxLength: 100 }), department: Field.text({ label: '部门', maxLength: 120 }),
+    purchase_on: Field.date({ label: '购入日期' }), original_value: Field.currency({ label: '资产原值', precision: 18, scale: 2, min: 0 }), accumulated_depreciation: Field.currency({ label: '累计折旧', precision: 18, scale: 2, min: 0 }),
+    residual_value: Field.currency({ label: '预计残值', precision: 18, scale: 2, min: 0 }), net_value: Field.currency({ label: '资产净值', precision: 18, scale: 2, min: 0 }), monthly_depreciation: Field.currency({ label: '月折旧额', precision: 18, scale: 2, min: 0 }),
+    status: Field.select([option('in_use','在用'), option('idle','闲置'), option('repair','维修中'), option('scrapped','已报废')], { label: '状态', defaultValue: 'in_use', ...required }), remarks: Field.textarea({ label: '备注' }),
+  },
+  searchableFields: ['title','code','category','owner_name','department'], listViews: { all: { label: '全部', type: 'grid', columns: ['code','title','category','original_value','accumulated_depreciation','residual_value','net_value','monthly_depreciation','owner_name','department','status','purchase_on'] } },
+  indexes: [{ fields: ['code'], unique: 'organization' }, { fields: ['status','department'] }, { fields: ['category','purchase_on'] }], enable: { apiEnabled: true, searchable: true, trackHistory: true, feeds: false, activities: true },
+});
