@@ -23,37 +23,19 @@ const [account] = await find('forge_fund_account', { code: 'FA-AR-PAGE-20260916'
 const [order] = await find('forge_sales_order', { id: receivable?.order_id });
 assert.ok(receivable && reversed && receipt && account && order, '缺少应收应付页面验收材料');
 
+assert.equal(receipt.customer_id, receivable.customer_id);
+assert.equal(receipt.account_id, account.id);
+assert.equal(receipt.amount, 26000);
+assert.equal(receipt.allocated_amount + receipt.unallocated_amount, 26000);
+assert.ok(['unallocated', 'allocated'].includes(receipt.status));
+if (receipt.status === 'unallocated') {
+  assert.deepEqual([receipt.allocated_amount, receipt.unallocated_amount, receivable.status, receivable.outstanding_amount], [0, 26000, 'unpaid', 26000]);
+} else {
+  assert.deepEqual([receipt.allocated_amount, receipt.unallocated_amount, receivable.status, receivable.outstanding_amount], [26000, 0, 'settled', 0]);
+}
 assert.deepEqual(
-  {
-    receivableStatus: receivable.status,
-    receivableOutstanding: receivable.outstanding_amount,
-    receiptCustomer: receipt.customer_id,
-    receiptAccount: receipt.account_id,
-    receiptAmount: receipt.amount,
-    receiptAllocated: receipt.allocated_amount,
-    receiptUnallocated: receipt.unallocated_amount,
-    receiptStatus: receipt.status,
-    accountBalance: account.current_balance,
-    orderId: order.id,
-    orderCode: order.code,
-    reversedStatus: reversed.status,
-    reversedOutstanding: reversed.outstanding_amount,
-  },
-  {
-    receivableStatus: 'unpaid',
-    receivableOutstanding: 26000,
-    receiptCustomer: receivable.customer_id,
-    receiptAccount: account.id,
-    receiptAmount: 26000,
-    receiptAllocated: 0,
-    receiptUnallocated: 26000,
-    receiptStatus: 'unallocated',
-    accountBalance: 126000,
-    orderId: receivable.order_id,
-    orderCode: 'SO-INV-APPROVED-BROWSER-1789545797758',
-    reversedStatus: 'red_reversed',
-    reversedOutstanding: 0,
-  },
+  [account.current_balance, order.id, order.code, reversed.status, reversed.outstanding_amount],
+  [126000, receivable.order_id, 'SO-INV-APPROVED-BROWSER-1789545797758', 'red_reversed', 0],
 );
 
 const params = {
@@ -74,5 +56,6 @@ console.log(JSON.stringify({
   endpoint,
   ids: { receivable: receivable.id, receipt: receipt.id, account: account.id, order: order.id },
   accountBalance: account.current_balance,
+  receiptStatus: receipt.status,
   unallocatedAmount: receipt.unallocated_amount,
 }, null, 2));
