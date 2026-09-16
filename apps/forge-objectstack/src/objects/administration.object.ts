@@ -348,3 +348,17 @@ export const QualificationRecord = ObjectSchema.create({
   indexes: [{ fields: ['code'], unique: 'organization' }, { fields: ['status','valid_to'] }, { fields: ['category','declaration_status'] }],
   enable: { apiEnabled: true, searchable: true, trackHistory: true, feeds: false, activities: true },
 });
+
+export const MaterialPickupRequest = ObjectSchema.create({
+  name: 'forge_material_pickup_request', label: '物料领取', pluralLabel: '物料领取', icon: 'package', sharingModel: 'private', nameField: 'title',
+  fields: {
+    title: Field.text({ label: '物品名称', maxLength: 200, ...required }), code: Field.text({ label: '申请单号', maxLength: 100, ...required }),
+    category: Field.text({ label: '物品分类', maxLength: 120 }), owner_name: Field.text({ label: '申请人', maxLength: 100, ...required }),
+    department: Field.text({ label: '申请部门', maxLength: 120 }), request_on: Field.date({ label: '申请日期', ...required }),
+    quantity: Field.number({ label: '数量', min: 0, scale: 2, ...required }), status: Field.select([option('draft','草稿'), option('pending','待审批'), option('approved','待领取'), option('picked','已领取'), option('rejected','已驳回')], { label: '状态', defaultValue: 'draft', ...required }),
+    purpose: Field.textarea({ label: '领用事由' }), remarks: Field.textarea({ label: '备注' }),
+  }, searchableFields: ['title','code','category','owner_name','department','purpose'],
+  listViews: { all: { label: '全部', type: 'grid', columns: ['code','title','category','owner_name','department','request_on','quantity','status'] } },
+  indexes: [{ fields: ['code'], unique: 'organization' }, { fields: ['status','request_on'] }, { fields: ['owner_name','request_on'] }],
+  enable: { apiEnabled: true, searchable: true, trackHistory: true, feeds: false, activities: true },
+});
