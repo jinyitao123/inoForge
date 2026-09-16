@@ -76,6 +76,7 @@ export * from './sales-customers.page.js';
 export * from './supply-production-routing.page.js';
 export * from './purchase-inquiry.page.js';
 export * from './supplier-price-book.page.js';
+export * from './all-inbounds.page.js';
 
 export * from './inventory-operations.page.js';
 export * from './inventory-damage.page.js';

@@ -158,8 +158,6 @@ const routePage = (name: string) => {
   return page;
 };
 
-const allInboundsPage = routePage('page_all_inbounds');
-export const AllInboundsPage = { name: allInboundsPage.name, label: allInboundsPage.label, description: allInboundsPage.description, icon: 'package-plus', type: 'app' as const, kind: 'react' as const, source: allInboundsSource };
 export const DrawingGuidePage = makePage(routePage('page_drawing_guide'));
 export const SubcontractGuidePage = {
   name: 'page_subcontract_guide',
