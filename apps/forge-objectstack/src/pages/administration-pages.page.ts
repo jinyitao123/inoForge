@@ -73,7 +73,7 @@ export const FixedAssetsPage=pages.page_fixed_assets;
 export const QualificationDeclarationPage=pages.page_qualification_declaration; export const MaterialPickupPage=pages.page_material_pickup;
 export const EquipmentMaintenancePage=pages.page_equipment_maintenance; export const GiftManagementPage=pages.page_gift_management;
 export const LoanManagementPage=pages.page_loan_management; export const VehicleManagementPage=pages.page_vehicle_management;
-export const HrWorkspacePage=pages.page_hr_workspace; export const EmployeeRecordsPage=pages.page_employee_records;
+export const HrWorkspacePage=pages.page_hr_workspace;
 export const RecruitmentPage=pages.page_recruitment; export const OnboardingOffboardingPage=pages.page_onboarding_offboarding;
 export const SalaryBenefitsPage=pages.page_salary_benefits;
 export const DirectoryPage=pages.page_directory; export const OvertimeRequestsPage=pages.page_overtime_requests;

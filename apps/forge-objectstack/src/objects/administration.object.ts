@@ -255,3 +255,26 @@ export const RulePolicy = ObjectSchema.create({
   indexes: [{ fields: ['code'], unique: 'organization' }, { fields: ['status','effective_on'] }, { fields: ['category','status'] }],
   enable: { apiEnabled: true, searchable: true, trackHistory: true, feeds: false, activities: true },
 });
+
+export const EmployeeRecord = ObjectSchema.create({
+  name: 'forge_employee_record', label: '员工档案', pluralLabel: '员工档案', icon: 'users', sharingModel: 'private', nameField: 'name',
+  fields: {
+    name: Field.text({ label: '姓名', maxLength: 100, ...required }),
+    employee_code: Field.text({ label: '工号', maxLength: 60, ...required }),
+    department: Field.text({ label: '部门', maxLength: 120 }),
+    position: Field.text({ label: '岗位', maxLength: 120 }),
+    grade: Field.text({ label: '职级', maxLength: 80 }),
+    employment_type: Field.select([option('full_time','正式'), option('probation','试用'), option('part_time','兼职'), option('contract','合同')], { label: '用工类型', defaultValue: 'full_time', ...required }),
+    status: Field.select([option('active','在职'), option('probation','试用期'), option('leave','休假'), option('resigned','离职')], { label: '员工状态', defaultValue: 'active', ...required }),
+    joined_on: Field.date({ label: '入职日期' }),
+    contract_end_on: Field.date({ label: '合同到期日' }),
+    passport_no: Field.text({ label: '护照号码', maxLength: 80 }),
+    system_user: Field.text({ label: '系统用户', maxLength: 120 }),
+    mobile: Field.text({ label: '手机', maxLength: 40 }),
+    remarks: Field.textarea({ label: '备注' }),
+  },
+  searchableFields: ['name','employee_code','department','position','grade','passport_no','system_user','mobile'],
+  listViews: { all: { label: '全部', type: 'grid', columns: ['employee_code','name','department','position','grade','employment_type','status','joined_on','contract_end_on','passport_no','system_user','mobile'] } },
+  indexes: [{ fields: ['employee_code'], unique: 'organization' }, { fields: ['department','status'] }, { fields: ['contract_end_on','status'] }],
+  enable: { apiEnabled: true, searchable: true, trackHistory: true, feeds: false, activities: true },
+});
