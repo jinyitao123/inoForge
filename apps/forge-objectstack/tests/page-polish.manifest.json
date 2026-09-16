@@ -374,9 +374,18 @@
       "designStatus": "review_required"
     },
     {
-      "file": "supply-production-routing.page.ts",
+      "file": "purchase-inquiry.page.ts",
       "pages": [
         "page_purchase_inquiry"
+      ],
+      "archetype": "task_workspace",
+      "reference": "project-task-workspace.page.ts",
+      "designStatus": "review_required"
+    },
+    {
+      "file": "supplier-price-book.page.ts",
+      "pages": [
+        "page_supplier_price_book"
       ],
       "archetype": "task_workspace",
       "reference": "project-task-workspace.page.ts",

@@ -135,8 +135,39 @@ export const PurchaseInquiryQuoteLine = master('forge_purchase_inquiry_quote_lin
 export const SupplierPriceBook = master('forge_supplier_price_book', '供应商价格本', 'book-open', {
   name: text('价格本名称', true), code: code('价格本编号'), supplier_id: reference('forge_supplier', '供应商', true),
   currency: select('币种', [['cny', '人民币'], ['usd', '美元'], ['eur', '欧元']], 'cny'), valid_from: Field.date({ label: '生效日期' }), valid_to: Field.date({ label: '失效日期' }),
-  line_count: Field.number({ label: '价格条目数', min: 0, scale: 0, defaultValue: 0 }), status: select('状态', [['draft', '草稿'], ['active', '生效中'], ['expired', '已过期'], ['voided', '已废弃']], 'draft'), remarks: remarks(),
-}, ['code', 'name', 'supplier_id', 'currency', 'valid_from', 'valid_to', 'line_count', 'status']);
+  discount_level1: percentage('一级折扣（%）', 0), discount_level2: percentage('二级折扣（%）', 0),
+  line_count: Field.number({ label: '价格条目数', min: 0, scale: 0, defaultValue: 0, readonly: true }),
+  status: select('状态', [['draft', '草稿'], ['active', '生效中'], ['expired', '已过期'], ['voided', '已废弃']], 'draft'),
+  activated_at: Field.datetime({ label: '生效时间', readonly: true }), activated_by: Field.user({ label: '生效操作人', readonly: true }),
+  void_reason: Field.textarea({ label: '废弃原因', readonly: true }), remarks: remarks(),
+}, ['code', 'name', 'supplier_id', 'currency', 'valid_from', 'valid_to', 'discount_level1', 'discount_level2', 'line_count', 'status']);
+
+export const SupplierPriceBookLine = master('forge_supplier_price_book_line', '供应商价格条目', 'badge-yen', {
+  name: text('物料名称', true), price_book_id: reference('forge_supplier_price_book', '价格本', true),
+  sku_id: reference('forge_material_sku', '物料规格', true), item_code: text('物料编码'), model: text('型号'),
+  specification: text('规格'), unit_name: text('单位'), catalog_price: nonNegativeMoney('目录价'),
+  discount_level1: percentage('一级折扣（%）', 0), discount_level2: percentage('二级折扣（%）', 0),
+  net_price: nonNegativeMoney('协议净价'), minimum_quantity: positiveQuantity('最小起订量'),
+  valid_from: Field.date({ label: '生效日期' }), valid_to: Field.date({ label: '失效日期' }), remarks: remarks(),
+}, ['price_book_id', 'item_code', 'name', 'model', 'specification', 'unit_name', 'catalog_price', 'discount_level1', 'discount_level2', 'net_price', 'minimum_quantity', 'valid_from', 'valid_to']);
+
+export const SupplierPriceBookStatusLog = master('forge_supplier_price_book_status_log', '价格本状态记录', 'history', {
+  name: text('记录名称', true), price_book_id: reference('forge_supplier_price_book', '价格本', true),
+  action: select('动作', [['activated', '生效'], ['voided', '废弃']]), from_status: text('原状态'), to_status: text('新状态'),
+  comment: Field.textarea({ label: '处理意见' }), operator_id: Field.user({ label: '操作人', ...required, readonly: true }),
+  occurred_at: Field.datetime({ label: '操作时间', ...required, readonly: true }),
+}, ['price_book_id', 'action', 'from_status', 'to_status', 'comment', 'operator_id', 'occurred_at']);
+
+export const SupplierPriceBookBatchTask = master('forge_supplier_price_book_batch_task', '价格本批量任务', 'file-stack', {
+  name: text('任务名称', true), price_book_id: reference('forge_supplier_price_book', '价格本'),
+  direction: select('任务方向', [['import', '导入'], ['export', '导出']]), file_name: text('文件名'),
+  total_rows: Field.number({ label: '总行数', min: 0, scale: 0, defaultValue: 0 }),
+  success_rows: Field.number({ label: '成功行数', min: 0, scale: 0, defaultValue: 0 }),
+  failed_rows: Field.number({ label: '失败行数', min: 0, scale: 0, defaultValue: 0 }),
+  status: select('任务状态', [['processing', '处理中'], ['completed', '已完成'], ['failed', '失败']], 'processing'),
+  message: Field.textarea({ label: '处理结果' }), operator_id: Field.user({ label: '操作人', readonly: true }),
+  completed_at: Field.datetime({ label: '完成时间', readonly: true }),
+}, ['direction', 'name', 'price_book_id', 'file_name', 'total_rows', 'success_rows', 'failed_rows', 'status', 'completed_at']);
 
 // RISEMAP /purchase/pending-pool splits an approved request into material-line
 // tasks. Quantities remain on this durable allocation layer while orders and
