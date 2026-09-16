@@ -5,12 +5,14 @@
 - 总目标：财务全部页面精修与业务验收。
 - 本批业务链：开票申请 → 开票任务 → 销项发票 → 应收 → 收款分配与核销。
 - 已收口页面：`page_invoice_tasks`、`page_output_invoices`、`page_receivables_payables`；当前页：`page_sales_collection_flow`；下一页：`page_fund_accounts`。
+- 本批已提交页面：`page_fund_accounts`（实现 `e7544a5`、取证 `825ca9a`）；`page_sales_collection_flow` 已收口，窄屏修复后的复测仍待补。
+- 同类缺陷排查（待逐页执行）：760px 以下指标区是否堆积成单列、列表标题与记录数量是否互相挤压、行操作文字是否折行、影响整页统计的范围选择是否放在指标之后。仓库扫描只能标记候选选择器，必须在内置浏览器逐页确认后才能判定。
 - 起始版本：`2a0c56713c836baeaf84f0d19e9d7483691aade3`；规则同步提交：`f260a9e`。
 - 分支与工作树：`codex/finance-sales-cycle`；`.worktrees/finance-sales-cycle`。
 - 独立环境：`http://localhost:4441`；`file:.objectstack/finance-sales-cycle.sqlite`。
 - 实施负责人：当前财务任务；独立复核者：待独立验收。
 - 全量范围来源：`objectstack.config.ts` 财务导航、`src/pages/index.ts` 页面注册、页面内跳转、相关对象及 Action。
-- 共享文件唯一负责人：本批不修改 `objectstack.config.ts`、`product-ui.ts`、`src/pages/index.ts`、`package.json` 和精修 manifest；需要更新时在集成阶段由主线唯一负责人处理。
+- 共享文件唯一负责人：本批不修改 `objectstack.config.ts`、`product-ui.ts`、`src/pages/index.ts` 和 `package.json`；仅在 `tests/page-polish.manifest.json` 中为 `page_fund_accounts` 增加隔离的 `review_required` 条目（`contract` + `acceptance`），该条目由集成负责人在合入主线时确认，避免与其他任务并发修改同一清单。
 
 ## 当前分类清单
 
