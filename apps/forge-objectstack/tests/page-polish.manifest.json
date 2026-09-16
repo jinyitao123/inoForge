@@ -462,11 +462,13 @@
       "acceptance": "apps/forge-objectstack/tests/page-acceptance/page_drawing_guide.json"
     },
     {
-      "file": "supply-production-routing.page.ts",
+      "file": "subcontract-guide.page.ts",
       "pages": ["page_subcontract_guide"],
       "archetype": "configuration",
       "reference": "project-timesheet-cost.page.ts",
-      "designStatus": "review_required"
+      "designStatus": "review_required",
+      "contract": "docs/forge-subcontract-guide-page-contract-20260916.md",
+      "acceptance": "apps/forge-objectstack/tests/page-acceptance/page_subcontract_guide.json"
     },
     {
       "file": "drawing-workspace.page.ts",

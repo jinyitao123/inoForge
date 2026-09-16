@@ -76,6 +76,7 @@ export * from './sales-crm-service-pages.page.js';
 export * from './sales-customers.page.js';
 export * from './sales-contacts.page.js';
 export * from './supply-production-routing.page.js';
+export * from './subcontract-guide.page.js';
 export * from './purchase-inquiry.page.js';
 export * from './supplier-price-book.page.js';
 export * from './all-inbounds.page.js';
