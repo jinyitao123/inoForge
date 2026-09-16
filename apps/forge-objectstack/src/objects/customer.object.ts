@@ -29,10 +29,22 @@ export const CustomerTeamMember = master('forge_customer_team_member', '客户�
 export const Contact = master('forge_contact', '联系人管理', 'contact', {
   name: text('姓名', true), customer_id: reference('forge_customer', '客户', true),
   is_primary: Field.boolean({ label: '主要联系人', defaultValue: false }), job_title: text('职位'), department: text('部门'),
-  gender: text('性别'), decision_weight: text('决策权重'), remarks: remarks(),
-}, ['name', 'customer_id', 'is_primary', 'job_title', 'department']);
+  gender: text('性别'), decision_weight: text('决策权重'),
+  employment_status: Field.select([
+    { value: 'active', label: '在职' }, { value: 'transferred', label: '已跳槽' },
+    { value: 'resigned', label: '已离职' }, { value: 'retired', label: '已退休' },
+    { value: 'inactive', label: '停用' },
+  ], { label: '任职状态', defaultValue: 'active' }),
+  responsible_id: owner(), remarks: remarks(),
+}, ['name', 'customer_id', 'is_primary', 'job_title', 'department', 'employment_status', 'responsible_id']);
 
 export const ContactChannel = master('forge_contact_channel', '联系人联系方式', 'phone', {
   name: text('标签', true), contact_id: reference('forge_contact', '联系人', true),
-  channel_type: choice('类型', ['手机', '座机', '邮箱'], '手机'), value: text('联系方式', true),
-}, ['contact_id', 'channel_type', 'name', 'value']);
+  channel_type: Field.select([
+    { value: 'mobile', label: '手机' }, { value: 'telephone', label: '座机' },
+    { value: 'email', label: '邮箱' }, { value: 'wechat', label: '微信' },
+    { value: 'dingtalk', label: '钉钉' }, { value: 'qq', label: 'QQ' },
+    { value: 'linkedin', label: 'LinkedIn' }, { value: 'other', label: '其他' },
+  ], { label: '类型', defaultValue: 'mobile' }),
+  value: text('联系方式', true), is_primary: Field.boolean({ label: '主要联系方式', defaultValue: false }),
+}, ['contact_id', 'channel_type', 'name', 'value', 'is_primary']);
