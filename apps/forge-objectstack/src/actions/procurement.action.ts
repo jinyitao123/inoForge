@@ -14,7 +14,7 @@ if(!actor)throw new Error('无法识别当前操作人');
 if(!request.name||!request.expected_arrival_on||!request.responsible_id||!String(request.purchase_reason||'').trim())throw new Error('申请标题、期望到货日期、负责人和采购原因不能为空');
 const lines=await ctx.api.object('forge_purchase_request_line').find({where:{request_id:id}});if(!lines.length)throw new Error('采购申请至少需要一条物料明细');
 const round4=v=>Math.round((Number(v)+Number.EPSILON)*10000)/10000;
-for(const line of lines)if(!(Number(line.quantity||0)>0))throw new Error('采购数量必须大于0');
+for(const line of lines){if(!(Number(line.quantity||0)>0))throw new Error('采购数量必须大于0');if(line.entry_mode!=='library'&&(!String(line.name||'').trim()||!String(line.model||'').trim()||!String(line.category_name||'').trim()||!String(line.unit_name||'').trim()))throw new Error('手工明细必须填写物料名称、型号、物料分类和单位');}
 const totalQuantity=round4(lines.reduce((s,x)=>s+Number(x.quantity||0),0)),totalAmount=round4(lines.reduce((s,x)=>s+Number(x.taxed_subtotal||0),0)),now=new Date().toISOString();
 await ctx.api.object('forge_purchase_request').update({id,line_count:lines.length,total_quantity:totalQuantity,estimated_taxed_amount:totalAmount,status:'pending_approval',submitted_at:now,submitted_by:actor,approval_comment:null});
 await ctx.api.object('forge_purchase_request_approval_log').insert({name:request.code+' 提交审批',request_id:id,action:'submitted',from_status:request.status,to_status:'pending_approval',comment:'提交审批',occurred_at:now,operator_id:actor});
