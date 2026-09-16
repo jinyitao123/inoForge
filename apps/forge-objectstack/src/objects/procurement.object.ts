@@ -97,11 +97,40 @@ export const PurchaseRequestApprovalLog = master('forge_purchase_request_approva
 }, ['request_id', 'action', 'from_status', 'to_status', 'comment', 'operator_id', 'occurred_at']);
 
 export const PurchaseInquiry = master('forge_purchase_inquiry', '询价单', 'messages-square', {
-  name: text('询价标题', true), code: code('询价单号'), source_type: select('来源', [['purchase_request', '采购申请'], ['manual', '手工创建'], ['shortage', '缺料分析']], 'manual'),
+  name: text('询价标题', true), code: code('询价单号'), source_type: select('来源', [['purchase_request', '采购申请'], ['sales_contract', '销售合同'], ['manual', '手工创建'], ['shortage', '缺料分析']], 'manual'),
+  project_id: reference('forge_project', '关联项目'), purchase_request_id: reference('forge_purchase_request', '来源采购申请'),
+  sales_contract_id: reference('forge_sales_contract', '来源销售合同'),
   responsible_id: owner(true), supplier_count: Field.number({ label: '供应商数', min: 0, scale: 0, defaultValue: 0 }), line_count: Field.number({ label: '物料数', min: 0, scale: 0, defaultValue: 0 }),
-  due_on: Field.date({ label: '报价截止日期' }), status: select('状态', [['draft', '待发布'], ['published', '报价中'], ['compared', '已完成比价'], ['converted', '已转采购单'], ['closed', '已关闭']], 'draft'),
+  due_on: Field.date({ label: '报价截止日期', ...required }), selected_quote_id: reference('forge_purchase_inquiry_quote', '中选报价'),
+  converted_order_id: reference('forge_purchase_order', '转入采购单'), published_at: Field.datetime({ label: '发布时间' }),
+  compared_at: Field.datetime({ label: '确认比价时间' }), converted_at: Field.datetime({ label: '转采购单时间' }),
+  status: select('状态', [['draft', '待发布'], ['published', '报价中'], ['compared', '已完成比价'], ['converted', '已转采购单'], ['closed', '已关闭']], 'draft'),
   remarks: remarks(),
-}, ['code', 'name', 'source_type', 'responsible_id', 'supplier_count', 'line_count', 'due_on', 'status']);
+}, ['code', 'name', 'source_type', 'project_id', 'responsible_id', 'supplier_count', 'line_count', 'due_on', 'status', 'converted_order_id']);
+
+export const PurchaseInquiryLine = master('forge_purchase_inquiry_line', '询价物料', 'list', {
+  name: text('物料名称', true), inquiry_id: reference('forge_purchase_inquiry', '询价单', true),
+  sku_id: reference('forge_material_sku', '物料规格', true), item_code: text('物料编码'), model: text('型号'),
+  specification: text('规格'), unit_name: text('单位'), quantity: positiveQuantity('询价数量'),
+  required_on: Field.date({ label: '需求日期' }), purchase_request_line_id: reference('forge_purchase_request_line', '来源申请明细'),
+  sales_contract_line_id: reference('forge_sales_contract_line', '来源合同明细'), remarks: remarks(),
+}, ['inquiry_id', 'item_code', 'name', 'model', 'specification', 'quantity', 'unit_name', 'required_on']);
+
+export const PurchaseInquiryQuote = master('forge_purchase_inquiry_quote', '供应商询价报价', 'badge-yen', {
+  name: text('报价名称', true), code: code('报价编号'), inquiry_id: reference('forge_purchase_inquiry', '询价单', true),
+  supplier_id: reference('forge_supplier', '供应商', true), currency: select('币种', [['cny', '人民币'], ['usd', '美元'], ['eur', '欧元']], 'cny'),
+  total_amount: nonNegativeMoney('含税总额'), lead_days: Field.number({ label: '交期（天）', min: 0, scale: 0, defaultValue: 0 }),
+  valid_until: Field.date({ label: '报价有效期' }), payment_term: text('付款条件'),
+  status: select('报价状态', [['invited', '待报价'], ['submitted', '已报价'], ['selected', '已中选'], ['declined', '未中选']], 'invited'),
+  submitted_at: Field.datetime({ label: '报价时间' }), remarks: remarks(),
+}, ['code', 'inquiry_id', 'supplier_id', 'total_amount', 'lead_days', 'valid_until', 'payment_term', 'status']);
+
+export const PurchaseInquiryQuoteLine = master('forge_purchase_inquiry_quote_line', '供应商报价明细', 'rows-3', {
+  name: text('物料名称', true), quote_id: reference('forge_purchase_inquiry_quote', '供应商报价', true),
+  inquiry_line_id: reference('forge_purchase_inquiry_line', '询价物料', true), sku_id: reference('forge_material_sku', '物料规格', true),
+  quantity: positiveQuantity('报价数量'), taxed_unit_price: nonNegativeMoney('含税单价'), tax_rate: percentage('税率'),
+  taxed_subtotal: nonNegativeMoney('含税小计'), remarks: remarks(),
+}, ['quote_id', 'inquiry_line_id', 'sku_id', 'name', 'quantity', 'taxed_unit_price', 'tax_rate', 'taxed_subtotal']);
 
 export const SupplierPriceBook = master('forge_supplier_price_book', '供应商价格本', 'book-open', {
   name: text('价格本名称', true), code: code('价格本编号'), supplier_id: reference('forge_supplier', '供应商', true),
