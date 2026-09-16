@@ -98,6 +98,7 @@ export * from './administration-notice.page.js';
 export * from './work-report.page.js';
 export * from './document-center.page.js';
 export * from './rules-policies.page.js';
+export * from './qualification-declaration.page.js';
 export * from './employee-records.page.js';
 export * from './meeting-minutes.page.js';
 export * from './seal-management.page.js';

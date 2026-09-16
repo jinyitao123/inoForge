@@ -332,3 +332,19 @@ export const FixedAsset = ObjectSchema.create({
   searchableFields: ['title','code','category','owner_name','department'], listViews: { all: { label: '全部', type: 'grid', columns: ['code','title','category','original_value','accumulated_depreciation','residual_value','net_value','monthly_depreciation','owner_name','department','status','purchase_on'] } },
   indexes: [{ fields: ['code'], unique: 'organization' }, { fields: ['status','department'] }, { fields: ['category','purchase_on'] }], enable: { apiEnabled: true, searchable: true, trackHistory: true, feeds: false, activities: true },
 });
+
+export const QualificationRecord = ObjectSchema.create({
+  name: 'forge_qualification_record', label: '资质与申报', pluralLabel: '资质与申报', icon: 'award', sharingModel: 'private', nameField: 'title',
+  fields: {
+    title: Field.text({ label: '资质名称', maxLength: 200, ...required }), code: Field.text({ label: '证书编号', maxLength: 100, ...required }),
+    category: Field.text({ label: '资质类别', maxLength: 120, ...required }), issuing_authority: Field.text({ label: '发证机构', maxLength: 160 }),
+    owner_name: Field.text({ label: '责任人', maxLength: 100 }), valid_from: Field.date({ label: '有效期起' }), valid_to: Field.date({ label: '有效期止' }),
+    status: Field.select([option('valid','有效'), option('expiring','即将到期'), option('expired','已到期'), option('draft','草稿')], { label: '状态', defaultValue: 'valid', ...required }),
+    declaration_status: Field.select([option('none','未申报'), option('preparing','准备中'), option('submitted','已申报'), option('approved','已通过'), option('rejected','已驳回')], { label: '政策申报状态', defaultValue: 'none', ...required }),
+    material_note: Field.textarea({ label: '材料说明' }), remarks: Field.textarea({ label: '备注' }),
+  },
+  searchableFields: ['title','code','category','issuing_authority','owner_name','material_note'],
+  listViews: { all: { label: '全部', type: 'grid', columns: ['title','category','code','issuing_authority','valid_to','owner_name','status','declaration_status'] } },
+  indexes: [{ fields: ['code'], unique: 'organization' }, { fields: ['status','valid_to'] }, { fields: ['category','declaration_status'] }],
+  enable: { apiEnabled: true, searchable: true, trackHistory: true, feeds: false, activities: true },
+});
