@@ -24,7 +24,7 @@
     },
     "visual": {
       "status": "pending",
-      "notes": "Populated desktop, empty state and dialogs were checked in the built-in browser. The required 390x844 built-in-browser evidence is still missing.",
+      "notes": "Populated desktop plus 390x844 narrow first screen, status filtering, search, empty result, reset and issuance dialog were checked in the built-in browser. Independent visual review remains pending.",
       "evidence": ["docs/evidence/finance-invoice-tasks-20260916/acceptance.md"]
     },
     "interaction": {
@@ -40,7 +40,7 @@
   },
   "visualEvidence": {
     "desktop": { "width": 1280, "height": 720, "evidence": ["docs/evidence/finance-invoice-tasks-20260916/acceptance.md"] },
-    "narrow": { "width": 390, "height": 844, "evidence": [] },
+    "narrow": { "width": 390, "height": 844, "evidence": ["docs/evidence/finance-invoice-tasks-20260916/acceptance.md"] },
     "reference": ["docs/forge-finance-sales-cycle-page-delivery-20260916.md"],
     "populated": ["docs/evidence/finance-invoice-tasks-20260916/acceptance.md"],
     "empty": ["docs/evidence/finance-invoice-tasks-20260916/acceptance.md"],
@@ -56,7 +56,7 @@
     { "id": "INV-TASK-006", "status": "pass", "steps": "Inspect populated columns.", "expected": "Ten columns use actual related and audit fields.", "observed": "Order, customer, tax, applicant and submitted time resolved correctly.", "evidence": ["docs/evidence/finance-invoice-tasks-20260916/acceptance.md"] },
     { "id": "INV-TASK-007", "status": "pending", "steps": "Operate every Forge status and compare RISEMAP.", "expected": "Actions follow status and both products have understood outcomes.", "observed": "Forge passed; RISEMAP row behavior remains unavailable.", "evidence": ["docs/evidence/finance-invoice-tasks-20260916/acceptance.md"] },
     { "id": "INV-TASK-008", "status": "pass", "steps": "Submit missing inputs and wrong-state actions.", "expected": "Clear blocking with no unintended transition.", "observed": "Page and API blockers passed.", "evidence": ["apps/forge-objectstack/tests/invoice-task-workspace.integration.mjs"] },
-    { "id": "INV-TASK-009", "status": "pending", "steps": "Check desktop and 390x844 built-in-browser views.", "expected": "Usable first screen without page-level horizontal overflow.", "observed": "Desktop passed; narrow built-in-browser evidence is missing.", "evidence": ["docs/evidence/finance-invoice-tasks-20260916/acceptance.md"] },
+    { "id": "INV-TASK-009", "status": "pass", "steps": "Check desktop and 390x844 built-in-browser views, including status tabs, search, empty result, reset and issuance dialog.", "expected": "Usable first screen without page-level horizontal overflow; wide table scrolls only inside its card.", "observed": "Desktop and narrow views passed. Period scope, metrics, filters and dialog remained usable without overlap; the wide table stayed inside its scroll container.", "evidence": ["docs/evidence/finance-invoice-tasks-20260916/acceptance.md"] },
     { "id": "INV-TASK-010", "status": "pass", "steps": "Issue from the page, read invoice and receivable, restart, and read again.", "expected": "Linked issued invoice and unpaid receivable survive restart.", "observed": "Invoice and receivable remained linked at 26000 after restart.", "evidence": ["apps/forge-objectstack/tests/invoice-task-restart-readback.mjs"] }
   ],
   "review": {
