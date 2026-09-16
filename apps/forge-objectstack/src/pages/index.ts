@@ -97,3 +97,4 @@ export * from './administration-workflow.page.js';
 export * from './administration-notice.page.js';
 export * from './work-report.page.js';
 export * from './document-center.page.js';
+export * from './rules-policies.page.js';

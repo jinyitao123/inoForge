@@ -11,7 +11,7 @@
     {"file":"administration-pages.page.ts","pages":["page_salary_benefits","page_attendance_statistics"],"archetype":"analysis","reference":"project-timesheet-cost.page.ts","designStatus":"review_required"},
     {"file":"administration-workflow.page.ts","pages":["page_process_definitions","page_process_categories"],"archetype":"configuration","reference":"project-timesheet-cost.page.ts","designStatus":"review_required"},
     {"file":"document-center.page.ts","pages":["page_document_center"],"archetype":"configuration","reference":"project-timesheet-cost.page.ts","designStatus":"review_required"},
-    {"file":"administration-pages.page.ts","pages":["page_rules_policies","page_directory"],"archetype":"configuration","reference":"project-timesheet-cost.page.ts","designStatus":"review_required"}
+    {"file":"administration-pages.page.ts","pages":["page_directory"],"archetype":"configuration","reference":"project-timesheet-cost.page.ts","designStatus":"review_required"}
   ],
   "finance": [
     {
