@@ -50,12 +50,12 @@
 | INV-TASK-006 | RISEMAP 实时表头十列 | 主表格 | 对照表头与真实记录 | 列顺序一致，申请人和提交时间来自真实字段 | 十列一致；申请人为 Dev Admin，提交时间取 `submitted_at`，合同/订单和税率来自关联数据 | pass |
 | INV-TASK-007 | Forge 已有审批、驳回、登记开票、查看发票能力 | 行操作与标准弹窗 | 对四种状态分别操作 | 只显示状态允许的动作；成功后回读 | Forge 四种状态动作按条件显示，审批、驳回和登记开票均已操作；RISEMAP 行级事实仍待同材料复核 | partial |
 | INV-TASK-008 | Forge 安全决策要求业务校验和错误反馈 | Action 与页面通知 | 空审批意见、空发票号、重复/越权动作 | 阻断并解释原因，数据不变化 | 页面与 API 均阻断空审批意见、空发票号；API 阻断错误状态与未登录调用 | pass |
-| INV-TASK-009 | 页面精修基线要求桌面、窄屏、空态与有数据 | 页面整体 | 1440×900、390×844 检查 | 主动作易找，首屏连续，页面整体不横向溢出 | 内置浏览器桌面有数据、空态和弹窗通过；390×844 尚未取证 | partial |
+| INV-TASK-009 | 页面精修基线要求桌面、窄屏、空态与有数据 | 页面整体 | 1440×900、390×844 检查，并操作状态页签、搜索、无结果空态、重置和登记开票弹窗 | 主动作易找，首屏连续，页面整体不横向溢出，宽表仅在卡片内部滚动 | 桌面与 390×844 均通过；窄屏期间范围、指标、列表、筛选与弹窗无重叠，取消弹窗不改变状态 | pass |
 | INV-TASK-010 | 业务结果必须进入销项发票和应收 | 下一岗位 | 登记开票后打开发票并回读应收 | 来源、金额、状态、关联 ID 一致 | 浏览器登记 `INV-BROWSER-20260916-001`；发票 issued、应收 unpaid、金额与余额均为 26,000；重启后保持 | pass |
 
 ## 验收与交接
 
-- 四维结果：replication `blocked`；visual `pending`；interaction `blocked`；business `blocked`。阻断仅指 RISEMAP 同材料及窄屏/独立复核未完成，Forge 本页已完成正常路径、关键阻断、API 和重启回读。
+- 四维结果：replication `blocked`；visual `pending`；interaction `blocked`；business `blocked`。阻断项为 RISEMAP 同材料和独立复核未完成；Forge 本页已完成桌面与窄屏页面操作、正常路径、关键阻断、API 和重启回读。
 - 当前实时打开页面：RISEMAP `/finance/invoices/tasks`；Forge `http://localhost:4441/_console/apps/forge/page/page_invoice_tasks?nav=invoice_tasks`。
 - RISEMAP 当前为空数据，仅首屏、指标名称、状态、表头和空态属于已观察事实。
 - API：`tests/invoice-task-workspace.integration.mjs` 通过；同库停服重启：`tests/invoice-task-restart-readback.mjs` 通过；工程门禁 `pnpm typecheck`、`pnpm validate`、`pnpm build` 通过。
