@@ -33,9 +33,10 @@
 
 ## 同批页面与 API 验收（2026-09-16）
 
-- 本批覆盖采购申请、采购待办池、询价管理三页；采购订单承接由既有 `procurement-chain` 脚本一并验收。
+- 本批覆盖采购申请、采购待办池、询价管理、采购订单四页。
 - 采购待办池改动：删除页面自绘的“采 采购管理 / 采购待办池”面包屑，把旧 `fp-page-header` / `fp-header-actions` 标题区改为共享 `ForgePageHeader`，并把“下一步操作　询价管理”移入标题右侧工具栏首位。属 Forge 页面质量标准整改，非 RISEMAP 业务事实。
 - 询价管理页面本轮未改动，仅登记验收状态。
+- 采购订单页改动：删除页面自绘的“04 供应链 / 采购管理 / 采购订单”面包屑与复制的标题区，改用共享 `ForgePageHeader` 并保留原五个工具栏动作（新建采购单、导出、付款申请、收票登记、刷新）；2180px 宽表把订单号列固定在左、操作列固定在右。同样属 Forge 页面质量标准整改。
 - 独立端口 `http://localhost:4496`、数据库 `file:.objectstack/production-placeholders-batch1.sqlite` 上的 API 结果：`purchase-request-entry-modes` passed（手工明细 + 快速粘贴 + 审批阻断）、`purchase-todo-pool` 3/3 PASS、`purchase-inquiry` 4/4 PASS、`procurement-chain` 7/7 PASS。
 - 停服重建后同库重启回读：`purchase-request-entry-modes-restart-readback` passed（申请、两条明细、两条待办 ID 一致）、`purchase-inquiry-restart-readback` PASS、`procurement-restart-readback` PASS。
 - 完整记录：`apps/forge-objectstack/tests/page-acceptance/procurement-chain-api-readback-20260916.json`。
