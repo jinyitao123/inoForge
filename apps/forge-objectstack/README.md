@@ -1,152 +1,48 @@
 # Forge ObjectStack
 
-Forge is the evidence-bounded ObjectStack implementation used to reproduce the observable RISEMAP business system. The current runnable slice contains 29 objects, 356 fields and 13 record actions: customer, supplier, warehouse, material, SKU and BOM master data plus sales quotation, framework contract, sales order, shipment planning and stocked outbound execution.
+这是 Forge 的 ObjectStack 应用，包含业务对象、动作、运行时 hooks 和 Console 页面。入口为 [objectstack.config.ts](objectstack.config.ts)，依赖版本和可执行命令以 [package.json](package.json) 为准；不在说明中手工维护容易过时的对象、字段或页面总数。
 
-## Getting started
+业务范围、质量要求与当前资料入口见[项目首页](../../README.md)、[项目规则](../../AGENTS.md)和[文档索引](../../docs/README.md)。
 
-```bash
+## 本地开发
+
+在本目录执行：
+
+```sh
 pnpm install
+pnpm dev --help
 pnpm dev
 ```
 
-After editing any metadata (an object, view, flow, …), run `pnpm validate` —
-see [Verify your changes](#verify-your-changes) below. It is the one command
-this project's `AGENTS.md` calls unskippable: it catches mistakes that
-otherwise fail silently at runtime.
+先为当前任务选择未占用的独立端口与独立 SQLite，再启动开发服务；实际 Console/API 地址和持久库位置以启动配置及日志为准。不要照抄旧报告的端口或数据库路径，也不要为验证文档修改重启正在使用的服务。
 
-The REST API is served at `http://localhost:3000/api/v1`. Data endpoints
-require a session — the dev server seeds a login-ready admin
-(`admin@objectos.ai` / `admin123`) on an empty database:
+`pnpm dev` 是 package.json 定义的开发入口，不代表已有环境已启动、已登录或数据已准备。登录使用当前测试环境配置，本文件不维护账号密码。验收脚本须显式设置指向本任务环境的 `FORGE_URL`，不得借用主线环境证明分支通过。
 
-```bash
-curl -c cookies.txt -X POST http://localhost:3000/api/v1/auth/sign-in/email \
-  -H "Content-Type: application/json" \
-  -d '{"email":"admin@objectos.ai","password":"admin123"}'
+## 代码入口
 
-curl -b cookies.txt "http://localhost:3000/api/v1/data/<your_object>"
+| 路径 | 职责 |
+| --- | --- |
+| [objectstack.config.ts](objectstack.config.ts) | 元数据注册与 Console 导航 |
+| [src/objects](src/objects) | 业务对象 |
+| [src/actions](src/actions) | 业务动作 |
+| [src/hooks](src/hooks) | 运行时 hooks |
+| [src/pages](src/pages) | 自定义业务页与共享 product-ui |
+| [tests](tests) | 静态检查、业务验收与重启回读脚本 |
+
+## 修改与验证
+
+每次元数据修改后执行：
+
+```sh
+pnpm typecheck
+pnpm validate
+pnpm build
 ```
 
-## Forge Console
+再执行对应业务链的验收脚本。涉及持久状态时，使用同一 SQLite 完整停服重启回读；页面与业务验收还必须满足主仓的双侧浏览器和同材料对照要求。不要把脚本存在或工程检查通过写成业务验收通过。
 
-`pnpm dev` also serves the admin Console at `http://localhost:3000/_console/`,
-and prints the link on boot. The Forge app groups user-facing entry points into
-customer and sales, procurement and supply, material and inventory, and
-production and BOM areas. Dependent line objects remain available through the
-API but are intentionally omitted from top-level navigation.
+页面交付另见[默认标准](../../docs/forge-page-delivery-standard.md)和[精修基线](../../docs/forge-page-polish-baseline.md)。纯文档整理按链接、引用及内容一致性验证，不启动业务服务。
 
-## Your app is an MCP server
+## 发布边界
 
-Every ObjectStack app is itself a
-[Model Context Protocol](https://modelcontextprotocol.io) server — **on by
-default**, no plugin to install. `pnpm dev` prints the endpoint and a
-ready-to-paste connect command on boot; point a coding agent (Claude Code,
-Cursor, any MCP client) at it and it can read your schema, query data, and run
-your exposed actions — all under the caller's own permissions and RLS:
-
-```bash
-claude mcp add --transport http my-app http://localhost:3000/api/v1/mcp
-```
-
-Set `OS_MCP_SERVER_ENABLED=false` to turn it off. This is the *serve* side — the
-reverse of the `mcp` connector below (which lets your app *call* other MCP
-servers). See [Connect an MCP Client](https://objectstack.ai/docs/ai/connect-mcp)
-for OAuth, API keys, and which objects/actions become tools.
-
-## Layout
-
-- `objectstack.config.ts` — environment manifest (objects, API, plugins)
-- `src/objects/` — object definitions (one file per object)
-
-## Connectors (default providers)
-
-`objectstack.config.ts` wires the three **generic connector executors**, so you
-can call an external system from a flow as pure metadata — no host code:
-
-| Provider | Package | Use for |
-|:---|:---|:---|
-| `rest` | `@objectstack/connector-rest` | Any JSON/HTTP REST API |
-| `openapi` | `@objectstack/connector-openapi` | An API described by an OpenAPI document |
-| `mcp` | `@objectstack/connector-mcp` | A Model Context Protocol server |
-
-Add a `connectors:` entry that names one of these `provider`s and the
-`automation` capability materializes it into a live, dispatchable connector at
-boot — see [Automation → Connectors](https://objectstack.ai/docs/automation/connectors)
-for how that materialization works; a flow's `connector_action` node then
-calls it. To add a brand connector (e.g. Slack), install its package and add
-`new ConnectorSlackPlugin()` to `plugins:`; to drop a provider, remove its
-plugin.
-
-> **Security — declarative MCP over stdio.** An `mcp` connector whose transport
-> spawns a local process (`stdio`) is denied by default, because the command
-> comes from metadata. Opt in per host with
-> `new ConnectorMcpPlugin({ declarativeStdio: ['node'] })`; `http` transports
-> need no opt-in.
-
-See [Automation → Flows](https://objectstack.ai/docs/automation/flows) for
-the full connector and `connector_action` guide.
-
-## Verify your changes
-
-After editing any metadata, run:
-
-```bash
-pnpm validate     # schema + CEL predicates + widget bindings (no artifact)
-pnpm typecheck    # TypeScript types against @objectstack/spec
-pnpm build        # protocol validation + dist/objectstack.json
-pnpm acceptance:master-data
-pnpm acceptance:sales
-pnpm acceptance:sales-workflow
-pnpm acceptance:sales-conversion
-pnpm acceptance:sales-shipment
-```
-
-The sales workflow acceptance runs an isolated `quote → accepted → contract →
-active order` fixture, checks the accepted-quote gate, rejects a contract order
-above its amount or quantity limit, and verifies that approval rolls the exact
-amount and quantity back into the contract in one transaction. The conversion
-acceptance creates a contract from an accepted quotation and an order from the
-contract, copies the exact source lines, and rejects a repeated conversion.
-The shipment acceptance creates a one-unit partial shipment plan from the
-two-unit active order, keeps actual shipped quantity and amount at zero, and
-rejects a request above the order quantity that has not yet been planned.
-After a full server stop/start, run `pnpm acceptance:sales-restart` to prove the
-saved foundation, workflow, converted and shipment IDs, links, lifecycle states
-and rollups survived.
-
-`pnpm validate` runs the same gates as `pnpm build` and catches mistakes that
-otherwise fail *silently at runtime* — e.g. a bare `done` (instead of
-`record.done`) in an action predicate that would hide the action on every
-record. See `AGENTS.md` for the full convention.
-
-## Deploy
-
-The project ships container-ready — the `Dockerfile` builds your metadata into
-an artifact and runs it on the official ObjectStack runtime image
-(`ghcr.io/objectstack-ai/objectstack`):
-
-```bash
-# Image only
-docker build -t my-app .
-
-# Or the full app + Postgres stack
-cat > .env <<EOF
-POSTGRES_PASSWORD=$(openssl rand -hex 16)
-OS_AUTH_SECRET=$(openssl rand -hex 32)
-OS_SECRET_KEY=$(openssl rand -hex 32)
-EOF
-docker compose up -d
-curl -fsS http://localhost:8080/api/v1/health
-```
-
-Bare Node, Kubernetes, reverse-proxy wiring, and the required secrets are
-covered in [Self-Hosted Deployment](https://objectstack.ai/docs/deployment/self-hosting).
-
-## Next steps
-
-- Add an object: see the `objectstack-data` skill.
-- Add a view or app: see `objectstack-ui`.
-- Add a flow or automation: see `objectstack-automation`.
-- Add an AI agent: see `objectstack-ai`.
-
-Skills are installed with `npx skills add objectstack-ai/objectstack/skills`
-(see `AGENTS.md`) and also show up in the in-IDE assistant catalog.
+仓库保留 [Dockerfile](Dockerfile) 和 [docker-compose.yml](docker-compose.yml)；这些文件存在不代表当前版本已完成部署、恢复或客户交付验证。实际发布须遵循[正式版本交付要求](../../docs/first-release.md)，按本次版本记录配置和证据，不沿用脚手架的默认服务能力承诺。
