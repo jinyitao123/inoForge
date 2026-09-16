@@ -202,3 +202,22 @@ export const CompanyNotice = ObjectSchema.create({
   indexes: [{ fields: ['code'], unique: 'organization' }, { fields: ['status', 'published_at'] }, { fields: ['category', 'audience_type'] }],
   enable: { apiEnabled: true, searchable: true, trackHistory: true, feeds: false, activities: true },
 });
+
+export const WorkReport = ObjectSchema.create({
+  name: 'forge_work_report', label: '工作汇报', pluralLabel: '工作汇报', icon: 'clipboard-list', sharingModel: 'private', nameField: 'title',
+  fields: {
+    title: Field.text({ label: '汇报标题', maxLength: 200, ...required }),
+    code: Field.text({ label: '汇报编号', maxLength: 80, ...required }),
+    report_type: Field.select([option('weekly','周报'), option('monthly','月报'), option('daily','日报'), option('free','自由汇报')], { label: '汇报类型', defaultValue: 'weekly', ...required }),
+    status: Field.select([option('draft','草稿'), option('submitted','待审阅'), option('approved','已确认'), option('rejected','已退回')], { label: '状态', defaultValue: 'draft', ...required }),
+    owner_name: Field.text({ label: '提交人', maxLength: 100, ...required }),
+    period_start: Field.date({ label: '汇报周期起始', ...required }), period_end: Field.date({ label: '汇报周期结束', ...required }),
+    work_content: Field.textarea({ label: '工作内容', ...required }), completion: Field.number({ label: '完成度', min: 0, max: 100, scale: 0, defaultValue: 0 }),
+    summary: Field.textarea({ label: '工作总结', ...required }), next_plan: Field.textarea({ label: '下期计划' }), risks: Field.textarea({ label: '问题与风险' }),
+    self_score: Field.number({ label: '自评得分', min: 0, max: 100, scale: 0 }), submitted_at: Field.datetime({ label: '提交时间' }), reviewer_name: Field.text({ label: '审阅人', maxLength: 100 }), review_note: Field.textarea({ label: '审阅意见' }),
+  },
+  searchableFields: ['title','code','owner_name','work_content','summary','next_plan','risks'],
+  listViews: { all: { label: '全部', type: 'grid', columns: ['code','title','owner_name','report_type','period_start','period_end','status','submitted_at','self_score'] } },
+  indexes: [{ fields: ['code'], unique: 'organization' }, { fields: ['status','period_end'] }, { fields: ['owner_name','period_start'] }],
+  enable: { apiEnabled: true, searchable: true, trackHistory: true, feeds: false, activities: true },
+});
