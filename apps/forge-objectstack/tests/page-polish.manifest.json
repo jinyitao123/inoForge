@@ -406,7 +406,8 @@
       "archetype": "task_workspace",
       "reference": "project-task-workspace.page.ts",
       "designStatus": "review_required",
-      "contract": "docs/forge-arrival-notice-page-contract-20260916.md"
+      "contract": "docs/forge-arrival-notice-page-contract-20260916.md",
+      "acceptance": "apps/forge-objectstack/tests/page-acceptance/page_purchase_arrival_notice.json"
     },
     {
       "file": "purchase-arrival-workspace.page.ts",
@@ -414,7 +415,8 @@
       "archetype": "task_workspace",
       "reference": "project-task-workspace.page.ts",
       "designStatus": "review_required",
-      "contract": "docs/forge-arrival-registration-page-contract-20260916.md"
+      "contract": "docs/forge-arrival-registration-page-contract-20260916.md",
+      "acceptance": "apps/forge-objectstack/tests/page-acceptance/page_purchase_arrival_workspace.json"
     },
     {
       "file": "purchase-inspection-workspace.page.ts",
@@ -422,7 +424,8 @@
       "archetype": "task_workspace",
       "reference": "project-task-workspace.page.ts",
       "designStatus": "review_required",
-      "contract": "docs/forge-pending-inspection-page-contract-20260916.md"
+      "contract": "docs/forge-pending-inspection-page-contract-20260916.md",
+      "acceptance": "apps/forge-objectstack/tests/page-acceptance/page_pending_inspection_workspace.json"
     },
     {
       "file": "purchase-inspection-workspace.page.ts",
@@ -430,7 +433,8 @@
       "archetype": "task_workspace",
       "reference": "project-task-workspace.page.ts",
       "designStatus": "review_required",
-      "contract": "docs/forge-purchase-inspection-page-contract-20260916.md"
+      "contract": "docs/forge-purchase-inspection-page-contract-20260916.md",
+      "acceptance": "apps/forge-objectstack/tests/page-acceptance/page_purchase_inspection_workspace.json"
     },
     {
       "file": "purchase-inbound-workspace.page.ts",
@@ -438,7 +442,8 @@
       "archetype": "task_workspace",
       "reference": "project-task-workspace.page.ts",
       "designStatus": "review_required",
-      "contract": "docs/forge-purchase-inbound-page-contract-20260916.md"
+      "contract": "docs/forge-purchase-inbound-page-contract-20260916.md",
+      "acceptance": "apps/forge-objectstack/tests/page-acceptance/page_purchase_inbound_workspace.json"
     }
   ],
   "workspace": [
