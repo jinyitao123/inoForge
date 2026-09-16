@@ -399,6 +399,46 @@
       "archetype": "task_workspace",
       "reference": "project-task-workspace.page.ts",
       "designStatus": "review_required"
+    },
+    {
+      "file": "purchase-arrival-notice.page.ts",
+      "pages": ["page_purchase_arrival_notice"],
+      "archetype": "task_workspace",
+      "reference": "project-task-workspace.page.ts",
+      "designStatus": "review_required",
+      "contract": "docs/forge-arrival-notice-page-contract-20260916.md"
+    },
+    {
+      "file": "purchase-arrival-workspace.page.ts",
+      "pages": ["page_purchase_arrival_workspace"],
+      "archetype": "task_workspace",
+      "reference": "project-task-workspace.page.ts",
+      "designStatus": "review_required",
+      "contract": "docs/forge-arrival-registration-page-contract-20260916.md"
+    },
+    {
+      "file": "purchase-inspection-workspace.page.ts",
+      "pages": ["page_pending_inspection_workspace"],
+      "archetype": "task_workspace",
+      "reference": "project-task-workspace.page.ts",
+      "designStatus": "review_required",
+      "contract": "docs/forge-pending-inspection-page-contract-20260916.md"
+    },
+    {
+      "file": "purchase-inspection-workspace.page.ts",
+      "pages": ["page_purchase_inspection_workspace"],
+      "archetype": "task_workspace",
+      "reference": "project-task-workspace.page.ts",
+      "designStatus": "review_required",
+      "contract": "docs/forge-purchase-inspection-page-contract-20260916.md"
+    },
+    {
+      "file": "purchase-inbound-workspace.page.ts",
+      "pages": ["page_purchase_inbound_workspace"],
+      "archetype": "task_workspace",
+      "reference": "project-task-workspace.page.ts",
+      "designStatus": "review_required",
+      "contract": "docs/forge-purchase-inbound-page-contract-20260916.md"
     }
   ],
   "workspace": [
