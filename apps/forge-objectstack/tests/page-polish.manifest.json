@@ -453,8 +453,17 @@
       "designStatus": "review_required"
     },
     {
+      "file": "drawing-guide.page.ts",
+      "pages": ["page_drawing_guide"],
+      "archetype": "configuration",
+      "reference": "project-timesheet-cost.page.ts",
+      "designStatus": "review_required",
+      "contract": "docs/forge-drawing-guide-page-contract-20260916.md",
+      "acceptance": "apps/forge-objectstack/tests/page-acceptance/page_drawing_guide.json"
+    },
+    {
       "file": "supply-production-routing.page.ts",
-      "pages": ["page_drawing_guide", "page_subcontract_guide"],
+      "pages": ["page_subcontract_guide"],
       "archetype": "configuration",
       "reference": "project-timesheet-cost.page.ts",
       "designStatus": "review_required"

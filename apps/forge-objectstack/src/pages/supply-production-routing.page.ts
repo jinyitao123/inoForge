@@ -158,7 +158,6 @@ const routePage = (name: string) => {
   return page;
 };
 
-export const DrawingGuidePage = makePage(routePage('page_drawing_guide'));
 export const SubcontractGuidePage = {
   name: 'page_subcontract_guide',
   label: '委外管理上手指南',
