@@ -217,7 +217,8 @@
     "acceptance:production-assembly-draft-safety-restart": "node tests/production-assembly-draft-safety-restart-readback.mjs",
     "acceptance:other-inbound-prerequisite": "node tests/other-inbound-prerequisite.integration.mjs",
     "acceptance:other-inbound-prerequisite-restart": "node tests/other-inbound-prerequisite-restart-readback.mjs",
-    "acceptance:deploy-smoke": "node tests/deploy-smoke.mjs"
+    "acceptance:deploy-smoke": "node tests/deploy-smoke.mjs",
+    "acceptance:drawing-archive-ledger": "node tests/drawing-archive-ledger-ui-readback.mjs"
   },
   "dependencies": {
     "@objectstack/spec": "17.3.0",
