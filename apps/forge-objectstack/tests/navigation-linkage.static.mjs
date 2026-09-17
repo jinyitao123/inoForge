@@ -26,8 +26,12 @@ for (const { item, trail } of leaves) {
   let routeKey;
   if (item.type === 'page') {
     assert.ok(pageNames.has(item.pageName), `${trail.join(' / ')} targets missing page ${item.pageName}`);
-    assert.equal(item.params?.nav, item.id, `${trail.join(' / ')} must preserve its navigation identity`);
-    routeKey = `page:${item.pageName}?nav=${item.params.nav}`;
+    // The `nav` param exists only on placeholder pages that back several menu
+    // entries; when present it must equal this entry's id.
+    if (item.params?.nav !== undefined) assert.equal(item.params.nav, item.id, `${trail.join(' / ')} must preserve its navigation identity`);
+    routeKey = item.params?.nav
+      ? `page:${item.pageName}?nav=${item.params.nav}`
+      : `page:${item.pageName}`;
   } else if (item.type === 'object') {
     routeKey = `object:${item.objectName}:${item.recordId || ''}:${item.viewName || ''}:${JSON.stringify(item.filters || {})}`;
   } else if (item.type === 'dashboard') routeKey = `dashboard:${item.dashboardName}`;

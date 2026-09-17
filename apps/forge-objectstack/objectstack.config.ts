@@ -12,15 +12,20 @@ const group = (id: string, label: string, children: NavigationItemInput[], icon?
   id, type: 'group' as const, label, children, expanded: true, ...(icon ? { icon } : {}),
 });
 
+// Placeholder pages that temporarily back several not-yet-built menu entries.
+// Only these keep a `nav` identity in the URL so the Console can restore the
+// exact entry after refresh. Every other page maps 1:1 from its pageName and
+// must stay standard — a custom param on every entry is exactly what the stock
+// Console does not understand, which broke Forge's menu/path mapping while the
+// platform's own apps (setup/account) kept working.
+const MULTI_ENTRY_PAGES = new Set(['page_reports_gap', 'page_system_gap']);
+
 const page = (id: string, label: string, pageName: string, icon?: string) => ({
   id,
   type: 'page' as const,
   label,
   pageName,
-  // A page may temporarily serve more than one RISEMAP menu entry while that
-  // area is being reconstructed. Keep the navigation identity in the URL so
-  // the Console can restore the exact area, group, and item after refresh.
-  params: { nav: id },
+  ...(MULTI_ENTRY_PAGES.has(pageName) ? { params: { nav: id } } : {}),
   ...(icon ? { icon } : {}),
 });
 
