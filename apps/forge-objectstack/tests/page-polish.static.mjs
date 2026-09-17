@@ -38,7 +38,9 @@ for (const [area, entries] of Object.entries(manifest)) {
           ['product-ui.ts 样式', /forgeProductUiCss/],
           ['product-ui.ts 运行时', /forgeProductUiRuntime/],
           ['标准产品根节点', /forge-product/],
-          ['标准标题区', /ForgePageHeader|fp-page-header/],
+          // The branded hero (allowed by the polish baseline since 2026-09-17) is a
+          // standard heading area too: it carries the业务面包屑、标题与说明.
+          ['标准标题区', /ForgeHero|ForgePageHeader|fp-page-header/],
           ['可执行按钮', /<button\b[^>]*onClick=/],
         ];
     for (const [label, pattern] of structuralPatterns) if (!pattern.test(source)) findings.push(`${area}/${entry.file}: 缺少${label}`);
