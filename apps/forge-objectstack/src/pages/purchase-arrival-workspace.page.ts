@@ -39,7 +39,7 @@ function App(){
   if(!receiptId&&!requestedNotice)return <div className="forge-product forge-procurement forge-arrival">
 <style>{css}</style>
 <div className="body">
-<ForgePageHeader badge="供" section="供应链 / 库存管理" title="到货登记" description="登记到货物料，进入待检或免检流程。" actions={<><button className="fp-button" disabled={!listRows.length} onClick={exportList}>导出</button><button className="fp-button" onClick={()=>setTaskOpen(true)}>导入/导出任务</button><button className="fp-button" onClick={load}>刷新</button><button className="fp-button primary" onClick={()=>window.location.href=forgeBase+'/page/page_purchase_arrival_notice'}>新建到货登记</button></>}/>
+<ForgeHero section="供应链 / 到货检验" title="到货登记" description="登记到货物料，进入待检或免检流程。" icon="▤" tone="indigo" art="boxes"/><div className="fp-action-row"><button className="fp-button" disabled={!listRows.length} onClick={exportList}>导出</button><button className="fp-button" onClick={()=>setTaskOpen(true)}>导入/导出任务</button><button className="fp-button" onClick={load}>刷新</button><button className="fp-button primary" onClick={()=>window.location.href=forgeBase+'/page/page_purchase_arrival_notice'}>新建到货登记</button></div>
 <div className="flow">
 <span>下一步操作</span>
 <button className="btn primary" onClick={()=>window.location.href=forgeBase+'/page/page_pending_inspection_workspace'}>待检验库存</button>
