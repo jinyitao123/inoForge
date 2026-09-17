@@ -270,6 +270,17 @@
       "designStatus": "review_required"
     },
     {
+      "file": "other-outbound-workspace.page.ts",
+      "pages": [
+        "page_other_outbounds"
+      ],
+      "archetype": "task_workspace",
+      "reference": "project-task-workspace.page.ts",
+      "designStatus": "review_required",
+      "contract": "docs/forge-supply-chain-page-contract-20260916.md",
+      "acceptance": "apps/forge-objectstack/tests/page-acceptance/page_other_outbounds.json"
+    },
+    {
       "file": "inventory-overview.page.ts",
       "pages": [
         "page_inventory_overview"
