@@ -31,7 +31,8 @@ for (const [area, entries] of Object.entries(manifest)) {
     const structuralPatterns = entry.archetype === 'workbench'
       ? [
           ['产品根节点', /forge-product|forge-workbench/],
-          ['工作台标题区', /ForgePageHeader|fp-page-header|wb-welcome|ws-hero/],
+          // ForgeHero is the branded heading area for pages that lead with a hero.
+          ['工作台标题区', /ForgeHero|ForgePageHeader|fp-page-header|wb-welcome|ws-hero/],
           ['可执行按钮', /<button\b[^>]*onClick=/],
         ]
       : [
