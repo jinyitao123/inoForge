@@ -67,9 +67,9 @@ export default defineStack({
             page('material_combinations', '物料组合', 'page_material_combinations', 'boxes'),
             page('bom_workspace', 'BOM管理', 'page_bom_workspace', 'git-branch'),
             page('material_search', '综合物料搜索', 'page_material_search', 'search'),
-            object('suppliers', '供应商管理', 'forge_supplier', 'truck'),
+            page('suppliers', '供应商管理', 'page_supplier_workspace', 'truck'),
             page('product_trace', '产品实例追溯', 'page_product_trace', 'search-check'),
-            object('warehouses', '仓库管理', 'forge_warehouse', 'warehouse'),
+            page('warehouses', '仓库管理', 'page_warehouse_workspace', 'warehouse'),
           ]),
           group('purchase_management', '采购管理', [
             page('purchase_invoices', '采购发票', 'page_purchase_invoice_entry', 'receipt-text'),
