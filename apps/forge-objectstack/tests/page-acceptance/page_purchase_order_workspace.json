@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "pageId": "page_purchase_order_workspace",
+  "archetype": "task_workspace",
+  "checks": {
+    "replication": { "status": "blocked", "notes": "本轮未实时打开 RISEMAP 采购订单页面，缺少当前页面证据；仅登记 Forge 侧结构事实。", "evidence": [] },
+    "visual": { "status": "pending", "notes": "已把页面自绘的“04 供应链 / 采购管理 / 采购订单”模块面包屑与复制的标题区收敛为共享 ForgePageHeader，并把 2180px 宽表的订单号列与操作列固定；新建与详情两个子视图仍保留“采购订单 / 新建”这类可点击返回列表的路径，属子视图导航而非模块重复，待页面复核时确认呈现。桌面与窄屏截图、控制台扫描待内置浏览器恢复。", "evidence": [] },
+    "interaction": { "status": "pending", "notes": "待实际操作：订单列表 / 订单明细切换、筛选、新建采购单、审核弹窗、导出、付款申请与收票登记跳转。", "evidence": [] },
+    "business": { "status": "pending", "notes": "订单草稿、提交汇总、审批生成订单级到货通知、重复审批不重复生成、无明细不可提交已由 API 验收覆盖；页面级办理与 RISEMAP 对照未执行。", "evidence": ["apps/forge-objectstack/tests/page-acceptance/procurement-chain-api-readback-20260916.json"] }
+  }
+}
