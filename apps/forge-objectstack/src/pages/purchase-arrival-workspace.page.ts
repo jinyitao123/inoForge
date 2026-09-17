@@ -39,10 +39,10 @@ function App(){
   if(!receiptId&&!requestedNotice)return <div className="forge-product forge-procurement forge-arrival">
 <style>{css}</style>
 <div className="body">
-<ForgePageHeader badge="供" section="供应链 / 库存管理" title="到货登记" description="登记到货物料，进入待检或免检流程。" actions={<><button className="fp-button" disabled={!listRows.length} onClick={exportList}>导出</button><button className="fp-button" onClick={()=>setTaskOpen(true)}>导入/导出任务</button><button className="fp-button" onClick={load}>刷新</button><button className="fp-button primary" onClick={()=>window.location.href='/_console/apps/forge/page/page_purchase_arrival_notice'}>新建到货登记</button></>}/>
+<ForgePageHeader badge="供" section="供应链 / 库存管理" title="到货登记" description="登记到货物料，进入待检或免检流程。" actions={<><button className="fp-button" disabled={!listRows.length} onClick={exportList}>导出</button><button className="fp-button" onClick={()=>setTaskOpen(true)}>导入/导出任务</button><button className="fp-button" onClick={load}>刷新</button><button className="fp-button primary" onClick={()=>window.location.href=forgeBase+'/page/page_purchase_arrival_notice'}>新建到货登记</button></>}/>
 <div className="flow">
 <span>下一步操作</span>
-<button className="btn primary" onClick={()=>window.location.href='/_console/apps/forge/page/page_pending_inspection_workspace'}>待检验库存</button>
+<button className="btn primary" onClick={()=>window.location.href=forgeBase+'/page/page_pending_inspection_workspace'}>待检验库存</button>
 </div>{state.error&&<div className="notice">{state.error}</div>}<div className="card">
 <div className="actions" style={{marginBottom:12}}>
 <button className={'btn '+(listMode==='orders'?'primary':'')} onClick={()=>setListMode('orders')}>订单明细</button>
@@ -141,7 +141,7 @@ function App(){
 </div>;
   if(state.receipt){return <div className="forge-product forge-procurement forge-arrival">
 <style>{css}</style>
-<div className="header-shell"><ForgePageHeader badge="供" section="供应链 / 到货登记" title={state.receipt.code} description={'来源 '+state.order.code+' · '+state.supplier.name+' · '+(statusText[state.receipt.status]||state.receipt.status)} actions={<><button className="fp-button" onClick={()=>window.location.href=window.location.pathname}>返回列表</button>{state.receipt.status==='draft'&&<button className="fp-button primary" disabled={busy} onClick={submitDraft}>提交待检</button>}{['pending_inspection','inspection_in_progress','inspected','stocked'].includes(state.receipt.status)&&<button className="fp-button primary" onClick={()=>window.location.href='/_console/apps/forge/page/page_pending_inspection_workspace'}>查看待检库存</button>}</>}/></div>
+<div className="header-shell"><ForgePageHeader badge="供" section="供应链 / 到货登记" title={state.receipt.code} description={'来源 '+state.order.code+' · '+state.supplier.name+' · '+(statusText[state.receipt.status]||state.receipt.status)} actions={<><button className="fp-button" onClick={()=>window.location.href=window.location.pathname}>返回列表</button>{state.receipt.status==='draft'&&<button className="fp-button primary" disabled={busy} onClick={submitDraft}>提交待检</button>}{['pending_inspection','inspection_in_progress','inspected','stocked'].includes(state.receipt.status)&&<button className="fp-button primary" onClick={()=>window.location.href=forgeBase+'/page/page_pending_inspection_workspace'}>查看待检库存</button>}</>}/></div>
 <div className="flow">
 <span>到货登记</span>
 <span className="active">待检库存</span>
@@ -217,7 +217,7 @@ function App(){
 </ForgeDialog>}</div>}
   return <div className="forge-product forge-procurement forge-arrival">
 <style>{css}</style>
-<div className="header-shell"><ForgePageHeader badge="供" section="供应链 / 到货登记" title="新建采购到货登记" description="到货单号将在保存时自动生成。" actions={<><button className="fp-button" disabled={busy} onClick={()=>window.location.href='/_console/apps/forge/page/page_purchase_order_workspace?id='+encodeURIComponent(state.order.id)}>返回采购订单</button><button className="fp-button" disabled={busy} onClick={()=>save('draft')}>保存草稿</button><button className="fp-button primary" disabled={busy} onClick={()=>save('submit')}>提交待检</button></>}/></div>
+<div className="header-shell"><ForgePageHeader badge="供" section="供应链 / 到货登记" title="新建采购到货登记" description="到货单号将在保存时自动生成。" actions={<><button className="fp-button" disabled={busy} onClick={()=>window.location.href=forgeBase+'/page/page_purchase_order_workspace?id='+encodeURIComponent(state.order.id)}>返回采购订单</button><button className="fp-button" disabled={busy} onClick={()=>save('draft')}>保存草稿</button><button className="fp-button primary" disabled={busy} onClick={()=>save('submit')}>提交待检</button></>}/></div>
 <div className="flow">
 <span className="active">到货登记</span>
 <span>待检库存</span>

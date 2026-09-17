@@ -36,7 +36,7 @@ function App(){
 </div>;
  if(!inboundId&&!orderId)return <div className="forge-product forge-procurement forge-inbound">
 <style>{css}</style>
-<div className="body"><ForgePageHeader badge="供" section="供应链 / 库存管理" title="采购入库" description="管理采购入库单据，并在审批后执行正式库存落账。" actions={<><button className="fp-button" disabled={!filteredInbounds.length} onClick={()=>setPrintOpen(true)}>打印条码</button><button className="fp-button" disabled={!filteredInbounds.length} onClick={exportInbounds}>导出</button><button className="fp-button" onClick={()=>{setToast('');load();}}>刷新</button><button className="fp-button primary" onClick={()=>window.location.href='/_console/apps/forge/page/page_purchase_inspection_workspace'}>新建入库单</button></>}/>{state.error&&<div className="notice">{state.error}</div>}{toast&&<div className="notice">{toast}</div>}<div className="card">
+<div className="body"><ForgePageHeader badge="供" section="供应链 / 库存管理" title="采购入库" description="管理采购入库单据，并在审批后执行正式库存落账。" actions={<><button className="fp-button" disabled={!filteredInbounds.length} onClick={()=>setPrintOpen(true)}>打印条码</button><button className="fp-button" disabled={!filteredInbounds.length} onClick={exportInbounds}>导出</button><button className="fp-button" onClick={()=>{setToast('');load();}}>刷新</button><button className="fp-button primary" onClick={()=>window.location.href=forgeBase+'/page/page_purchase_inspection_workspace'}>新建入库单</button></>}/>{state.error&&<div className="notice">{state.error}</div>}{toast&&<div className="notice">{toast}</div>}<div className="card">
 <div className="toolbar">
 <input aria-label="搜索采购入库" placeholder="搜索入库单号/批次号..." value={search} onChange={e=>{setSearch(e.target.value);setPage(1);}}/>
 <ForgeSelectControl aria-label="状态筛选" value={statusFilter} onChange={e=>{setStatusFilter(e.target.value);setPage(1);}}>
@@ -239,7 +239,7 @@ function App(){
 </div>}
  return <div className="forge-product forge-procurement forge-inbound">
 <style>{css}</style>
-<div className="header-shell"><ForgePageHeader badge="供" section="供应链 / 采购入库" title="新建入库单" description="入库单号将在保存时生成，提交审批后进入工作流。" actions={<><button className="fp-button" disabled={busy} onClick={()=>window.location.href='/_console/apps/forge/page/page_purchase_inspection_workspace'}>返回检验单</button><button className="fp-button" disabled={busy} onClick={()=>create('draft')}>保存草稿</button><button className="fp-button primary" disabled={busy} onClick={()=>create('submit')}>提交审批</button></>}/></div>
+<div className="header-shell"><ForgePageHeader badge="供" section="供应链 / 采购入库" title="新建入库单" description="入库单号将在保存时生成，提交审批后进入工作流。" actions={<><button className="fp-button" disabled={busy} onClick={()=>window.location.href=forgeBase+'/page/page_purchase_inspection_workspace'}>返回检验单</button><button className="fp-button" disabled={busy} onClick={()=>create('draft')}>保存草稿</button><button className="fp-button primary" disabled={busy} onClick={()=>create('submit')}>提交审批</button></>}/></div>
 <div className="flow">
 <span className="active">草稿</span>
 <span>待审批</span>

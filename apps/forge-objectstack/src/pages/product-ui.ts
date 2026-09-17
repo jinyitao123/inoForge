@@ -1,3 +1,12 @@
+// App base path for pages that build internal links in their TypeScript module
+// scope (guide/service pages) instead of inside the injected page source. The
+// injected runtime defines its own `forgeBase` for pages that navigate from the
+// source string; the two hold the same value.
+export const forgeBase =
+  typeof location !== 'undefined'
+    ? location.pathname.split('/').slice(0, 4).join('/') || '/_console/apps/forge'
+    : '/_console/apps/forge';
+
 export const forgeProductUiCss = `
 div:has(>.forge-product){max-width:none!important;margin:0!important}
 div:has(>.forge-product)>div.space-y-2{display:none!important}
@@ -24,7 +33,7 @@ const forgeControlUiCss = `.fp-picker,.fp-date-picker{position:relative;min-widt
 
 export const forgeProductUiRuntime = `
 const FORGE_CONTROL_CSS=${JSON.stringify(forgeControlUiCss)};if(typeof document!=='undefined'&&!document.getElementById('forge-product-controls-style')){const style=document.createElement('style');style.id='forge-product-controls-style';style.textContent=FORGE_CONTROL_CSS;document.head.appendChild(style)}
-function ForgeStatus({value,label}){const tone=value==='active'||value==='completed'?'success':value==='pending_review'||value==='draft'?'warning':value==='inactive'||value==='archived'?'danger':'';return <span className={'fp-status '+tone}>{label||value||'未知'}</span>}
+const forgeBase=(typeof location!=='undefined'?(location.pathname.split('/').slice(0,4).join('/')||'/_console/apps/forge'):'/_console/apps/forge');function ForgeStatus({value,label}){const tone=value==='active'||value==='completed'?'success':value==='pending_review'||value==='draft'?'warning':value==='inactive'||value==='archived'?'danger':'';return <span className={'fp-status '+tone}>{label||value||'未知'}</span>}
 function ForgePageHeader({section,title,description,actions,badge}){const area=section||'财务管理',mark=badge||String(area).trim().slice(0,1)||'财';return <><div className="fp-phase"><span className="fp-phase-index">{mark}</span><span>{area}</span><span>/</span><strong>{title}</strong></div><div className="fp-page-header"><div className="fp-heading"><div className="fp-title-row"><h1 className="fp-title">{title}</h1></div>{description&&<div className="fp-description">{description}</div>}</div>{actions&&<div className="fp-toolbar">{actions}</div>}</div></>}
 function ForgeMetric({label,value,tone=''}){return <div className={'fp-metric '+tone}><div className="fp-metric-label">{label}</div><div className="fp-metric-value">{value}</div></div>}
 function ForgeNotice({tone='',children,onClose}){return <div className={'fp-notice '+tone}><span>{children}</span>{onClose&&<button aria-label="关闭提示" onClick={onClose}>×</button>}</div>}
