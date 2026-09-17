@@ -78,7 +78,7 @@ await test('submits the draft to pending inspection and rolls up every line exac
   const receipt = await read('forge_purchase_receipt', ids.receipt); assert.equal(receipt.status, 'pending_inspection'); assert.equal(receipt.submitted_by, api.userId);
   const savedLines = await find('forge_purchase_receipt_line', { receipt_id: ids.receipt }); assert.ok(savedLines.every(line => line.status === 'pending_inspection'));
   const pending = await find('forge_pending_inspection', { receipt_id: ids.receipt }); ids.pendingInspections = pending.map(item => item.id);
-  assert.equal(pending.length, 4); assert.ok(pending.every(item => item.status === 'pending' && item.warehouse_id === ids.warehouse));
+  assert.equal(pending.length, 4); assert.ok(pending.every(item => item.status === 'inspection_created' && item.inspection_id && item.warehouse_id === ids.warehouse));
   assert.deepEqual(new Set(pending.map(item => item.receipt_line_id)), new Set(ids.receiptLines));
   const savedNotice = await read('forge_purchase_arrival_notice', ids.notice), savedOrder = await read('forge_purchase_order', ids.order);
   assert.deepEqual({ noticeStatus: savedNotice.status, noticeArrived: savedNotice.arrived_quantity, orderStatus: savedOrder.status, orderArrived: savedOrder.arrived_quantity },
@@ -86,7 +86,7 @@ await test('submits the draft to pending inspection and rolls up every line exac
   const byCode = Object.fromEntries((await find('forge_purchase_arrival_notice_line', { notice_id: ids.notice })).map(line => [line.item_code, line]));
   assert.deepEqual(Object.fromEntries(Object.entries(byCode).map(([code, line]) => [code, line.arrived_quantity])),
     { 'RM-PLC-1215C': 1, 'RM-HMI-700': 1, 'RM-PSU-24V10A': 2, 'RM-CAB-800': 1 });
-  assert.equal((await find('forge_purchase_inspection', { receipt_id: ids.receipt })).length, 0, 'submitting to pending inspection must not fabricate an inspection order');
+  assert.equal((await find('forge_purchase_inspection', { receipt_id: ids.receipt })).length, pending.length, '提交待检后应自动为每条到货物料生成检验单');
 });
 
 await test('rejects resubmission and further arrival after full receipt', async () => {
