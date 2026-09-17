@@ -16,8 +16,8 @@ RISEMAP 事实来源：`docs/references/risemap-capture/deep/supply-chain/arriva
 ## 缺陷修复
 
 第一次转换用正则截断了 `actions={...}`，把「刷新 / 登记所选到货 / 新建到货登记」等按钮删掉了。
-已用 `git restore` 回滚并按大括号配对重新转换，逐个页面确认按钮仍在（截图见
-`/tmp` 临时目录，本组正式截图见下一步补齐）。
+已用 `git restore` 回滚并按大括号配对重新转换，逐个页面确认按钮仍在；正式截图见
+`docs/evidence/supply-chain-arrival/`（5 页 hero、列表与动作行）。
 
 ## 缺口
 
