@@ -63,7 +63,7 @@ export default defineStack({
             page('inspection_rules', '检验规则', 'page_inspection_rules', 'list-check'),
           ]),
           group('supply_master_data', '基础资料', [
-            object('materials', '物料管理', 'forge_material', 'package'),
+            page('materials', '物料管理', 'page_material_workspace', 'package'),
             page('material_combinations', '物料组合', 'page_material_combinations', 'boxes'),
             page('bom_workspace', 'BOM管理', 'page_bom_workspace', 'git-branch'),
             page('material_search', '综合物料搜索', 'page_material_search', 'search'),
