@@ -110,3 +110,4 @@ export * from './employee-records.page.js';
 export * from './meeting-minutes.page.js';
 export * from './seal-management.page.js';
 export * from './fixed-assets.page.js';
+export * from './material-workspace.page.js';
