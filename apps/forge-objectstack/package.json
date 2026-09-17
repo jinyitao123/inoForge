@@ -220,7 +220,8 @@
     "acceptance:deploy-smoke": "node tests/deploy-smoke.mjs",
     "acceptance:drawing-archive-ledger": "node tests/drawing-archive-ledger-ui-readback.mjs",
     "acceptance:production-assembly-group": "node tests/production-assembly-group-ui-readback.mjs",
-    "acceptance:drawing-group": "node tests/drawing-group-ui-readback.mjs"
+    "acceptance:drawing-group": "node tests/drawing-group-ui-readback.mjs",
+    "acceptance:subcontract-group": "node tests/subcontract-group-ui-readback.mjs"
   },
   "dependencies": {
     "@objectstack/spec": "17.3.0",
