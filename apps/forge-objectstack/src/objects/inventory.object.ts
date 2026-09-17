@@ -25,7 +25,11 @@ export const OtherInbound = master('forge_other_inbound', '其他入库单', 'pa
   inbound_type_id: reference('forge_other_inbound_type', '入库类型', true),
   warehouse_id: reference('forge_warehouse', '入库仓库', true),
   inbound_on: Field.date({ label: '入库日期', ...required }),
-  source_code: text('来源单号'), handler_id: owner(true),
+  counterparty_type: Field.select([
+    { value: 'customer', label: '客户' }, { value: 'supplier', label: '供应商' },
+  ], { label: '往来单位类型', defaultValue: 'customer' }),
+  customer_id: reference('forge_customer', '客户'), supplier_id: reference('forge_supplier', '供应商'),
+  arrival_reason: Field.textarea({ label: '到货原因' }), source_code: text('来源单号'), handler_id: owner(true),
   line_count: quantity('物料行数', false, 0), total_quantity: quantity('入库数量', false, 0),
   total_amount: nonNegativeMoney('含税金额'), status: Field.select([
     { value: 'draft', label: '草稿' }, { value: 'pending_approval', label: '待审批' },
@@ -38,7 +42,7 @@ export const OtherInbound = master('forge_other_inbound', '其他入库单', 'pa
   cancel_reason: Field.textarea({ label: '取消原因', readonly: true }),
   cancelled_by: owner(), cancelled_at: Field.datetime({ label: '取消时间', readonly: true }),
   remarks: remarks(),
-}, ['code', 'inbound_type_id', 'warehouse_id', 'inbound_on', 'line_count', 'total_quantity', 'total_amount', 'status', 'handler_id']);
+}, ['code', 'inbound_type_id', 'warehouse_id', 'inbound_on', 'counterparty_type', 'customer_id', 'supplier_id', 'arrival_reason', 'line_count', 'total_quantity', 'total_amount', 'status', 'handler_id']);
 
 export const OtherInboundLine = master('forge_other_inbound_line', '其他入库明细', 'list', {
   name: text('物料名称', true), inbound_id: reference('forge_other_inbound', '其他入库单', true),

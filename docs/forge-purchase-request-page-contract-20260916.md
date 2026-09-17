@@ -19,6 +19,16 @@
 
 ### 本轮 Forge 决策（页面质量标准，非 RISEMAP 业务事实）
 
+- 已实现独立职责页面，不再由通用 `forge_administration_record` 页面承载。
+- 已实现申请列表、物料明细、筛选、分页、导出、新建、编辑、查看、提交、同意、驳回、取消和采购待办入口。
+- 已实现物料库选择、手动新增、快速粘贴；手工/粘贴明细不要求既有 SKU，但提交时必须具有名称、型号、物料分类、单位和正数量。
+- “保存并提交审批”为真实连续动作：先持久化申请与明细，再执行提交 Action；审批通过生成具有申请与申请明细来源的采购待办。
+- 附件存储尚未接入，因此页面只显示能力说明，不提供假上传按钮。
+- Forge 使用 Console 标准对话框承载新建、编辑和审批；RISEMAP 当前为独立新建页。这属于平台统一页面语言差异，不改变字段和业务动作。
+- 本轮按补充精修要求移除标题上方重复的“采购管理 / 采购申请”导航；下一岗位入口并入标题动作区。
+- 列表筛选明确为“申请日期起（含）/止（含）”；搜索和状态均只作用于当前列表，不冒充全局范围。
+- 桌面宽表为金额、币种和日期设置明确列宽，并固定状态与行操作；窄屏取消固定列，使用表内横向滚动，避免操作覆盖申请标题。
+
 1. 删除页面自绘的“申 采购管理 / 采购申请”面包屑。Console 外壳与 `ForgePageHeader` 已经呈现同一路径，重复堆叠会挤占首屏；`ForgePageHeader` 保留为唯一标题区。
 2. “下一步操作　采购待办池”按钮从独立条带移入标题右侧工具栏首位，位置与 RISEMAP 一致，删除条带后不丢失该入口。
 3. 两个日期输入合并为一个“申请日期”范围控件，中间以 `~` 标明起止，无障碍标签为“申请开始日期 / 申请结束日期”；清空筛选同时重置起止。
@@ -41,3 +51,25 @@
 - 停服重建后同库重启回读：`purchase-request-entry-modes-restart-readback` passed（申请、两条明细、两条待办 ID 一致）、`purchase-inquiry-restart-readback` PASS、`procurement-restart-readback` PASS。
 - 完整记录：`apps/forge-objectstack/tests/page-acceptance/procurement-chain-api-readback-20260916.json`。
 - 仍缺：同一组材料在 RISEMAP 与 Forge 两侧的页面办理对照，以及三页的控件实操、桌面 / 窄屏截图与控制台扫描。缺口未闭合前不宣称页面已复刻或精修通过。
+
+## 验收材料
+
+- API：`tests/purchase-request-entry-modes.integration.mjs`
+- 重启回读：`tests/purchase-request-entry-modes-restart-readback.mjs`
+- 页面结构：`tests/purchase-request-dedicated-page.static.mjs`
+- 工程门禁：`pnpm typecheck`、`pnpm validate`、`pnpm build`
+- 浏览器：RISEMAP `/purchase/requests`、`/purchase/requests/new` 与 Forge `page_purchase_request_pool` 的操作前、表单阻断、提交反馈、审批结果和重启后回读。
+
+## 逐项交付映射
+
+| 要求编号 | 当前事实或 Forge 决策 | 实现位置 | 操作步骤与实际结果 | 状态/缺口 |
+| --- | --- | --- | --- | --- |
+| PR-001 | RISEMAP 单一标题与业务面包屑 | `purchase-request.page.ts` 标题区 | 桌面与窄屏均只保留一套业务标题；下一步按钮仍可达 | pass |
+| PR-002 | RISEMAP 以申请日期范围筛选 | 列表筛选区 | 起止标签明确为含边界；筛选只更新当前申请/明细列表 | pass |
+| PR-003 | RISEMAP 长表包含完整字段 | 列表宽表 CSS 与列定义 | 1440×900 金额、币种、日期可读，状态/操作固定；390×844 无列覆盖 | pass |
+| PR-004 | 提交进入统一审批中心 | `purchase_request_submit` 与“前往我的审批” | 页面提交、审批、状态回读和待办来源已办理 | pass |
+| PR-005 | RISEMAP 同材料提交与取消反馈 | 两侧当前数据 | RISEMAP 列表为空，本轮未写入线上租户 | blocked：待同材料复核 |
+
+四维状态：replication `blocked`；visual `pass`（实施者桌面/窄屏检查）；interaction `pass`（本批关键控件）；business `pass`（Forge 正常与异常路径）。独立复核未发生，页面仍为 `review_required`。
+
+上述逐项映射由供应链接口一致性批次记录，采购申请页面在合并时采用了主线版本，页面视觉与交互需要在合并后版本上重新核对。
