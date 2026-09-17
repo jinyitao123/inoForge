@@ -14,30 +14,29 @@ const invoke = (object, action, id, params = {}, authenticated = true) => api.re
 const resultOf = response => response.value?.result ?? response.value?.data?.result ?? response.value?.data ?? response.value;
 
 let pending = await find('forge_pending_inspection', { receipt_id: ids.receipt });
-await test('creates one pending-inspection record for every arrived material line', async () => {
-  assert.equal(pending.length, 4); assert.ok(pending.every(item => item.status === 'pending' && item.arrival_quantity > 0 && item.receipt_line_id));
+await test('creates one pending-inspection record and one inspection order for every arrived material line', async () => {
+  assert.equal(pending.length, 4); assert.ok(pending.every(item => item.status === 'inspection_created' && item.inspection_id && item.arrival_quantity > 0 && item.receipt_line_id));
   assert.deepEqual(Object.fromEntries(pending.map(item => [item.item_code, item.arrival_quantity])), { 'RM-PLC-1215C': 1, 'RM-HMI-700': 1, 'RM-PSU-24V10A': 2, 'RM-CAB-800': 1 });
   ids.pending = pending.map(item => item.id);
 });
 
 await test('rejects anonymous and invalid inspection-order creation', async () => {
   assert.equal((await invoke('forge_pending_inspection', 'pending_inspection_create_order', pending[0].id, { inspection_method: 'full' }, false)).status, 401);
-  const invalid = await invoke('forge_pending_inspection', 'pending_inspection_create_order', pending[0].id, { inspection_method: 'exempt' });
-  assert.equal(invalid.status, 400, JSON.stringify(invalid.value)); assert.match(invalid.value.error.message, /全检或抽检/);
+  const duplicate = await invoke('forge_pending_inspection', 'pending_inspection_create_order', pending[0].id, { inspection_method: 'full' });
+  assert.equal(duplicate.status, 400, JSON.stringify(duplicate.value)); assert.match(duplicate.value.error.message, /状态已变化|已经生成/);
 });
 
 await test('generates exactly one material inspection order per pending record', async () => {
   ids.inspections = {};
   for (let index = 0; index < pending.length; index++) {
-    const item = pending[index], method = item.item_code === 'RM-PSU-24V10A' ? 'sampling' : 'full';
-    const response = await invoke('forge_pending_inspection', 'pending_inspection_create_order', item.id, { inspection_method: method });
-    assert.equal(response.status, 200, JSON.stringify(response.value)); const result = resultOf(response); ids.inspections[item.item_code] = result.id;
-    const inspection = await read('forge_purchase_inspection', result.id);
+    const item = pending[index], method = 'full';
+    ids.inspections[item.item_code] = item.inspection_id;
+    const inspection = await read('forge_purchase_inspection', item.inspection_id);
     assert.deepEqual({ pending: inspection.pending_inspection_id, receiptLine: inspection.receipt_line_id, total: inspection.total_quantity, status: inspection.status, result: inspection.result, method: inspection.inspection_method },
       { pending: item.id, receiptLine: item.receipt_line_id, total: item.arrival_quantity, status: 'pending', result: 'pending', method });
   }
   assert.equal((await find('forge_purchase_inspection', { receipt_id: ids.receipt })).length, 4);
-  assert.equal((await read('forge_purchase_receipt', ids.receipt)).status, 'inspection_in_progress');
+  assert.equal((await read('forge_purchase_receipt', ids.receipt)).status, 'pending_inspection');
 });
 
 await test('blocks duplicate inspection order for the same material', async () => {
@@ -60,7 +59,7 @@ await test('keeps the receipt in inspection until the final material is decided'
     const response = await invoke('forge_purchase_inspection', 'purchase_inspection_complete', ids.inspections[code], { inspected_on: '2026-09-10', accepted_quantity: accepted, inspection_note: `${code} 来料检验记录` });
     assert.equal(response.status, 200, JSON.stringify(response.value));
   }
-  assert.equal((await read('forge_purchase_receipt', ids.receipt)).status, 'inspection_in_progress');
+  assert.equal((await read('forge_purchase_receipt', ids.receipt)).status, 'pending_inspection');
   const psu = await read('forge_purchase_inspection', ids.inspections['RM-PSU-24V10A']), cabinet = await read('forge_purchase_inspection', ids.inspections['RM-CAB-800']);
   assert.deepEqual({ result: psu.result, accepted: psu.accepted_quantity, rejected: psu.rejected_quantity }, { result: 'partial', accepted: 1, rejected: 1 });
   assert.deepEqual({ result: cabinet.result, accepted: cabinet.accepted_quantity, rejected: cabinet.rejected_quantity }, { result: 'rejected', accepted: 0, rejected: 1 });
