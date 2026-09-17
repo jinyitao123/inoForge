@@ -198,6 +198,10 @@ export const ApprovalInstance = ObjectSchema.create({
       option('paused', '已暂停'),
     ], { label: '状态', defaultValue: 'draft', ...required }),
     current_node: Field.text({ label: '当前节点', maxLength: 120 }),
+    source_object: Field.text({ label: '来源对象', maxLength: 120 }),
+    source_id: Field.text({ label: '来源记录ID', maxLength: 120 }),
+    source_code: Field.text({ label: '来源单号', maxLength: 120 }),
+    source_page: Field.text({ label: '来源页面', maxLength: 255 }),
     initiator_name: Field.text({ label: '发起人', maxLength: 100, ...required }),
     initiated_at: Field.datetime({ label: '发起时间' }),
     ended_at: Field.datetime({ label: '结束时间' }),
@@ -206,7 +210,7 @@ export const ApprovalInstance = ObjectSchema.create({
   },
   searchableFields: ['title', 'code', 'process_name', 'initiator_name', 'current_node'],
   listViews: { all: { label: '全部', type: 'grid', columns: ['code', 'title', 'process_name', 'priority', 'status', 'current_node', 'initiated_at', 'ended_at'] } },
-  indexes: [{ fields: ['status', 'initiated_at'] }, { fields: ['initiator_name', 'status'] }],
+  indexes: [{ fields: ['status', 'initiated_at'] }, { fields: ['initiator_name', 'status'] }, { fields: ['source_object', 'source_id'] }],
   enable: { apiEnabled: true, searchable: true, trackHistory: true, feeds: false, activities: true },
 });
 

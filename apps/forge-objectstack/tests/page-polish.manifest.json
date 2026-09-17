@@ -1,20 +1,160 @@
 {
   "administration": [
-    {"file":"approval-center.page.ts","pages":["page_my_approvals","page_cc_to_me","page_initiated_by_me"],"archetype":"task_workspace","reference":"project-task-workspace.page.ts","designStatus":"review_required"},
-    {"file":"administration-workflow.page.ts","pages":["page_administration_requests","page_start_process"],"archetype":"workbench","reference":"workbench.page.ts","designStatus":"review_required"},
-    {"file":"administration-pages.page.ts","pages":["page_hr_workspace"],"archetype":"workbench","reference":"workbench.page.ts","designStatus":"review_required"},
-    {"file":"administration-notice.page.ts","pages":["page_administration_notice"],"archetype":"task_workspace","reference":"project-task-workspace.page.ts","designStatus":"review_required"},
-    {"file":"administration-pages.page.ts","pages":["page_equipment_maintenance","page_gift_management","page_loan_management","page_recruitment","page_onboarding_offboarding"],"archetype":"task_workspace","reference":"project-task-workspace.page.ts","designStatus":"review_required"},
-    {"file":"work-report.page.ts","pages":["page_work_reports"],"archetype":"timesheet_composite","reference":"project-timesheet-cost.page.ts","designStatus":"review_required"},
-    {"file":"administration-pages.page.ts","pages":["page_vehicle_management","page_attendance_management"],"archetype":"timesheet_composite","reference":"project-timesheet-cost.page.ts","designStatus":"review_required"},
-    {"file":"attendance-request-pages.page.ts","pages":["page_overtime_requests"],"archetype":"timesheet_composite","reference":"project-timesheet-cost.page.ts","designStatus":"review_required"},
-    {"file":"attendance-request-pages.page.ts","pages":["page_leave_management"],"archetype":"timesheet_composite","reference":"project-timesheet-cost.page.ts","designStatus":"review_required"},
-    {"file":"attendance-request-pages.page.ts","pages":["page_business_trip"],"archetype":"timesheet_composite","reference":"project-timesheet-cost.page.ts","designStatus":"review_required"},
-    {"file":"administration-workflow.page.ts","pages":["page_approval_records"],"archetype":"analysis","reference":"project-timesheet-cost.page.ts","designStatus":"review_required"},
-    {"file":"administration-pages.page.ts","pages":["page_salary_benefits","page_attendance_statistics"],"archetype":"analysis","reference":"project-timesheet-cost.page.ts","designStatus":"review_required"},
-    {"file":"administration-workflow.page.ts","pages":["page_process_definitions","page_process_categories"],"archetype":"configuration","reference":"project-timesheet-cost.page.ts","designStatus":"review_required"},
-    {"file":"document-center.page.ts","pages":["page_document_center"],"archetype":"configuration","reference":"project-timesheet-cost.page.ts","designStatus":"review_required"},
-    {"file":"administration-pages.page.ts","pages":["page_directory"],"archetype":"configuration","reference":"project-timesheet-cost.page.ts","designStatus":"review_required"}
+    {
+      "file": "approval-center.page.ts",
+      "pages": [
+        "page_my_approvals"
+      ],
+      "archetype": "task_workspace",
+      "reference": "project-task-workspace.page.ts",
+      "designStatus": "review_required",
+      "contract": "docs/forge-procurement-approval-page-contract-20260916.md",
+      "acceptance": "apps/forge-objectstack/tests/page-acceptance/page_my_approvals.json"
+    },
+    {
+      "file": "approval-center.page.ts",
+      "pages": [
+        "page_cc_to_me",
+        "page_initiated_by_me"
+      ],
+      "archetype": "task_workspace",
+      "reference": "project-task-workspace.page.ts",
+      "designStatus": "review_required"
+    },
+    {
+      "file": "administration-workflow.page.ts",
+      "pages": [
+        "page_administration_requests",
+        "page_start_process"
+      ],
+      "archetype": "workbench",
+      "reference": "workbench.page.ts",
+      "designStatus": "review_required"
+    },
+    {
+      "file": "administration-pages.page.ts",
+      "pages": [
+        "page_hr_workspace"
+      ],
+      "archetype": "workbench",
+      "reference": "workbench.page.ts",
+      "designStatus": "review_required"
+    },
+    {
+      "file": "administration-notice.page.ts",
+      "pages": [
+        "page_administration_notice"
+      ],
+      "archetype": "task_workspace",
+      "reference": "project-task-workspace.page.ts",
+      "designStatus": "review_required"
+    },
+    {
+      "file": "administration-pages.page.ts",
+      "pages": [
+        "page_equipment_maintenance",
+        "page_gift_management",
+        "page_loan_management",
+        "page_recruitment",
+        "page_onboarding_offboarding"
+      ],
+      "archetype": "task_workspace",
+      "reference": "project-task-workspace.page.ts",
+      "designStatus": "review_required"
+    },
+    {
+      "file": "work-report.page.ts",
+      "pages": [
+        "page_work_reports"
+      ],
+      "archetype": "timesheet_composite",
+      "reference": "project-timesheet-cost.page.ts",
+      "designStatus": "review_required"
+    },
+    {
+      "file": "administration-pages.page.ts",
+      "pages": [
+        "page_vehicle_management",
+        "page_attendance_management"
+      ],
+      "archetype": "timesheet_composite",
+      "reference": "project-timesheet-cost.page.ts",
+      "designStatus": "review_required"
+    },
+    {
+      "file": "attendance-request-pages.page.ts",
+      "pages": [
+        "page_overtime_requests"
+      ],
+      "archetype": "timesheet_composite",
+      "reference": "project-timesheet-cost.page.ts",
+      "designStatus": "review_required"
+    },
+    {
+      "file": "attendance-request-pages.page.ts",
+      "pages": [
+        "page_leave_management"
+      ],
+      "archetype": "timesheet_composite",
+      "reference": "project-timesheet-cost.page.ts",
+      "designStatus": "review_required"
+    },
+    {
+      "file": "attendance-request-pages.page.ts",
+      "pages": [
+        "page_business_trip"
+      ],
+      "archetype": "timesheet_composite",
+      "reference": "project-timesheet-cost.page.ts",
+      "designStatus": "review_required"
+    },
+    {
+      "file": "administration-workflow.page.ts",
+      "pages": [
+        "page_approval_records"
+      ],
+      "archetype": "analysis",
+      "reference": "project-timesheet-cost.page.ts",
+      "designStatus": "review_required"
+    },
+    {
+      "file": "administration-pages.page.ts",
+      "pages": [
+        "page_salary_benefits",
+        "page_attendance_statistics"
+      ],
+      "archetype": "analysis",
+      "reference": "project-timesheet-cost.page.ts",
+      "designStatus": "review_required"
+    },
+    {
+      "file": "administration-workflow.page.ts",
+      "pages": [
+        "page_process_definitions",
+        "page_process_categories"
+      ],
+      "archetype": "configuration",
+      "reference": "project-timesheet-cost.page.ts",
+      "designStatus": "review_required"
+    },
+    {
+      "file": "document-center.page.ts",
+      "pages": [
+        "page_document_center"
+      ],
+      "archetype": "configuration",
+      "reference": "project-timesheet-cost.page.ts",
+      "designStatus": "review_required"
+    },
+    {
+      "file": "administration-pages.page.ts",
+      "pages": [
+        "page_directory"
+      ],
+      "archetype": "configuration",
+      "reference": "project-timesheet-cost.page.ts",
+      "designStatus": "review_required"
+    }
   ],
   "finance": [
     {
@@ -227,9 +367,9 @@
       ],
       "archetype": "task_workspace",
       "reference": "project-task-workspace.page.ts",
+      "designStatus": "review_required",
       "contract": "docs/forge-finance-sales-cycle-page-delivery-20260916.md",
-      "acceptance": "docs/evidence/finance-invoice-tasks-narrow-20260916/acceptance.json",
-      "designStatus": "review_required"
+      "acceptance": "docs/evidence/finance-invoice-tasks-narrow-20260916/acceptance.json"
     }
   ],
   "supply_chain": [
@@ -250,7 +390,7 @@
       "archetype": "task_workspace",
       "reference": "project-task-workspace.page.ts",
       "designStatus": "review_required",
-      "contract": "docs/forge-purchase-request-page-contract-20260916.md",
+      "contract": "docs/forge-purchase-order-page-contract-20260916.md",
       "acceptance": "apps/forge-objectstack/tests/page-acceptance/page_purchase_order_workspace.json"
     },
     {
@@ -261,8 +401,30 @@
       "archetype": "task_workspace",
       "reference": "project-task-workspace.page.ts",
       "designStatus": "review_required",
-      "contract": "docs/forge-supply-chain-page-contract-20260916.md",
+      "contract": "docs/forge-other-inbound-page-contract-20260916.md",
       "acceptance": "apps/forge-objectstack/tests/page-acceptance/page_other_inbounds.json"
+    },
+    {
+      "file": "all-inbounds.page.ts",
+      "pages": [
+        "page_all_inbounds"
+      ],
+      "archetype": "analysis",
+      "reference": "project-timesheet-cost.page.ts",
+      "designStatus": "review_required",
+      "contract": "docs/forge-all-inbounds-page-contract-20260916.md",
+      "acceptance": "apps/forge-objectstack/tests/page-acceptance/page_all_inbounds.json"
+    },
+    {
+      "file": "inbound-lines-list.page.ts",
+      "pages": [
+        "page_inbound_lines"
+      ],
+      "archetype": "analysis",
+      "reference": "project-timesheet-cost.page.ts",
+      "designStatus": "review_required",
+      "contract": "docs/forge-inbound-lines-page-contract-20260916.md",
+      "acceptance": "apps/forge-objectstack/tests/page-acceptance/page_inbound_lines.json"
     },
     {
       "file": "pending-outbound-shipments.page.ts",
@@ -393,7 +555,7 @@
       "archetype": "task_workspace",
       "reference": "project-task-workspace.page.ts",
       "designStatus": "review_required",
-      "contract": "docs/forge-purchase-request-page-contract-20260916.md",
+      "contract": "docs/forge-purchase-todo-pool-page-contract-20260915.md",
       "acceptance": "apps/forge-objectstack/tests/page-acceptance/page_purchase_todo_pool.json"
     },
     {
@@ -404,7 +566,7 @@
       "archetype": "task_workspace",
       "reference": "project-task-workspace.page.ts",
       "designStatus": "review_required",
-      "contract": "docs/forge-purchase-request-page-contract-20260916.md",
+      "contract": "docs/forge-purchase-inquiry-page-contract-20260916.md",
       "acceptance": "apps/forge-objectstack/tests/page-acceptance/page_purchase_inquiry.json"
     },
     {
@@ -415,6 +577,61 @@
       "archetype": "task_workspace",
       "reference": "project-task-workspace.page.ts",
       "designStatus": "review_required"
+    },
+    {
+      "file": "purchase-arrival-notice.page.ts",
+      "pages": [
+        "page_purchase_arrival_notice"
+      ],
+      "archetype": "task_workspace",
+      "reference": "project-task-workspace.page.ts",
+      "designStatus": "review_required",
+      "contract": "docs/forge-arrival-notice-page-contract-20260916.md",
+      "acceptance": "apps/forge-objectstack/tests/page-acceptance/page_purchase_arrival_notice.json"
+    },
+    {
+      "file": "purchase-arrival-workspace.page.ts",
+      "pages": [
+        "page_purchase_arrival_workspace"
+      ],
+      "archetype": "task_workspace",
+      "reference": "project-task-workspace.page.ts",
+      "designStatus": "review_required",
+      "contract": "docs/forge-arrival-registration-page-contract-20260916.md",
+      "acceptance": "apps/forge-objectstack/tests/page-acceptance/page_purchase_arrival_workspace.json"
+    },
+    {
+      "file": "purchase-inspection-workspace.page.ts",
+      "pages": [
+        "page_pending_inspection_workspace"
+      ],
+      "archetype": "task_workspace",
+      "reference": "project-task-workspace.page.ts",
+      "designStatus": "review_required",
+      "contract": "docs/forge-pending-inspection-page-contract-20260916.md",
+      "acceptance": "apps/forge-objectstack/tests/page-acceptance/page_pending_inspection_workspace.json"
+    },
+    {
+      "file": "purchase-inspection-workspace.page.ts",
+      "pages": [
+        "page_purchase_inspection_workspace"
+      ],
+      "archetype": "task_workspace",
+      "reference": "project-task-workspace.page.ts",
+      "designStatus": "review_required",
+      "contract": "docs/forge-purchase-inspection-page-contract-20260916.md",
+      "acceptance": "apps/forge-objectstack/tests/page-acceptance/page_purchase_inspection_workspace.json"
+    },
+    {
+      "file": "purchase-inbound-workspace.page.ts",
+      "pages": [
+        "page_purchase_inbound_workspace"
+      ],
+      "archetype": "task_workspace",
+      "reference": "project-task-workspace.page.ts",
+      "designStatus": "review_required",
+      "contract": "docs/forge-purchase-inbound-page-contract-20260916.md",
+      "acceptance": "apps/forge-objectstack/tests/page-acceptance/page_purchase_inbound_workspace.json"
     }
   ],
   "workspace": [
@@ -458,28 +675,40 @@
   "production": [
     {
       "file": "production-assembly-workspace.page.ts",
-      "pages": ["page_production_assembly_workspace", "page_production_shortage_workspace"],
+      "pages": [
+        "page_production_assembly_workspace",
+        "page_production_shortage_workspace"
+      ],
       "archetype": "task_workspace",
       "reference": "project-task-workspace.page.ts",
       "designStatus": "review_required"
     },
     {
       "file": "production-material-workspace.page.ts",
-      "pages": ["page_production_material_workspace", "page_production_supply_workspace", "page_production_return_workspace"],
+      "pages": [
+        "page_production_material_workspace",
+        "page_production_supply_workspace",
+        "page_production_return_workspace"
+      ],
       "archetype": "task_workspace",
       "reference": "project-task-workspace.page.ts",
       "designStatus": "review_required"
     },
     {
       "file": "production-transform-workspace.page.ts",
-      "pages": ["page_production_disassembly_workspace", "page_production_replacement_workspace"],
+      "pages": [
+        "page_production_disassembly_workspace",
+        "page_production_replacement_workspace"
+      ],
       "archetype": "task_workspace",
       "reference": "project-task-workspace.page.ts",
       "designStatus": "review_required"
     },
     {
       "file": "drawing-guide.page.ts",
-      "pages": ["page_drawing_guide"],
+      "pages": [
+        "page_drawing_guide"
+      ],
       "archetype": "configuration",
       "reference": "project-timesheet-cost.page.ts",
       "designStatus": "review_required",
@@ -488,7 +717,9 @@
     },
     {
       "file": "subcontract-guide.page.ts",
-      "pages": ["page_subcontract_guide"],
+      "pages": [
+        "page_subcontract_guide"
+      ],
       "archetype": "configuration",
       "reference": "project-timesheet-cost.page.ts",
       "designStatus": "review_required",
@@ -497,84 +728,117 @@
     },
     {
       "file": "drawing-workspace.page.ts",
-      "pages": ["page_drawing_workspace", "page_drawing_archive", "page_drawing_review", "page_drawing_release", "page_drawing_change", "page_drawing_distribution", "page_drawing_query", "page_customer_drawings"],
+      "pages": [
+        "page_drawing_workspace",
+        "page_drawing_archive",
+        "page_drawing_review",
+        "page_drawing_release",
+        "page_drawing_change",
+        "page_drawing_distribution",
+        "page_drawing_query",
+        "page_customer_drawings"
+      ],
       "archetype": "task_workspace",
       "reference": "project-task-workspace.page.ts",
       "designStatus": "review_required"
     },
     {
       "file": "subcontract-workspace.page.ts",
-      "pages": ["page_subcontract_dashboard", "page_subcontract_workspace", "page_subcontract_suppliers"],
+      "pages": [
+        "page_subcontract_dashboard",
+        "page_subcontract_workspace",
+        "page_subcontract_suppliers"
+      ],
       "archetype": "task_workspace",
       "reference": "project-task-workspace.page.ts",
       "designStatus": "review_required"
     },
     {
       "file": "subcontract-issue.page.ts",
-      "pages": ["page_subcontract_issue_workspace"],
+      "pages": [
+        "page_subcontract_issue_workspace"
+      ],
       "archetype": "task_workspace",
       "reference": "project-task-workspace.page.ts",
       "designStatus": "review_required"
     },
     {
       "file": "subcontract-receipt.page.ts",
-      "pages": ["page_subcontract_receipt_workspace"],
+      "pages": [
+        "page_subcontract_receipt_workspace"
+      ],
       "archetype": "task_workspace",
       "reference": "project-task-workspace.page.ts",
       "designStatus": "review_required"
     },
     {
       "file": "subcontract-return.page.ts",
-      "pages": ["page_subcontract_return_workspace"],
+      "pages": [
+        "page_subcontract_return_workspace"
+      ],
       "archetype": "task_workspace",
       "reference": "project-task-workspace.page.ts",
       "designStatus": "review_required"
     },
     {
       "file": "subcontract-reconciliation.page.ts",
-      "pages": ["page_subcontract_reconciliation"],
+      "pages": [
+        "page_subcontract_reconciliation"
+      ],
       "archetype": "task_workspace",
       "reference": "project-task-workspace.page.ts",
       "designStatus": "review_required"
     },
     {
       "file": "subcontract-pricing.page.ts",
-      "pages": ["page_subcontract_pricing"],
+      "pages": [
+        "page_subcontract_pricing"
+      ],
       "archetype": "configuration",
       "reference": "project-timesheet-cost.page.ts",
       "designStatus": "review_required"
     },
     {
       "file": "subcontract-stock.page.ts",
-      "pages": ["page_subcontract_stock"],
+      "pages": [
+        "page_subcontract_stock"
+      ],
       "archetype": "analysis",
       "reference": "project-timesheet-cost.page.ts",
       "designStatus": "review_required"
     },
     {
       "file": "subcontract-trace.page.ts",
-      "pages": ["page_subcontract_trace"],
+      "pages": [
+        "page_subcontract_trace"
+      ],
       "archetype": "analysis",
       "reference": "project-timesheet-cost.page.ts",
       "designStatus": "review_required"
     },
     {
       "file": "subcontract-undelivered.page.ts",
-      "pages": ["page_subcontract_undelivered"],
+      "pages": [
+        "page_subcontract_undelivered"
+      ],
       "archetype": "analysis",
       "reference": "project-timesheet-cost.page.ts",
       "designStatus": "review_required"
     },
     {
       "file": "subcontract-inbound-report.page.ts",
-      "pages": ["page_subcontract_inbound_report"],
+      "pages": [
+        "page_subcontract_inbound_report"
+      ],
       "archetype": "analysis",
       "reference": "project-timesheet-cost.page.ts",
       "designStatus": "review_required"
     },
     {
       "file": "subcontract-reconciliation-report.page.ts",
-      "pages": ["page_subcontract_reconciliation_report"],
+      "pages": [
+        "page_subcontract_reconciliation_report"
+      ],
       "archetype": "analysis",
       "reference": "project-timesheet-cost.page.ts",
       "designStatus": "review_required"

@@ -3,9 +3,34 @@
   "pageId": "page_other_inbounds",
   "archetype": "task_workspace",
   "checks": {
-    "replication": { "status": "blocked", "notes": "本轮未实时打开 RISEMAP 其他入库页面，缺少当前页面证据。", "evidence": [] },
-    "visual": { "status": "pending", "notes": "列表页原先只有一条自绘面包屑且没有标题，已改为共享 ForgePageHeader（标题“其他入库”+说明）并把工具箱完整保留；新建与详情子视图保持原有路径。桌面与窄屏截图待内置浏览器恢复。", "evidence": [] },
-    "interaction": { "status": "pending", "notes": "待实际操作：新建其他入库、打印条码、导出、刷新、筛选、行操作与详情。", "evidence": [] },
-    "business": { "status": "pending", "notes": "其他入库前置条件与持久化由既有 other-inbound-prerequisite 集成脚本覆盖，本页尚未做页面级办理与 RISEMAP 对照。", "evidence": ["apps/forge-objectstack/tests/other-inbound-prerequisite.integration.mjs"] }
-  }
+    "replication": {
+      "status": "blocked",
+      "notes": "RISEMAP 当前其他入库列表为空，同材料审批与库存变化待复核。",
+      "evidence": [
+        "docs/forge-other-inbound-page-contract-20260916.md"
+      ]
+    },
+    "visual": {
+      "status": "pending",
+      "notes": "桌面和 390×844 首屏已检查且无页面横向溢出；截图与独立复核待完成。",
+      "evidence": [
+        "apps/forge-objectstack/tests/page-acceptance/supply-inbound-browser-readback-20260916.json"
+      ]
+    },
+    "interaction": {
+      "status": "pass",
+      "notes": "已在内置浏览器完成新建、提交、审批、入库确认、列表勾选打印和详情回读。 该结论采集于合并前版本，合并后未重新核对。",
+      "evidence": [
+        "apps/forge-objectstack/tests/page-acceptance/supply-inbound-browser-readback-20260916.json"
+      ]
+    },
+    "business": {
+      "status": "pass",
+      "notes": "其他入库数量 3、金额 8400，库存余额与逐物料流水在同一 SQLite 重启后仍可回读。 该结论采集于合并前版本，合并后未重新核对。",
+      "evidence": [
+        "apps/forge-objectstack/tests/other-inbound-pages-restart-readback.mjs"
+      ]
+    }
+  },
+  "mergeNote": "主线合并记录：2026-09-17 合并 codex/supply-procurement-batch1、codex/production-placeholders-batch1 与 codex/finance-sales-cycle 时，下列受验文件内容与 reviewedRevision 不再一致，本记录的结论只对当时版本有效，需在合并后版本上重新核对：apps/forge-objectstack/src/pages/other-inbound-workspace.page.ts。"
 }
