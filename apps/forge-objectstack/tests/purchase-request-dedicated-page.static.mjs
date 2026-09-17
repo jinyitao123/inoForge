@@ -20,4 +20,15 @@ assert.doesNotMatch(routing, /page_purchase_request_pool/, 'generic routing page
 assert.doesNotMatch(page, /alert\(|confirm\(|prompt\(/, 'browser-native dialogs are forbidden');
 assert.match(page, /附件存储尚未接入/);
 
+// 采购申请精修基线：不重复堆叠导航、日期起止含义明确、状态与操作列在宽表下可达。
+assert.doesNotMatch(page, /fp-list-context/, 'page must not render its own breadcrumb on top of ForgePageHeader');
+assert.match(page, /pr-range-label">申请日期</, 'date filters must be labelled as one 申请日期 range');
+assert.match(page, /pr-range-sep">~</, 'date range must state the 起 / 止 relationship');
+assert.match(page, /aria-label="申请开始日期"/, 'range start keeps an explicit accessible label');
+assert.match(page, /aria-label="申请结束日期"/, 'range end keeps an explicit accessible label');
+assert.match(page, /pr-table th:last-child,\.pr-table td:last-child\{position:sticky;right:0/, 'action column must stay reachable while the wide table scrolls');
+assert.match(page, /pr-table th:first-child,\.pr-table td:first-child\{position:sticky;left:0/, 'application code column must stay readable while the wide table scrolls');
+assert.match(page, /pr-table td:nth-child\(2\)[\s\S]{0,200}word-break:break-word/, 'long text columns must wrap instead of stretching the row');
+assert.match(page, /actions=\{<><button className="fp-button pr-next"[\s\S]{0,160}page_purchase_todo_pool[\s\S]{0,40}下一步操作/, 'next-step entry must stay available in the header toolbar');
+
 console.log('PASS purchase request is a dedicated executable page with mixed detail entry and approval actions');

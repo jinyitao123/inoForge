@@ -249,7 +249,9 @@
       ],
       "archetype": "task_workspace",
       "reference": "project-task-workspace.page.ts",
-      "designStatus": "review_required"
+      "designStatus": "review_required",
+      "contract": "docs/forge-purchase-request-page-contract-20260916.md",
+      "acceptance": "apps/forge-objectstack/tests/page-acceptance/page_purchase_order_workspace.json"
     },
     {
       "file": "other-inbound-workspace.page.ts",
@@ -258,7 +260,9 @@
       ],
       "archetype": "task_workspace",
       "reference": "project-task-workspace.page.ts",
-      "designStatus": "review_required"
+      "designStatus": "review_required",
+      "contract": "docs/forge-supply-chain-page-contract-20260916.md",
+      "acceptance": "apps/forge-objectstack/tests/page-acceptance/page_other_inbounds.json"
     },
     {
       "file": "pending-outbound-shipments.page.ts",
@@ -268,6 +272,17 @@
       "archetype": "task_workspace",
       "reference": "project-task-workspace.page.ts",
       "designStatus": "review_required"
+    },
+    {
+      "file": "other-outbound-workspace.page.ts",
+      "pages": [
+        "page_other_outbounds"
+      ],
+      "archetype": "task_workspace",
+      "reference": "project-task-workspace.page.ts",
+      "designStatus": "review_required",
+      "contract": "docs/forge-supply-chain-page-contract-20260916.md",
+      "acceptance": "apps/forge-objectstack/tests/page-acceptance/page_other_outbounds.json"
     },
     {
       "file": "inventory-overview.page.ts",
@@ -366,7 +381,9 @@
       ],
       "archetype": "task_workspace",
       "reference": "project-task-workspace.page.ts",
-      "designStatus": "review_required"
+      "designStatus": "review_required",
+      "contract": "docs/forge-purchase-request-page-contract-20260916.md",
+      "acceptance": "apps/forge-objectstack/tests/page-acceptance/page_purchase_request_pool.json"
     },
     {
       "file": "purchase-todo-pool.page.ts",
@@ -375,7 +392,9 @@
       ],
       "archetype": "task_workspace",
       "reference": "project-task-workspace.page.ts",
-      "designStatus": "review_required"
+      "designStatus": "review_required",
+      "contract": "docs/forge-purchase-request-page-contract-20260916.md",
+      "acceptance": "apps/forge-objectstack/tests/page-acceptance/page_purchase_todo_pool.json"
     },
     {
       "file": "purchase-inquiry.page.ts",
@@ -384,7 +403,9 @@
       ],
       "archetype": "task_workspace",
       "reference": "project-task-workspace.page.ts",
-      "designStatus": "review_required"
+      "designStatus": "review_required",
+      "contract": "docs/forge-purchase-request-page-contract-20260916.md",
+      "acceptance": "apps/forge-objectstack/tests/page-acceptance/page_purchase_inquiry.json"
     },
     {
       "file": "supplier-price-book.page.ts",
@@ -457,11 +478,22 @@
       "designStatus": "review_required"
     },
     {
-      "file": "supply-production-routing.page.ts",
-      "pages": ["page_drawing_guide", "page_subcontract_guide"],
+      "file": "drawing-guide.page.ts",
+      "pages": ["page_drawing_guide"],
       "archetype": "configuration",
       "reference": "project-timesheet-cost.page.ts",
-      "designStatus": "review_required"
+      "designStatus": "review_required",
+      "contract": "docs/forge-drawing-guide-page-contract-20260916.md",
+      "acceptance": "apps/forge-objectstack/tests/page-acceptance/page_drawing_guide.json"
+    },
+    {
+      "file": "subcontract-guide.page.ts",
+      "pages": ["page_subcontract_guide"],
+      "archetype": "configuration",
+      "reference": "project-timesheet-cost.page.ts",
+      "designStatus": "review_required",
+      "contract": "docs/forge-subcontract-guide-page-contract-20260916.md",
+      "acceptance": "apps/forge-objectstack/tests/page-acceptance/page_subcontract_guide.json"
     },
     {
       "file": "drawing-workspace.page.ts",
