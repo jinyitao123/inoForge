@@ -23,7 +23,7 @@ const EMAIL = process.env.FORGE_SMOKE_EMAIL || '';
 const PASSWORD = process.env.FORGE_SMOKE_PASSWORD || '';
 const CREATE = process.env.FORGE_LEDGER_CREATE === '1';
 const ARCHIVE_URL = BASE + '/_console/apps/forge/page/page_drawing_archive';
-const SHOTS = path.resolve('../../docs/evidence/drawing-archive-ledger');
+const SHOTS = path.resolve(process.env.FORGE_LEDGER_SHOTS || '../../docs/evidence/drawing-archive-ledger');
 const REPORT = path.resolve('.objectstack/acceptance/drawing-archive-ledger-report.json');
 const LOAD_TIMEOUT = Number(process.env.FORGE_UI_TIMEOUT || 180000);
 
@@ -103,9 +103,14 @@ let sample = '';
 if (ledgerCount > 0) {
   sample = (await page.locator('.dw-ledger-table tbody tr td:first-child').first().innerText()).trim();
 }
+const dataRows = () => page.locator('.dw-ledger-table tbody tr').filter({ has: page.locator('td button') });
+const columnValues = async (index) => dataRows().evaluateAll(
+  (rows, i) => rows.map((row) => (row.children[i] ? row.children[i].innerText.replace(/\s+/g, ' ').trim() : '')),
+  index,
+);
 const expectEmpty = async (why) => {
   await page.waitForSelector('text=未找到匹配的图号档案', { timeout: 20000 });
-  assert.equal(await page.locator('.dw-ledger-table tbody tr').filter({ hasText: sample }).count(), 0, why);
+  if (sample) assert.equal(await page.locator('.dw-ledger-table tbody tr').filter({ hasText: sample }).count(), 0, why);
 };
 const usePicker = async (label, option) => {
   await page.click('.dw-ledger-filter button.fp-picker-trigger[aria-label="' + label + '"]');
@@ -113,20 +118,29 @@ const usePicker = async (label, option) => {
 };
 
 await usePicker('图纸状态', '已作废');
-if (sample) await expectEmpty('obsolete filter must drop a draft drawing');
+const obsoleteColumn = await columnValues(5);
+assert.ok(obsoleteColumn.every((value) => value.includes('已作废')), 'status filter must keep only obsolete drawings');
+if (!obsoleteColumn.length) {
+  assert.ok(await page.locator('text=未找到匹配的图号档案').count() > 0, 'empty status result shows the RISEMAP empty state');
+}
 await page.screenshot({ path: shot('03-filter-empty-state') });
 await page.click('.dw-ledger-filter button:has-text("重置")');
 if (sample) await rowFor(sample).waitFor({ timeout: 20000 });
-note('status filter narrows the ledger and reset restores it');
+note('status filter keeps only obsolete rows and reset restores the list');
 
 await page.click('.dw-ledger-filter button.fp-picker-trigger[aria-label="受控标识"]');
 const controlledOptions = await page.locator('.dw-ledger-filter [role="option"]').allInnerTexts();
 assert.deepEqual(controlledOptions, ['受控标识', '受控', '非受控'], 'controlled options');
+await page.click('[role="option"]:has-text("受控")');
+const controlledColumn = await columnValues(6);
+assert.ok(controlledColumn.every((value) => value === '受控'), 'controlled filter must keep only controlled drawings');
+await page.click('.dw-ledger-filter button.fp-picker-trigger[aria-label="受控标识"]');
 await page.click('[role="option"]:has-text("非受控")');
-await expectEmpty('uncontrolled filter must drop a controlled drawing');
+const uncontrolledColumn = await columnValues(6);
+assert.ok(uncontrolledColumn.every((value) => value === '非受控'), 'uncontrolled filter must keep only uncontrolled drawings');
 await page.click('.dw-ledger-filter button:has-text("重置")');
 if (sample) await rowFor(sample).waitFor({ timeout: 20000 });
-note('controlled flag filter follows RISEMAP options 受控 / 非受控');
+note('controlled flag filter follows RISEMAP options 受控 / 非受控 and stays self-consistent');
 
 const beforeSearch = await page.locator('.dw-ledger-table tbody tr').count();
 await page.fill('.dw-ledger-filter input.fp-input', 'zzz-no-such-drawing');
