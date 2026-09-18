@@ -39,7 +39,7 @@ function App(){
   if(!receiptId&&!requestedNotice)return <div className="forge-product forge-procurement forge-arrival">
 <style>{css}</style>
 <div className="body">
-<ForgeHero section="供应链 / 到货检验" title="到货登记" description="登记到货物料，进入待检或免检流程。" icon="▤" tone="indigo" art="boxes"/><div className="fp-action-row"><button className="fp-button" onClick={()=>window.location.href=forgeBase+'/page/page_pending_inspection_workspace'}>下一步操作　待检验库存 ›</button><button className="fp-button" disabled={!listRows.length} onClick={exportList}>导出</button><button className="fp-button" onClick={()=>setTaskOpen(true)}>导入/导出任务</button><button className="fp-button" onClick={load}>刷新</button><button className="fp-button primary" onClick={()=>window.location.href=forgeBase+'/page/page_purchase_arrival_notice'}>新建到货登记</button></div>
+<ForgeHero section="供应链 / 到货检验 / 到货登记" title="到货登记" description="登记到货物料，进入待检或免检流程。" icon="▤" tone="indigo" art="boxes"/><div className="fp-action-row"><button className="fp-button" onClick={()=>window.location.href=forgeBase+'/page/page_pending_inspection_workspace'}>下一步操作　待检验库存 ›</button><button className="fp-button" disabled={!listRows.length} onClick={exportList}>导出</button><button className="fp-button" onClick={()=>setTaskOpen(true)}>导入/导出任务</button><button className="fp-button" onClick={load}>刷新</button><button className="fp-button primary" onClick={()=>window.location.href=forgeBase+'/page/page_purchase_arrival_notice'}>新建到货登记</button></div>
 {state.error&&<div className="notice">{state.error}</div>}<div className="card">
 <div className="actions" style={{marginBottom:12}}>
 <button className={'btn '+(listMode==='orders'?'primary':'')} onClick={()=>setListMode('orders')}>订单明细</button>
