@@ -28,7 +28,7 @@ function App(){
 <div className="toolbar">
 <button className="btn" disabled={!filteredRows.length} onClick={exportRows}>导出</button>
 <button className="btn" onClick={()=>setTaskOpen(true)}>导入/导出任务</button>
-<button className="btn" onClick={()=>{setToast('');load();}}>刷新</button>
+<button className="fp-icon-button" aria-label="刷新" title="刷新" onClick={()=>{setToast('');load();}}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg></button>
 </div>
 <div className="toolbar">
 <input aria-label="搜索待检记录" placeholder="搜索待检单号、物料编码、物料名称、供应商、批次号..." value={query} onChange={e=>{setQuery(e.target.value);setPage(1);}}/>
