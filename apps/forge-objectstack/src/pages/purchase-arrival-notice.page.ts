@@ -70,7 +70,7 @@ function App(){
 <td>{x.responsible_id?'Dev Admin':'—'}</td>
 <td>
 <div className="actions">
-<button className="btn" onClick={()=>setDetail(x)}>查看</button>{!['arrived','cancelled'].includes(x.status)&&<button className="btn primary" onClick={()=>register(x.id)}>登记到货</button>}</div>
+<button className="fp-icon-button row-action" aria-label="查看" title="查看" onClick={()=>setDetail(x)}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6-10-6-10-6z"/><circle cx="12" cy="12" r="2.6"/></svg></button>{!['arrived','cancelled'].includes(x.status)&&<button className="btn primary" onClick={()=>register(x.id)}>登记到货</button>}</div>
 </td>
 </tr>)}{!rows.length&&<tr>
 <td colSpan="9">暂无匹配的到货通知</td>

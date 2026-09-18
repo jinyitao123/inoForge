@@ -81,7 +81,7 @@ function App(){
 <span className="pill">{statusText[row.status]||row.status}</span>
 </td>
 <td>
-<button className="btn" onClick={()=>window.location.href=window.location.pathname+'?id='+encodeURIComponent(row.id)}>查看</button>
+<button className="fp-icon-button row-action" aria-label="查看" title="查看" onClick={()=>window.location.href=window.location.pathname+'?id='+encodeURIComponent(row.id)}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6-10-6-10-6z"/><circle cx="12" cy="12" r="2.6"/></svg></button>
 </td>
 </tr>)}{!visibleRows.length&&<tr>
 <td colSpan="10">暂无到货登记记录</td>

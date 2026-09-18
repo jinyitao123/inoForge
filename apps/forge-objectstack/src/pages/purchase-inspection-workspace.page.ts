@@ -82,7 +82,7 @@ function App(){
 <option value="full">全检</option>
 <option value="sampling">抽检</option>
 </ForgeSelectControl> <button className="btn primary" disabled={busy===row.id} onClick={()=>create(row)}>生成检验单</button>
-</span>:row.inspection_id?<button className="btn" onClick={()=>window.location.href=forgeBase+'/page/page_purchase_inspection_workspace?id='+encodeURIComponent(row.inspection_id)}>查看检验单</button>:'—'}</td>
+</span>:row.inspection_id?<button className="fp-icon-button row-action" aria-label="查看检验单" title="查看检验单" onClick={()=>window.location.href=forgeBase+'/page/page_purchase_inspection_workspace?id='+encodeURIComponent(row.inspection_id)}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6-10-6-10-6z"/><circle cx="12" cy="12" r="2.6"/></svg></button>:'—'}</td>
 </tr>)}</tbody>
 </table>{!state.loading&&!rows.length&&<div className="muted" style={{padding:40,textAlign:'center'}}>暂无匹配的待检记录</div>}</div>
 <div className="toolbar" style={{justifyContent:'flex-end',marginTop:12}}>
@@ -205,7 +205,7 @@ function App(){
 <td>{state.users?.[row.inspector_id]?.display_name||state.users?.[row.inspector_id]?.name||'—'}</td>
 <td>{state.receipts[row.receipt_id]?.arrived_on||'—'}</td>
 <td>
-<button className="btn" onClick={()=>window.location.href=window.location.pathname+'?id='+encodeURIComponent(row.id)}>查看</button>
+<button className="fp-icon-button row-action" aria-label="查看" title="查看" onClick={()=>window.location.href=window.location.pathname+'?id='+encodeURIComponent(row.id)}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6-10-6-10-6z"/><circle cx="12" cy="12" r="2.6"/></svg></button>
 </td>
 </tr>)}</tbody>
 </table>{!state.loading&&!visibleRows.length&&<div className="muted" style={{padding:40,textAlign:'center'}}>暂无检验单</div>}</div>
