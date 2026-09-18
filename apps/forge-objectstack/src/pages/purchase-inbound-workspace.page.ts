@@ -37,7 +37,7 @@ function exportInbounds(){const headers=['入库单号','类型','来源','入�
 </div>;
  if(!inboundId&&!orderId)return <div className="forge-product forge-procurement forge-inbound">
 <style>{css}</style>
-<div className="body"><ForgeHero section="供应链 / 入库管理 / 采购入库" title="采购入库" description="管理所有入库单据" icon="▤" tone="indigo" art="flow"/>{state.error&&<div className="notice">{state.error}</div>}{toast&&<div className="notice">{toast}</div>}<div className="card">
+<div className="body"><ForgeHero section="供应链 / 入库管理 / 采购入库" title="采购入库" description="管理所有入库单据" icon="▤" tone="indigo" art="flow" chip="当前环节 · 采购入库"/>{state.error&&<div className="notice">{state.error}</div>}{toast&&<div className="notice">{toast}</div>}<div className="card">
 <div className="fp-card-toolbar"><button className="fp-button primary" onClick={()=>window.location.href=forgeBase+'/page/page_purchase_inspection_workspace'}>新建入库单</button><button className="fp-button" disabled={!selected.length} title={selected.length?'':'请先选择入库单'} onClick={()=>setPrintOpen(true)}>打印条码</button><button className="fp-button" disabled={!filteredInbounds.length} onClick={exportInbounds}>导出 ▾</button><span className="fp-grow"/><button className="fp-icon-button" aria-label="刷新" title="刷新" onClick={()=>{setToast('');load();}}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg></button></div>
 <div className="toolbar">
 <input aria-label="搜索采购入库" placeholder="搜索入库单号/批次号..." value={search} onChange={e=>{setSearch(e.target.value);setPage(1);}}/>
@@ -91,7 +91,7 @@ function exportInbounds(){const headers=['入库单号','类型','来源','入�
 </td>
 <td>{userName(x.submitted_by||x.responsible_id)}</td>
 <td>
-<button className="btn" onClick={()=>window.location.href=window.location.pathname+'?id='+encodeURIComponent(x.id)}>查看</button>
+<button className="btn" aria-label="查看详情" title="查看详情" onClick={()=>window.location.href=window.location.pathname+'?id='+encodeURIComponent(x.id)}><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6-10-6-10-6z"/><circle cx="12" cy="12" r="2.6"/></svg></button>
 </td>
 </tr>)}</tbody>
 </table>{!state.loading&&!visibleInbounds.length&&<div className="muted" style={{padding:40,textAlign:'center'}}>暂无入库单</div>}</div>

@@ -680,3 +680,12 @@ RISEMAP 检验规则页实测到明确的批量动作：工具条有「批量启
 浏览器实测：勾选 1 行后工具条由「导出 ▾」变为「导出选中 1 ▾」，勾选态计数为 1；页面无错误。
 
 过程中踩到一次状态声明插错位置（把新 state 插到了 `[methodFilter…]` 前面且漏了逗号），`pnpm validate` 的 react-page-syntax 规则报 `Unexpected token` 并拦下，已修正。改后 `typecheck / validate / build` 全绿，截图覆盖 `inspection-list-forge.png`。
+
+## 第二十五轮：检验规则查看弹窗 + 采购入库「当前环节」胶囊与眼睛图标
+
+- **检验规则**：行操作补齐 RISEMAP 的「查看」——只读弹窗展示项目编码/名称/分类/判定类型/适用检验类型/单位/是否必检/影响整批结论/是否启用/检验要求/录入方式。浏览器实测行内按钮为「查看,编辑,复制,停用,删除」，查看弹窗内容正确。
+- **采购入库**：hero 增加 RISEMAP 同款「当前环节 · 采购入库」胶囊（`ForgeHero` 新增通用 `chip` 参数，窄屏自动隐藏）；行操作由文字「查看」改为 RISEMAP 的眼睛图标按钮（aria-label/title 为「查看详情」）。实测：胶囊显示「当前环节 · 采购入库」，行操作为「查看详情」，页面无错误。
+
+`typecheck / validate / build` 全绿；截图覆盖 `inspection-rules-forge.png`、`inbound-forge.png`。
+
+采购入库仍存差异：hero 插画 RISEMAP 是卡车、Forge 用统一 flow 插画；卡片工具条右侧 RISEMAP 还有「菜单 / 设置」两个图标（对应能力未确认）；「新建入库单」在 Forge 直接跳检验单列表，RISEMAP 打开新建表单。
