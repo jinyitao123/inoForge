@@ -118,12 +118,8 @@ function App(){
  function exportRows(){const headers=['检验单号','到货单号','物料名称','供应商/客户','方式','总数量','合格数量','不合格数量','结果','状态','检验员','到货日期'],values=filteredRows.map(row=>[row.code,receiptCode(row.receipt_id),row.item_code||row.name,supplierName(row.supplier_id),row.inspection_method==='sampling'?'抽检':'全检',row.total_quantity,row.accepted_quantity,row.rejected_quantity,resultText[row.result]||row.result,statusText[row.status]||row.status,row.inspector_id,state.receipts[row.receipt_id]?.arrived_on||'']),csv=[headers,...values].map(line=>line.map(value=>'"'+String(value??'').replace(/"/g,'""')+'"').join(',')).join('\\n'),blob=new Blob(['\\ufeff'+csv],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='检验单.csv';a.click();URL.revokeObjectURL(url);setToast('已导出 '+filteredRows.length+' 条检验单');}
  if(!id)return <div className="forge-product forge-procurement forge-iqc">
 <style>{${JSON.stringify(sharedCss)}}</style>
-<div className="body"><ForgeHero section="供应链 / 到货检验 / 检验单" title="检验单" description="每条检验单对应一种物料的来料检验。" icon="▤" tone="green" art="blueprint"/><div className="fp-action-row"><button className="fp-button primary" onClick={()=>window.location.href=forgeBase+'/page/page_purchase_inbound_workspace'}>下一步：采购入库</button></div>{state.error&&<div className="notice">{state.error}</div>}{toast&&<div className="notice">{toast}</div>}<div className="card">
-<div className="toolbar">
-<button className="btn" disabled={!filteredRows.length} onClick={exportRows}>导出</button>
-<button className="btn" onClick={()=>setTaskOpen(true)}>导入/导出任务</button>
-<button className="btn" onClick={()=>{setToast('');load();}}>刷新</button>
-</div>
+<div className="body"><ForgeHero section="供应链 / 到货检验 / 检验单" title="检验单" description="每条检验单对应一种物料的来料检验。" icon="▤" tone="green" art="blueprint" next={{label:"采购入库",href:forgeBase+'/page/page_purchase_inbound_workspace',title:"下一步操作 · 采购入库"}}/>{state.error&&<div className="notice">{state.error}</div>}{toast&&<div className="notice">{toast}</div>}<div className="card">
+<div className="fp-card-toolbar"><button className="fp-button" disabled={!filteredRows.length} onClick={exportRows}>导出 ▾</button><button className="fp-button" onClick={()=>setTaskOpen(true)}>导入/导出任务</button><span className="fp-grow"/><button className="fp-icon-button" aria-label="刷新" title="刷新" onClick={()=>{setToast('');load();}}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg></button></div>
 <div className="toolbar">
 <input aria-label="搜索检验单" placeholder="搜索检验单号/物料名..." value={query} onChange={e=>{setQuery(e.target.value);setPage(1);}}/>
 <ForgeSelectControl aria-label="状态筛选" value={statusFilter} onChange={e=>{setStatusFilter(e.target.value);setPage(1);}}>
