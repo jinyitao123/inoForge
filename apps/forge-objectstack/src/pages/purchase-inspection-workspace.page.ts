@@ -210,7 +210,7 @@ function App(){
 </div>;
  return <div className="forge-product forge-procurement forge-iqc">
 <style>{${JSON.stringify(sharedCss)}}</style>
-<div className="header-shell"><ForgePageHeader badge="供" section="供应链 / 质量管理" title={record.code} description={'来源 '+state.receipt.code+' · '+record.item_code+' · '+statusText[record.status]} actions={<><button className="fp-button" onClick={()=>window.location.href=forgeBase+'/page/page_pending_inspection_workspace'}>返回待检列表</button>{record.status==='pending'&&<button className="fp-button primary" disabled={busy} onClick={complete}>完成检验</button>}{record.status==='completed'&&Number(record.accepted_quantity||0)>0&&<button className="fp-button primary" onClick={()=>window.location.href=forgeBase+'/page/page_purchase_inbound_workspace?order='+encodeURIComponent(record.order_id)}>采购入库</button>}</>}/></div>
+<div className="header-shell"><ForgePageHeader badge="供" section="供应链 / 到货检验 / 检验单" title={record.code} description={'来源 '+state.receipt.code+' · '+record.item_code+' · '+statusText[record.status]} actions={<><button className="fp-button" onClick={()=>window.location.href=forgeBase+'/page/page_pending_inspection_workspace'}>返回待检列表</button>{record.status==='pending'&&<button className="fp-button primary" disabled={busy} onClick={complete}>完成检验</button>}{record.status==='completed'&&Number(record.accepted_quantity||0)>0&&<button className="fp-button primary" onClick={()=>window.location.href=forgeBase+'/page/page_purchase_inbound_workspace?order='+encodeURIComponent(record.order_id)}>采购入库</button>}</>}/></div>
 <div className="body">{state.error&&<div className="notice">{state.error}</div>}<div className="card">
 <div className="details">
 <div className="value">
