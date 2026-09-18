@@ -30,5 +30,5 @@ export default App;
 ${forgeProductUiRuntime}
 `;
 
-const withReversalActions = (source:string) => source.replace(/(<ForgePageHeader\b[^>]*description="[^"]*")\/>/, (_, prefix) => prefix + ' actions={<button className="fp-icon-button" aria-label="刷新" title="刷新" onClick={load}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg></button>} />');
+const withReversalActions = (source:string) => source.replace(/(<ForgePageHeader\b[^>]*description="[^"]*")\/>/, (_, prefix) => prefix + ' actions={<><ForgeListSettings/><button className="fp-icon-button" aria-label="刷新" title="刷新" onClick={load}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg></button></>} />');
 export const InvoiceReversalPage = { name: 'page_invoice_reversal', label: '财务冲销', description: '进销项发票整单或按数量红冲、预收预付冲抵撤回与审计追踪', icon: 'receipt-text', type: 'app' as const, kind: 'react' as const, source: withReversalActions(invoiceReversalSource) };
