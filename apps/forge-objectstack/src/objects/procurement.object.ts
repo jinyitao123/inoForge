@@ -330,10 +330,20 @@ export const PurchaseInspection = master('forge_purchase_inspection', '采购检
   batch_number: text('批次号'), inspection_method: select('检验方式', [['full', '全检'], ['sampling', '抽检']], 'full'),
   total_quantity: positiveQuantity('总数量'), accepted_quantity: nonNegativeQuantity('合格数量', true),
   rejected_quantity: nonNegativeQuantity('不合格数量', true), inspected_on: Field.date({ label: '检验日期' }),
+  record_mode: select('记录方式', [['summary', '汇总数量录入'], ['item', '逐项录入']], 'summary'),
   result: { ...select('检验结果', [['pending', '待判定'], ['passed', '合格'], ['partial', '部分合格'], ['rejected', '不合格']], 'pending'), readonly: true },
   status: { ...select('检验状态', [['pending', '待检验'], ['completed', '已完成']], 'pending'), readonly: true },
   inspector_id: owner(true), inspection_note: Field.textarea({ label: '检验结论', readonly: true }), remarks: remarks(),
-}, ['code', 'receipt_id', 'supplier_id', 'total_quantity', 'accepted_quantity', 'rejected_quantity', 'result', 'status', 'inspector_id']);
+}, ['code', 'receipt_id', 'supplier_id', 'total_quantity', 'accepted_quantity', 'rejected_quantity', 'record_mode', 'result', 'status', 'inspector_id']);
+
+// RISEMAP 检验单详情「检验结果录入」：按检验方案的项目逐项记录结果、实测值与备注。
+export const PurchaseInspectionItem = master('forge_purchase_inspection_item', '检验单项目结果', 'list-checks', {
+  name: text('项目名称', true), inspection_id: reference('forge_purchase_inspection', '检验单', true),
+  item_id: reference('forge_inspection_rule_item', '检验项目'),
+  sequence: Field.number({ label: '顺序', min: 1, scale: 0, defaultValue: 1 }),
+  requirement: text('检验要求'), result: select('检验结果', [['pass', '合格'], ['fail', '不合格'], ['na', '不适用']], 'pass'),
+  measured_value: text('实测值'), remarks: Field.textarea({ label: '备注' }),
+}, ['inspection_id', 'sequence', 'name', 'result', 'measured_value']);
 
 export const PurchaseInbound = master('forge_purchase_inbound', '采购入库单', 'package-plus', {
   name: text('入库单名称', true), code: code('入库单号'), inbound_type: select('入库类型', [['purchase', '采购入库']], 'purchase'),
