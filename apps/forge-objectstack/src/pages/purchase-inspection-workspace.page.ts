@@ -107,7 +107,7 @@ ${forgeProductUiRuntime}
 const purchaseInspectionPageSource = `
 ${forgeProductUiRuntime}
 function App(){
- const id=new URLSearchParams(window.location.search).get('id'),[state,setState]=React.useState({loading:true,rows:[],receipts:{},suppliers:{},record:null,receipt:null,pending:null,supplier:null,order:null,error:''}),[form,setForm]=React.useState({inspected_on:new Date(Date.now()+8*60*60*1000).toISOString().slice(0,10),accepted_quantity:'',inspection_note:''}),[busy,setBusy]=React.useState(false),[items,setItems]=React.useState([]),[recordMode,setRecordMode]=React.useState('summary'),[planName,setPlanName]=React.useState(''),[query,setQuery]=React.useState(''),[statusFilter,setStatusFilter]=React.useState(''),[resultFilter,setResultFilter]=React.useState(''),[methodFilter,setMethodFilter]=React.useState(''),[supplierFilter,setSupplierFilter]=React.useState(''),[startDate,setStartDate]=React.useState(''),[endDate,setEndDate]=React.useState(''),[page,setPage]=React.useState(1),[taskOpen,setTaskOpen]=React.useState(false),[toast,setToast]=React.useState('');
+ const id=new URLSearchParams(window.location.search).get('id'),[state,setState]=React.useState({loading:true,rows:[],receipts:{},suppliers:{},record:null,receipt:null,pending:null,supplier:null,order:null,error:''}),[form,setForm]=React.useState({inspected_on:new Date(Date.now()+8*60*60*1000).toISOString().slice(0,10),accepted_quantity:'',inspection_note:''}),[busy,setBusy]=React.useState(false),[items,setItems]=React.useState([]),[recordMode,setRecordMode]=React.useState('summary'),[planName,setPlanName]=React.useState(''),[query,setQuery]=React.useState(''),[statusFilter,setStatusFilter]=React.useState(''),[resultFilter,setResultFilter]=React.useState(''),[inspectionSelected,setInspectionSelected]=React.useState([]),[methodFilter,setMethodFilter]=React.useState(''),[supplierFilter,setSupplierFilter]=React.useState(''),[startDate,setStartDate]=React.useState(''),[endDate,setEndDate]=React.useState(''),[page,setPage]=React.useState(1),[taskOpen,setTaskOpen]=React.useState(false),[toast,setToast]=React.useState('');
  async function request(path,options){const response=await fetch('/api/v1'+path,{credentials:'include',headers:{'Content-Type':'application/json'},...options});const payload=await response.json().catch(()=>({}));if(!response.ok)throw new Error(payload.error?.message||payload.message||'请求失败');return payload;}
  async function read(object,recordId){return (await request('/data/'+object+'/'+recordId)).record;}async function find(object){return (await request('/data/'+object+'?$top=100')).records||[];}
  async function findWhere(object,where){return (await request('/data/'+object+'?$top=200&$filter='+encodeURIComponent(JSON.stringify(where)))).records||[];}
@@ -138,32 +138,32 @@ function App(){
  }catch(error){setState(s=>({...s,error:String(error.message||error)}));}finally{setBusy(false);}}
  const filteredRows=state.rows.filter(row=>{const arrivedOn=String(state.receipts[row.receipt_id]?.arrived_on||''),matchesQuery=!query||[row.code,row.item_code,row.name,state.receipts[row.receipt_id]?.code,state.suppliers[row.supplier_id]?.name].some(value=>String(value||'').includes(query));return (!statusFilter||row.status===statusFilter)&&(!resultFilter||row.result===resultFilter)&&(!methodFilter||row.inspection_method===methodFilter)&&(!supplierFilter||row.supplier_id===supplierFilter)&&(!startDate||arrivedOn>=startDate)&&(!endDate||arrivedOn<=endDate)&&matchesQuery;}),pageSize=20,totalPages=Math.max(1,Math.ceil(filteredRows.length/pageSize)),safePage=Math.min(page,totalPages),visibleRows=filteredRows.slice((safePage-1)*pageSize,safePage*pageSize);const receiptCode=id=>state.receipts[id]?.code||id,supplierName=id=>state.suppliers[id]?.name||'—';
  const resultText={pending:'待判定',passed:'合格',partial:'部分合格',rejected:'不合格'},statusText={pending:'待检验',completed:'已完成'};
- function exportRows(){const headers=['检验单号','到货单号','物料名称','供应商/客户','方式','总数量','合格数量','不合格数量','结果','状态','检验员','到货日期'],values=filteredRows.map(row=>[row.code,receiptCode(row.receipt_id),row.item_code||row.name,supplierName(row.supplier_id),row.inspection_method==='sampling'?'抽检':'全检',row.total_quantity,row.accepted_quantity,row.rejected_quantity,resultText[row.result]||row.result,statusText[row.status]||row.status,row.inspector_id,state.receipts[row.receipt_id]?.arrived_on||'']),csv=[headers,...values].map(line=>line.map(value=>'"'+String(value??'').replace(/"/g,'""')+'"').join(',')).join('\\n'),blob=new Blob(['\\ufeff'+csv],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='检验单.csv';a.click();URL.revokeObjectURL(url);setToast('已导出 '+filteredRows.length+' 条检验单');}
+ function exportRows(onlyIds){const headers=['检验单号','到货单号','物料名称','供应商/客户','方式','总数量','合格数量','不合格数量','结果','状态','检验员','到货日期'],values=(onlyIds&&onlyIds.length?filteredRows.filter(row=>onlyIds.includes(row.id)):filteredRows).map(row=>[row.code,receiptCode(row.receipt_id),row.item_code||row.name,supplierName(row.supplier_id),row.inspection_method==='sampling'?'抽检':'全检',row.total_quantity,row.accepted_quantity,row.rejected_quantity,resultText[row.result]||row.result,statusText[row.status]||row.status,row.inspector_id,state.receipts[row.receipt_id]?.arrived_on||'']),csv=[headers,...values].map(line=>line.map(value=>'"'+String(value??'').replace(/"/g,'""')+'"').join(',')).join('\\n'),blob=new Blob(['\\ufeff'+csv],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='检验单.csv';a.click();URL.revokeObjectURL(url);setToast('已导出 '+filteredRows.length+' 条检验单');}
  if(!id)return <div className="forge-product forge-procurement forge-iqc">
 <style>{${JSON.stringify(sharedCss)}}</style>
 <div className="body"><ForgeHero section="供应链 / 到货检验 / 检验单" title="检验单" description="每条检验单对应一种物料的来料检验。" icon="▤" tone="green" art="blueprint" next={{label:"采购入库",href:forgeBase+'/page/page_purchase_inbound_workspace',title:"下一步操作 · 采购入库"}}/>{state.error&&<div className="notice">{state.error}</div>}{toast&&<div className="notice">{toast}</div>}<div className="card">
-<div className="fp-card-toolbar"><button className="fp-button" disabled={!filteredRows.length} onClick={exportRows}>导出 ▾</button><button className="fp-button" onClick={()=>setTaskOpen(true)}>导入/导出任务</button><span className="fp-grow"/><button className="fp-icon-button" aria-label="刷新" title="刷新" onClick={()=>{setToast('');load();}}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg></button></div>
+<div className="fp-card-toolbar"><button className="fp-button" disabled={!(inspectionSelected.length||filteredRows.length)} onClick={()=>exportRows(inspectionSelected)}>导出{inspectionSelected.length?'选中 '+inspectionSelected.length:''} ▾</button><button className="fp-button" onClick={()=>setTaskOpen(true)}>导入/导出任务</button><span className="fp-grow"/><button className="fp-icon-button" aria-label="刷新" title="刷新" onClick={()=>{setToast('');load();}}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg></button></div>
 <div className="toolbar">
 <input aria-label="搜索检验单" placeholder="搜索检验单号/物料名..." value={query} onChange={e=>{setQuery(e.target.value);setPage(1);}}/>
 <ForgeSelectControl aria-label="状态筛选" value={statusFilter} onChange={e=>{setStatusFilter(e.target.value);setPage(1);}}>
-<option value="">全部状态</option>
+<option value="">状态</option>
 <option value="pending">待检验</option>
 <option value="completed">已完成</option>
 </ForgeSelectControl>
 <ForgeSelectControl aria-label="结果筛选" value={resultFilter} onChange={e=>{setResultFilter(e.target.value);setPage(1);}}>
-<option value="">全部结果</option>
+<option value="">结果</option>
 <option value="pending">待判定</option>
 <option value="passed">合格</option>
 <option value="partial">部分合格</option>
 <option value="rejected">不合格</option>
 </ForgeSelectControl>
 <ForgeSelectControl aria-label="方式筛选" value={methodFilter} onChange={e=>{setMethodFilter(e.target.value);setPage(1);}}>
-<option value="">全部方式</option>
+<option value="">方式</option>
 <option value="full">全检</option>
 <option value="sampling">抽检</option>
 </ForgeSelectControl>
 <ForgeSelectControl aria-label="供应商筛选" value={supplierFilter} onChange={e=>{setSupplierFilter(e.target.value);setPage(1);}}>
-<option value="">全部供应商</option>{Object.values(state.suppliers).map(s=>
+<option value="">供应商</option>{Object.values(state.suppliers).map(s=>
 <option key={s.id} value={s.id}>{s.name}</option>)}</ForgeSelectControl>
 <ForgeDateInput aria-label="开始日期" value={startDate} onChange={e=>{setStartDate(e.target.value);setPage(1);}}/>
 <span className="muted">~</span>
@@ -173,6 +173,7 @@ function App(){
 <table>
 <thead>
 <tr>
+<th><input type="checkbox" aria-label="选择当前页" checked={visibleRows.length>0&&inspectionSelected.length===visibleRows.length} onChange={()=>setInspectionSelected(inspectionSelected.length===visibleRows.length?[]:visibleRows.map(r=>r.id))}/></th>
 <th>检验单号</th>
 <th>到货单号</th>
 <th>物料名称</th>
@@ -190,6 +191,7 @@ function App(){
 </thead>
 <tbody>{visibleRows.map(row=>
 <tr key={row.id}>
+<td><input type="checkbox" aria-label={'选择 '+row.code} checked={inspectionSelected.includes(row.id)} onChange={()=>setInspectionSelected(inspectionSelected.includes(row.id)?inspectionSelected.filter(i=>i!==row.id):[...inspectionSelected,row.id])}/></td>
 <td>{row.code}</td>
 <td>{receiptCode(row.receipt_id)}</td>
 <td><strong>{String(row.name||'').replace(/^([A-Z]{2,4}-\\d{4}(-\\d+)?\\s+)+/,'')||row.item_code||'—'}</strong><div className="muted">{[row.item_code,row.specification].filter(Boolean).join(' · ')}</div></td>
