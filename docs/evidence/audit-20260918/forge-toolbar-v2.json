@@ -1,9 +1,10 @@
 {
  "到货通知": {
+  "iconButtons": [
+   "刷新"
+  ],
   "iconCount": 0,
-  "icons": [],
-  "statusStrip": [],
-  "tabLabels": [],
+  "tabs": [],
   "text": [
    "合并到货登记",
    "刷新",
@@ -11,39 +12,41 @@
   ]
  },
  "到货登记": {
-  "iconCount": 0,
-  "icons": [],
-  "statusStrip": [
-   "订单明细",
-   "物料明细"
+  "iconButtons": [
+   "刷新"
   ],
-  "tabLabels": [],
+  "iconCount": 0,
+  "tabs": [],
   "text": [
    "导出",
-   "导入/导出任务",
+   "导入/导出",
    "刷新",
    "新建到货登记"
   ]
  },
  "待检验库存": {
+  "iconButtons": [
+   "更多操作",
+   "刷新"
+  ],
   "iconCount": 0,
-  "icons": [],
-  "statusStrip": [],
-  "tabLabels": [],
+  "tabs": [],
   "text": [
    "导出",
-   "导入/导出任务",
+   "更多操作",
    "刷新"
   ]
  },
  "检验单": {
+  "iconButtons": [
+   "更多操作",
+   "刷新"
+  ],
   "iconCount": 0,
-  "icons": [],
-  "statusStrip": [],
-  "tabLabels": [],
+  "tabs": [],
   "text": [
    "导出 ▾",
-   "导入/导出任务",
+   "更多操作",
    "刷新",
    "状态⌄",
    "结果⌄",
@@ -52,10 +55,11 @@
   ]
  },
  "检验规则": {
+  "iconButtons": [
+   "刷新"
+  ],
   "iconCount": 0,
-  "icons": [],
-  "statusStrip": [],
-  "tabLabels": [
+  "tabs": [
    "检验项目库",
    "检验方案"
   ],
@@ -71,20 +75,19 @@
   ]
  },
  "物料管理": {
-  "iconCount": 0,
-  "icons": [],
-  "statusStrip": [
-   "物料列表",
-   "商品图片"
+  "iconButtons": [
+   "更多操作",
+   "刷新"
   ],
-  "tabLabels": [
+  "iconCount": 0,
+  "tabs": [
    "物料列表",
    "商品图片"
   ],
   "text": [
    "新建物料",
    "导出",
-   "导入/导出任务",
+   "更多操作",
    "打印条码",
    "批量 ▾⌄",
    "回收站",
@@ -93,10 +96,11 @@
   ]
  },
  "物料组合": {
+  "iconButtons": [
+   "刷新"
+  ],
   "iconCount": 0,
-  "icons": [],
-  "statusStrip": [],
-  "tabLabels": [],
+  "tabs": [],
   "text": [
    "新建物料组合",
    "批量 ▾⌄",
@@ -106,10 +110,11 @@
   ]
  },
  "BOM管理": {
+  "iconButtons": [
+   "刷新"
+  ],
   "iconCount": 0,
-  "icons": [],
-  "statusStrip": [],
-  "tabLabels": [
+  "tabs": [
    "全部(3)",
    "草稿(1)",
    "待评审(0)",
@@ -126,13 +131,11 @@
   ]
  },
  "综合物料搜索": {
-  "iconCount": 0,
-  "icons": [],
-  "statusStrip": [
-   "单件查询",
-   "批量清单分析"
+  "iconButtons": [
+   "刷新"
   ],
-  "tabLabels": [
+  "iconCount": 0,
+  "tabs": [
    "单件查询",
    "批量清单分析"
   ],
@@ -141,29 +144,28 @@
   ]
  },
  "供应商管理": {
-  "iconCount": 0,
-  "icons": [],
-  "statusStrip": [
-   "供应商列表",
-   "资质管理"
+  "iconButtons": [
+   "刷新"
   ],
-  "tabLabels": [
+  "iconCount": 0,
+  "tabs": [
    "供应商列表",
    "资质管理"
   ],
   "text": [
    "新增供应商",
    "导出",
-   "导入/导出任务",
+   "导入/导出",
    "批量 ▾⌄",
    "刷新"
   ]
  },
  "产品实例追溯": {
+  "iconButtons": [
+   "刷新"
+  ],
   "iconCount": 0,
-  "icons": [],
-  "statusStrip": [],
-  "tabLabels": [
+  "tabs": [
    "物料编码",
    "批次码",
    "产品实例"
@@ -176,27 +178,24 @@
   ]
  },
  "仓库管理": {
+  "iconButtons": [
+   "刷新"
+  ],
   "iconCount": 0,
-  "icons": [],
-  "statusStrip": [],
-  "tabLabels": [],
+  "tabs": [],
   "text": [
    "新增仓库",
    "导出",
-   "导入/导出任务",
+   "导入/导出",
    "刷新"
   ]
  },
  "采购发票": {
-  "iconCount": 0,
-  "icons": [],
-  "statusStrip": [
-   "全部",
-   "正常",
-   "已作废",
-   "已红冲"
+  "iconButtons": [
+   "刷新"
   ],
-  "tabLabels": [
+  "iconCount": 0,
+  "tabs": [
    "全部",
    "正常",
    "已作废",
@@ -210,13 +209,11 @@
   ]
  },
  "采购申请": {
-  "iconCount": 0,
-  "icons": [],
-  "statusStrip": [
-   "申请列表",
-   "物料明细"
+  "iconButtons": [
+   "刷新"
   ],
-  "tabLabels": [
+  "iconCount": 0,
+  "tabs": [
    "申请列表",
    "物料明细"
   ],
@@ -229,13 +226,11 @@
   ]
  },
  "采购待办池": {
-  "iconCount": 0,
-  "icons": [],
-  "statusStrip": [
-   "待办列表",
-   "分组视图"
+  "iconButtons": [
+   "刷新"
   ],
-  "tabLabels": [
+  "iconCount": 0,
+  "tabs": [
    "待办列表",
    "分组视图"
   ],
@@ -251,10 +246,11 @@
   ]
  },
  "询价管理": {
+  "iconButtons": [
+   "刷新"
+  ],
   "iconCount": 0,
-  "icons": [],
-  "statusStrip": [],
-  "tabLabels": [],
+  "tabs": [],
   "text": [
    "新建询价单",
    "导出",
@@ -262,13 +258,11 @@
   ]
  },
  "采购订单": {
-  "iconCount": 0,
-  "icons": [],
-  "statusStrip": [
-   "订单列表",
-   "订单明细"
+  "iconButtons": [
+   "刷新"
   ],
-  "tabLabels": [
+  "iconCount": 0,
+  "tabs": [
    "订单列表",
    "订单明细"
   ],
@@ -288,14 +282,11 @@
   ]
  },
  "采购退换货": {
-  "iconCount": 0,
-  "icons": [],
-  "statusStrip": [
-   "全部",
-   "退货退款",
-   "换货补货"
+  "iconButtons": [
+   "刷新"
   ],
-  "tabLabels": [
+  "iconCount": 0,
+  "tabs": [
    "全部",
    "退货退款",
    "换货补货"
@@ -303,21 +294,16 @@
   "text": [
    "新建退换货",
    "导出",
-   "导入/导出任务",
+   "导入/导出",
    "刷新"
   ]
  },
  "供应商价格本": {
-  "iconCount": 0,
-  "icons": [],
-  "statusStrip": [
-   "全部",
-   "草稿",
-   "生效中",
-   "已过期",
-   "已废弃"
+  "iconButtons": [
+   "刷新"
   ],
-  "tabLabels": [
+  "iconCount": 0,
+  "tabs": [
    "全部",
    "草稿",
    "生效中",
@@ -326,16 +312,20 @@
   ],
   "text": [
    "导出",
-   "导入/导出任务",
+   "导入/导出",
    "刷新",
-   "新建价格本"
+   "新建价格本",
+   "生效中",
+   "已过期",
+   "已废弃"
   ]
  },
  "全部入库单": {
+  "iconButtons": [
+   "刷新"
+  ],
   "iconCount": 0,
-  "icons": [],
-  "statusStrip": [],
-  "tabLabels": [],
+  "tabs": [],
   "text": [
    "新建入库单",
    "打印条码",
@@ -344,10 +334,11 @@
   ]
  },
  "采购入库": {
+  "iconButtons": [
+   "刷新"
+  ],
   "iconCount": 0,
-  "icons": [],
-  "statusStrip": [],
-  "tabLabels": [],
+  "tabs": [],
   "text": [
    "新建入库单",
    "打印条码",
@@ -356,10 +347,11 @@
   ]
  },
  "生产入库": {
+  "iconButtons": [
+   "刷新"
+  ],
   "iconCount": 0,
-  "icons": [],
-  "statusStrip": [],
-  "tabLabels": [],
+  "tabs": [],
   "text": [
    "打印条码",
    "导出",
@@ -369,10 +361,11 @@
   ]
  },
  "其他入库": {
+  "iconButtons": [
+   "刷新"
+  ],
   "iconCount": 0,
-  "icons": [],
-  "statusStrip": [],
-  "tabLabels": [],
+  "tabs": [],
   "text": [
    "打印条码",
    "导出",
@@ -381,10 +374,11 @@
   ]
  },
  "期初入库": {
+  "iconButtons": [
+   "刷新"
+  ],
   "iconCount": 0,
-  "icons": [],
-  "statusStrip": [],
-  "tabLabels": [],
+  "tabs": [],
   "text": [
    "打印条码",
    "导出",
@@ -392,25 +386,20 @@
   ]
  },
  "入库明细": {
+  "iconButtons": [
+   "刷新"
+  ],
   "iconCount": 0,
-  "icons": [],
-  "statusStrip": [],
-  "tabLabels": [],
+  "tabs": [],
   "text": [
    "导出",
    "刷新"
   ]
  },
  "库存总览": {
+  "iconButtons": [],
   "iconCount": 0,
-  "icons": [],
-  "statusStrip": [
-   "总览",
-   "物料库存",
-   "分类汇总",
-   "仓库视图"
-  ],
-  "tabLabels": [
+  "tabs": [
    "总览",
    "物料库存",
    "在途库存 11",
@@ -421,47 +410,43 @@
    "在途库存 11",
    "调拨管理查看仓库间调拨与借出归还",
    "报损管理查看报损扣减与库存影响",
-   "库存流水追溯最近 466 条库存变动",
-   "采购在途13 · ¥102,000.00"
+   "库存流水追溯最近 466 条库存变动"
   ]
  },
  "不合格处理": {
+  "iconButtons": [
+   "刷新"
+  ],
   "iconCount": 0,
-  "icons": [],
-  "statusStrip": [],
-  "tabLabels": [],
+  "tabs": [],
   "text": [
    "导出",
    "刷新"
   ]
  },
  "处置执行中心": {
+  "iconButtons": [],
   "iconCount": 0,
-  "icons": [],
-  "statusStrip": [
+  "tabs": [
    "全部 (21)",
    "待执行 (3)",
    "执行中 (0)",
    "已完成 (18)",
    "执行异常 (0)"
   ],
-  "tabLabels": [
-   "全部 (21)",
+  "text": [
    "待执行 (3)",
    "执行中 (0)",
    "已完成 (18)",
    "执行异常 (0)"
-  ],
-  "text": []
+  ]
  },
  "库存流水": {
-  "iconCount": 0,
-  "icons": [],
-  "statusStrip": [
-   "库存流水",
-   "报表"
+  "iconButtons": [
+   "刷新"
   ],
-  "tabLabels": [
+  "iconCount": 0,
+  "tabs": [
    "库存流水",
    "报表"
   ],
@@ -471,10 +456,12 @@
   ]
  },
  "库存锁定": {
+  "iconButtons": [
+   "刷新",
+   "导入/导出任务"
+  ],
   "iconCount": 0,
-  "icons": [],
-  "statusStrip": [],
-  "tabLabels": [
+  "tabs": [
    "业务锁库",
    "手动锁库",
    "物料锁定概况",
@@ -492,10 +479,11 @@
   ]
  },
  "库存盘点": {
+  "iconButtons": [
+   "刷新"
+  ],
   "iconCount": 0,
-  "icons": [],
-  "statusStrip": [],
-  "tabLabels": [],
+  "tabs": [],
   "text": [
    "新建盘点",
    "导出",
@@ -503,10 +491,11 @@
   ]
  },
  "调拨与借出": {
+  "iconButtons": [
+   "刷新"
+  ],
   "iconCount": 0,
-  "icons": [],
-  "statusStrip": [],
-  "tabLabels": [
+  "tabs": [
    "调拨单列表",
    "调拨明细列表"
   ],
@@ -519,12 +508,11 @@
   ]
  },
  "库存预警": {
-  "iconCount": 0,
-  "icons": [],
-  "statusStrip": [
-   "全部"
+  "iconButtons": [
+   "刷新"
   ],
-  "tabLabels": [
+  "iconCount": 0,
+  "tabs": [
    "全部",
    "低库存",
    "超储预警",
@@ -542,10 +530,11 @@
   ]
  },
  "报损单": {
+  "iconButtons": [
+   "刷新"
+  ],
   "iconCount": 0,
-  "icons": [],
-  "statusStrip": [],
-  "tabLabels": [],
+  "tabs": [],
   "text": [
    "新建报损",
    "导出 ▾",
@@ -553,10 +542,11 @@
   ]
  },
  "SN码管理": {
+  "iconButtons": [
+   "刷新"
+  ],
   "iconCount": 0,
-  "icons": [],
-  "statusStrip": [],
-  "tabLabels": [],
+  "tabs": [],
   "text": [
    "SN码记录 1",
    "SN码验证",
@@ -564,10 +554,11 @@
   ]
  },
  "出库单列表": {
+  "iconButtons": [
+   "刷新"
+  ],
   "iconCount": 0,
-  "icons": [],
-  "statusStrip": [],
-  "tabLabels": [],
+  "tabs": [],
   "text": [
    "打印条码",
    "导出 ▾",
@@ -575,10 +566,11 @@
   ]
  },
  "生产出库": {
+  "iconButtons": [
+   "刷新"
+  ],
   "iconCount": 0,
-  "icons": [],
-  "statusStrip": [],
-  "tabLabels": [],
+  "tabs": [],
   "text": [
    "打印条码",
    "导出 ▾",
@@ -586,10 +578,11 @@
   ]
  },
  "其他出库": {
+  "iconButtons": [
+   "刷新"
+  ],
   "iconCount": 0,
-  "icons": [],
-  "statusStrip": [],
-  "tabLabels": [],
+  "tabs": [],
   "text": [
    "新建其他出库",
    "导出 ▾",
@@ -597,10 +590,11 @@
   ]
  },
  "销售直接出库": {
+  "iconButtons": [
+   "刷新"
+  ],
   "iconCount": 0,
-  "icons": [],
-  "statusStrip": [],
-  "tabLabels": [],
+  "tabs": [],
   "text": [
    "导出 ▾",
    "刷新",
@@ -608,29 +602,32 @@
   ]
  },
  "待出库发货单": {
+  "iconButtons": [
+   "刷新"
+  ],
   "iconCount": 0,
-  "icons": [],
-  "statusStrip": [],
-  "tabLabels": [],
+  "tabs": [],
   "text": [
    "刷新"
   ]
  },
  "采购退换货出库": {
+  "iconButtons": [
+   "刷新"
+  ],
   "iconCount": 0,
-  "icons": [],
-  "statusStrip": [],
-  "tabLabels": [],
+  "tabs": [],
   "text": [
    "导出 ▾",
    "刷新"
   ]
  },
  "出库明细": {
+  "iconButtons": [
+   "刷新"
+  ],
   "iconCount": 0,
-  "icons": [],
-  "statusStrip": [],
-  "tabLabels": [],
+  "tabs": [],
   "text": [
    "打印条码",
    "导出 ▾",
