@@ -668,3 +668,15 @@ RISEMAP 检验规则页实测到明确的批量动作：工具条有「批量启
 | 采购退换货出库 | 同上（供应商/退货地址/退货金额/出库进度/状态/日期） | 9 行 9 个勾选框；工具条为「导出 ▾ + 刷新图标」 |
 
 过程中踩到两个坑并已修复：① CSV 的 `\n` 与 BOM 转义写错，页面生成代码出现真实换行导致语法错误（`pnpm validate` 的 react-page-syntax 规则抓到并拦截）；② 其他出库本已有 `toast` state，重复声明导致运行时 `Identifier 'toast' has already been declared`，且 toast 渲染被插进了「提交审批」分支，已移除错误插入。修完两张截图已覆盖 `other-out-forge.png`、`sales-direct-forge.png`、`purchase-returns-forge.png`，`typecheck / validate / build` 全绿。
+
+## 第二十四轮：检验单列表补勾选列与批量导出，筛选文案对齐
+
+| 项 | RISEMAP | 改前 Forge | 处理 |
+| --- | --- | --- | --- |
+| 行勾选列 | 有（表头全选 + 行选） | 无 | **已补**：表头全选 + 行勾选，14 个勾选框（13 行 + 表头） |
+| 批量动作 | 导出（列表工具条） | 只有整体导出 | **已改**：按钮变为「导出 ▾」，勾选后显示「导出选中 N ▾」并只导出勾选行，未勾选时导出当前筛选 |
+| 筛选折叠文案 | 状态 / 结果 / 方式 / 供应商 | 全部状态 / 全部结果 / 全部方式 / 全部供应商 | **已改**：四个下拉折叠文案与 RISEMAP 一致 |
+
+浏览器实测：勾选 1 行后工具条由「导出 ▾」变为「导出选中 1 ▾」，勾选态计数为 1；页面无错误。
+
+过程中踩到一次状态声明插错位置（把新 state 插到了 `[methodFilter…]` 前面且漏了逗号），`pnpm validate` 的 react-page-syntax 规则报 `Unexpected token` 并拦下，已修正。改后 `typecheck / validate / build` 全绿，截图覆盖 `inspection-list-forge.png`。
