@@ -16,7 +16,7 @@ function App(){
  return <div className="forge-product forge-an">
 <style>{css}</style>
 <div className="shell">
-<ForgeHero section="供应链 / 到货检验" title="到货通知" description="采购订单审核后进入目标仓库待到货队列。" icon="▤" tone="blue" art="flow"/><div className="fp-action-row"><button className="fp-button" onClick={load}>刷新</button><button className="fp-button primary" disabled={selected.length!==1} onClick={()=>register(selected[0])}>合并到货登记</button></div>{s.error&&<div className="notice">{s.error}</div>}<section className="card">
+<ForgeHero section="供应链 / 到货检验 / 到货通知" title="到货通知" description="采购订单审核后进入目标仓库待到货队列。" icon="▤" tone="blue" art="flow"/><div className="fp-action-row"><button className="fp-button" onClick={load}>刷新</button><button className="fp-button primary" disabled={selected.length!==1} onClick={()=>register(selected[0])}>合并到货登记</button></div>{s.error&&<div className="notice">{s.error}</div>}<section className="card">
 <div className="filters">
 <input aria-label="搜索到货通知" placeholder="通知单号 / 采购订单 / 供应商 / 物料" value={query} onChange={e=>{setQuery(e.target.value);setPage(1)}}/>
 <ForgeDateInput aria-label="预计到货开始日期" value={start} onChange={e=>{setStart(e.target.value);setPage(1)}}/>
