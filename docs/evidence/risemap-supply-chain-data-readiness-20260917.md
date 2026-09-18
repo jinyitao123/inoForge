@@ -537,3 +537,29 @@ RISEMAP 该页没有指标卡，工具条只有一个刷新图标，hero 右侧�
 改后截图已覆盖 `other-out-forge.png`、`outbound-details-forge.png`、`purchase-returns-forge.png`。三页仍在的差异：RISEMAP 勾选列对应的批量动作尚未取证（避免加只有勾选没有动作的假控件）；其他出库/销售直接出库/采购退换货出库的批量导出/打印能力因此暂未加。
 
 仍未改：生产出库（下一步应改为 hero 磁贴）、销售直接出库（刷新应进卡片首行图标）、到货检验 5 页。
+
+## 第十七轮：勾选列行为取证 + 待出库发货单收尾 + 到货检验 5 页截图
+
+### RISEMAP 勾选列行为（实测）
+
+逐页实测后的结论：RISEMAP 列表的行勾选是**打印条码的前置条件**，按钮禁用时提示语直接写着「请先选择入库单」「请先选择明细」。没有「打印条码」的列表页（其他出库、销售直接出库、采购退换货出库）里，勾选列没有任何可见的批量动作出现。
+
+按此规则核对 Forge：采购入库、出库单列表、生产出库、出库明细四页都已有勾选列，且「打印条码」的 `disabled={!selected.length}` 与 RISEMAP 一致（采购入库本轮已实测：勾选后按钮由置灰变可用，弹窗只列选中行）。其他出库/销售直接出库/采购退换货出库按证据**不加勾选列**，避免出现勾了没反应的假控件。
+
+### 待出库发货单收尾
+
+删除 RISEMAP 没有的「返回销售发货单」按钮，页面现在只剩 hero 磁贴 + 刷新图标，与该页 RISEMAP 一致。
+
+### 到货检验 5 页截图与 RISEMAP 路径
+
+采集完成（截图为同宽 1280）：
+
+| 页面 | RISEMAP 路径 | 截图前缀 |
+| --- | --- | --- |
+| 到货通知 | /inventory/arrival-notices | arrival-notice |
+| 到货登记 | /inventory/arrival | arrival-reg |
+| 待检验库存 | /inventory/pending-inspection | pending-inspection |
+| 检验单 | /inventory/inspection | inspection-list |
+| 检验规则 | /inventory/inspection-rules | inspection-rules |
+
+**仍未做**：这 5 页的逐项改版（截图与路径已就绪，差异核对与代码修改未做）。
