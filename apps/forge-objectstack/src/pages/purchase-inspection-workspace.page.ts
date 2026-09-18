@@ -27,7 +27,7 @@ function App(){
 <div className="body"><ForgeHero section="供应链 / 到货检验 / 待检验库存" title="待检验库存" description="每个物料独立一条待检记录，关联来料检验流程" icon="▤" tone="green" art="blueprint" next={{label:"检验单",href:forgeBase+'/page/page_purchase_inspection_workspace',title:"下一步操作 · 检验单"}}/>{state.error&&<div className="notice">{state.error}</div>}{toast&&<div className="notice">{toast}</div>}<div className="card">
 <div className="toolbar">
 <button className="btn" disabled={!filteredRows.length} onClick={exportRows}>导出</button>
-<ForgeIconMenu label="更多操作" items={[{label:'导入/导出任务',onClick:()=>setTaskOpen(true)}]}/>
+<button className="fp-button" onClick={()=>setTaskOpen(true)}>导入/导出任务</button>
 <button className="fp-icon-button" aria-label="刷新" title="刷新" onClick={()=>{setToast('');load();}}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg></button>
 </div>
 <div className="toolbar">
@@ -142,7 +142,7 @@ function App(){
  if(!id)return <div className="forge-product forge-procurement forge-iqc">
 <style>{${JSON.stringify(sharedCss)}}</style>
 <div className="body"><ForgeHero section="供应链 / 到货检验 / 检验单" title="检验单" description="每条检验单对应一种物料的来料检验。" icon="▤" tone="green" art="blueprint" next={{label:"采购入库",href:forgeBase+'/page/page_purchase_inbound_workspace',title:"下一步操作 · 采购入库"}}/>{state.error&&<div className="notice">{state.error}</div>}{toast&&<div className="notice">{toast}</div>}<div className="card">
-<div className="fp-card-toolbar"><button className="fp-button" disabled={!(inspectionSelected.length||filteredRows.length)} onClick={()=>exportRows(inspectionSelected)}>导出{inspectionSelected.length?'选中 '+inspectionSelected.length:''} ▾</button><ForgeIconMenu label="更多操作" items={[{label:'导入/导出任务',onClick:()=>setTaskOpen(true)}]}/><span className="fp-grow"/><button className="fp-icon-button" aria-label="刷新" title="刷新" onClick={()=>{setToast('');load();}}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg></button></div>
+<div className="fp-card-toolbar"><button className="fp-button" disabled={!(inspectionSelected.length||filteredRows.length)} onClick={()=>exportRows(inspectionSelected)}>导出{inspectionSelected.length?'选中 '+inspectionSelected.length:''} ▾</button><button className="fp-button" onClick={()=>setTaskOpen(true)}>导入/导出任务</button><span className="fp-grow"/><button className="fp-icon-button" aria-label="刷新" title="刷新" onClick={()=>{setToast('');load();}}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg></button></div>
 <div className="toolbar">
 <input aria-label="搜索检验单" placeholder="搜索检验单号/物料名..." value={query} onChange={e=>{setQuery(e.target.value);setPage(1);}}/>
 <ForgeSelectControl aria-label="状态筛选" value={statusFilter} onChange={e=>{setStatusFilter(e.target.value);setPage(1);}}>
