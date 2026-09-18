@@ -41,7 +41,7 @@ function App(){
       <div className="fp-card-toolbar"><strong>仓库列表 {total} 个</strong><span className="fp-grow"/>
         <div className="fp-button-group"><button className={view==='card'?'active':''} onClick={()=>setView('card')}>卡片</button><button className={view==='table'?'active':''} onClick={()=>setView('table')}>表格</button></div>
         <ForgeSelectControl aria-label="导入导出" className="fp-select" value="" onChange={e=>{if(e.target.value==='export')exportCsv();else if(e.target.value==='import')setDialog({kind:'note',title:'导入说明',text:'仓库导入使用平台导入能力：可在平台「数据导入」按模板批量新增仓库；导出按当前筛选输出 CSV。'})}}><option value="">导出/导入 ▾</option><option value="export" disabled={!filtered.length}>导出当前筛选 CSV</option><option value="import">导入说明</option></ForgeSelectControl>
-        <button className="fp-icon-button" aria-label="刷新" title="刷新" onClick={load}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg></button>
+        <ForgeListSettings/><button className="fp-icon-button" aria-label="刷新" title="刷新" onClick={load}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg></button>
         <button className="fp-button primary" onClick={openNew}>新增仓库</button>
       </div>
       <div className="fp-chips"><button className={'fp-chip '+(type===''?'active':'')} onClick={()=>{setType('');setPage(1)}}>全部</button>{state.types.map(t=><button key={t.id} className={'fp-chip '+(type===t.id?'active':'')} onClick={()=>{setType(t.id);setPage(1)}}>{t.name}</button>)}</div>
