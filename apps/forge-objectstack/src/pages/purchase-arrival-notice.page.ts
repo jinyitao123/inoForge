@@ -16,7 +16,8 @@ function App(){
  return <div className="forge-product forge-an">
 <style>{css}</style>
 <div className="shell">
-<ForgeHero section="供应链 / 到货检验 / 到货通知" title="到货通知" description="采购订单审核后进入目标仓库待到货队列。" icon="▤" tone="blue" art="flow"/><div className="fp-action-row"><button className="fp-button" onClick={load}>刷新</button><button className="fp-button primary" disabled={selected.length!==1} onClick={()=>register(selected[0])}>合并到货登记</button></div>{s.error&&<div className="notice">{s.error}</div>}<section className="card">
+<ForgeHero section="供应链 / 到货检验 / 到货通知" title="到货通知" description="采购订单审核后进入目标仓库待到货队列" icon="▤" tone="blue" art="flow"/>{s.error&&<div className="notice">{s.error}</div>}<section className="card">
+<div className="fp-card-toolbar"><button className="fp-button primary" disabled={selected.length!==1} onClick={()=>register(selected[0])}>合并到货登记</button><span className="fp-grow"/><button className="fp-icon-button" aria-label="刷新" title="刷新" onClick={load}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg></button></div>
 <div className="filters">
 <input aria-label="搜索到货通知" placeholder="通知单号 / 采购订单 / 供应商 / 物料" value={query} onChange={e=>{setQuery(e.target.value);setPage(1)}}/>
 <ForgeDateInput aria-label="预计到货开始日期" value={start} onChange={e=>{setStart(e.target.value);setPage(1)}}/>
