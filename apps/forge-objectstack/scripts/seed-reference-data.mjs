@@ -35,6 +35,17 @@ export async function seedReferenceData() {
     ['other_inbound_type_production','forge_other_inbound_type',{name:'生产验收备料',code:'OIT-PRODUCTION-ACCEPTANCE',status:'active',color:'#245bdb',description:'用于补齐组装验收所需物料，并保留审批、入库和库存流水。'}],
     ['inventory_damage_type','forge_inventory_business_setting',{name:'生产报损',code:'INV-DAMAGE-PRODUCTION',category:'damage_type',enabled:true,color:'#c53b32',description:'生产现场损坏或盘亏物料的报损分类。'}],
     ['inventory_other_outbound_type','forge_inventory_business_setting',{name:'样品出库',code:'INV-OUT-SAMPLE',category:'other_outbound_type',enabled:true,color:'#245bdb',description:'不属于销售、生产和委外发料的样品出库。'}],
+    // 报损单页读取 forge_inventory_damage_type；此前只写入了 business_setting，导致类型下拉为空（审计走查 2026-09-18）。
+    // RISEMAP 报损单页当前无可办理数据，以下四项是 Forge 产品决策的起步类型，待 RISEMAP 同材料复核。
+    ['damage_type_goods_damage','forge_inventory_damage_type',{name:'商品损坏',code:'DMG-TYPE-DAMAGE',status:'active',color:'#c53b32',description:'物料在搬运、存储或生产过程中损坏。'}],
+    ['damage_type_lost','forge_inventory_damage_type',{name:'物料丢失',code:'DMG-TYPE-LOSS',status:'active',color:'#b86500',description:'盘点或现场确认的物料丢失。'}],
+    ['damage_type_count_loss','forge_inventory_damage_type',{name:'盘亏',code:'DMG-TYPE-COUNT-LOSS',status:'active',color:'#7c3aed',description:'盘点结果小于账面数量形成的盘亏。'}],
+    ['damage_type_production','forge_inventory_damage_type',{name:'生产报损',code:'DMG-TYPE-PRODUCTION',status:'active',color:'#c53b32',description:'生产现场损坏或盘亏物料的报损分类。'}],
+    // 其他出库页读取 forge_other_outbound_type；同样只写入了 business_setting。
+    ['other_outbound_type_sample','forge_other_outbound_type',{name:'样品出库',code:'OOT-SAMPLE',status:'active',color:'#245bdb',description:'不属于销售、生产和委外发料的样品出库。'}],
+    ['other_outbound_type_rd','forge_other_outbound_type',{name:'研发领用',code:'OOT-RD',status:'active',color:'#0f766e',description:'研发和试验用物料领用出库。'}],
+    ['other_outbound_type_scrap','forge_other_outbound_type',{name:'报废出库',code:'OOT-SCRAP',status:'active',color:'#b42318',description:'已判定报废物料的出库。'}],
+    ['other_outbound_type_other','forge_other_outbound_type',{name:'其他',code:'OOT-OTHER',status:'active',color:'#475467',description:'无法归入既有类型的其他出库。'}],
     ['inventory_lock_reason','forge_inventory_business_setting',{name:'生产备料',code:'INV-LOCK-PRODUCTION',category:'lock_reason',enabled:true,color:'#b86500',description:'为已下达生产任务预留可用库存。'}],
     ['inventory_release_reason','forge_inventory_business_setting',{name:'生产计划变更',code:'INV-RELEASE-PLAN-CHANGE',category:'release_reason',enabled:true,color:'#16845b',description:'生产计划调整后释放未使用的库存占用。'}],
     ['inventory_inspection_category','forge_inventory_business_setting',{name:'外观与功能',code:'INV-INSPECTION-AF',category:'inspection_category',enabled:true,color:'#7c3aed',description:'到货检验中的外观和基本功能检查。'}],

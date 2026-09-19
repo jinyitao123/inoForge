@@ -12,7 +12,7 @@ const pages={orders:'page_subcontract_orders',issues:'page_subcontract_issue_wor
 const href=key=>forgeBase+'/page/'+pages[key];
 function App(){const adapter=useAdapter();
  const [state,setState]=useState({loading:true,error:'',data:{}}),[role,setRole]=useState('委外业务员');
- async function request(name){if(adapter?.find){const p=await adapter.find(name,{limit:300});return p?.records||p?.data?.records||p?.data||[]}const r=await fetch('/api/v1/data/'+name+'?$top=300',{credentials:'include'}),p=await r.json().catch(()=>({}));if(!r.ok)throw new Error(p.error?.message||p.message||'请求失败');return p.records||[]}
+ async function request(name){if(adapter?.find){const p=await adapter.find(name,{limit:300});return p?.records||p?.data?.records||p?.data||[]}const r=await fetch('/api/v1/data/'+name+'?$top=300',{credentials:'include'}),p=await r.json().catch(()=>({}));if(!r.ok)throw new Error((typeof p.error==='string'?p.error:p.error?.message)||(Array.isArray(p.fields)&&p.fields.length?p.fields.map(f=>f.message||f.label).filter(Boolean).join('；'):'')||p.message||'请求失败');return p.records||[]}
  async function load(){setState(s=>({...s,loading:true,error:''}));try{const names=['forge_subcontract_order','forge_subcontract_issue','forge_subcontract_receipt','forge_subcontract_ncr','forge_subcontract_stock_balance'],pairs=await Promise.all(names.map(async n=>[n,await request(n)]));setState({loading:false,error:'',data:Object.fromEntries(pairs)})}catch(e){setState({loading:false,error:String(e.message||e),data:{}})}}
  useEffect(()=>{load()},[]);
  if(state.loading)return <div className="forge-product forge-sc-portal"><style>{css}</style><div className="fp-shell"><ForgeLoading label="正在加载委外工作台"/></div></div>;
