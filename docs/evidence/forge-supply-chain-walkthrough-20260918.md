@@ -638,3 +638,25 @@ RISEMAP 侧 URL：`/inventory/flow`、`/inventory/pending-inspection`、`/invent
 
 - RISEMAP：Edge 实时页面（`/production/assembly`，登录账号 金一涛 / 南京汇川技术研发中心有限公司）。
 - Forge：`docs/evidence/walkthrough-20260918/90-assembly-forge.png`（修复前）、`91-assembly-forge-fixed.png`（修复后）。
+
+## B1 第 2 页：缺料待办（`page_production_shortage_workspace`）
+
+### RISEMAP 当前事实（`https://risemap.cn/production/shortages`，2026-09-19 实时）
+
+- 面包屑 `生产 › 组装业务管理 › 缺料待办`；标题「缺料待办」；说明「对在产组装单实时做齐套分析：库存按计划完工日期优先分配后，不满足的物料自动汇成缺料待办」。
+- KPI：缺料单据 0 / 缺料物料 0 种 / 缺口总额 ¥0.00 / 最早计划完工 -。
+- 空态：「当前没有缺料　所有在产组装单均已齐套」。
+- 当前租户无缺料数据，因此列表列、行操作与承接动作需在 RISEMAP 建单后再复核。
+
+### Forge 当前表现与差异
+
+- 标题、说明、KPI 四项标签与 RISEMAP **一致**；列表列 组装单/计划完工/物料编码/物料名称/需求/可分配/缺口/缺口金额/操作（RISEMAP 无数据无法逐列比对）。
+- 差异 1（已修）：KPI「缺料物料」原先取 `state.lines.length`（行数 4148 种），改为按物料编码去重计数，现显示 **5 种**。
+- 差异 2（待改）：同一组装单 × 同一物料在列表中重复出现多行（历史多次齐套分析快照），导致「缺口总额 ¥39,350,240.00」被重复累加、明显偏大。需要按「最新一次分析 / 组装单 × 物料」聚合后展示。
+- 差异 3（待改）：列表「计划完工」列显示 `—`，应取组装单的计划完工日期。
+- 差异 4（待改，与组装单页同源）：工具条文案「导入/导出」应为 RISEMAP 的「导入/导出任务」。
+
+### 证据
+
+- RISEMAP：Edge 实时页面 `/production/shortages`。
+- Forge：`docs/evidence/walkthrough-20260918/92-shortage-forge.png`（修复前）、`93-shortage-forge-fixed.png`（KPI 修复后）。
