@@ -316,7 +316,7 @@ export const PendingInspection = master('forge_pending_inspection', '待检验�
   specification: text('规格'), unit_name: text('单位'), arrival_quantity: positiveQuantity('到货数量'),
   batch_number: text('批次号'), external_sn: text('外部 SN'), arrived_on: Field.date({ label: '到货日期', ...required }),
   inspection_id: reference('forge_purchase_inspection', '关联检验单'),
-  status: { ...select('待检状态', [['pending', '待检验'], ['inspection_created', '检验中'], ['inspected', '已检验'], ['exempt', '免检']], 'pending'), readonly: true },
+  status: { ...select('待检状态', [['pending', '待检验'], ['inspection_created', '检验中'], ['inspected', '已检验'], ['exempt', '免检'], ['stocked', '已入库']], 'pending'), readonly: true },
   responsible_id: owner(true), remarks: remarks(),
 }, ['code', 'item_code', 'name', 'model', 'arrival_quantity', 'unit_name', 'batch_number', 'supplier_id', 'order_id', 'status']);
 

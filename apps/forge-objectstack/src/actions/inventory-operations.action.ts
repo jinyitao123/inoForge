@@ -8,6 +8,8 @@ const base = (
   visible: string,
   source: string,
   successMessage: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  params?: any[],
 ) =>
   defineAction({
     name,
@@ -19,6 +21,7 @@ const base = (
     visible,
     refreshAfter: true,
     successMessage,
+    ...(params ? { params } : {}),
     body: { language: "js", capabilities: ["api.read", "api.write"], source },
   });
 
@@ -50,22 +53,61 @@ return{id,status:'active',reserved_quantity:reserved,available_quantity:availabl
   "库存已锁定",
 );
 
+export const InventoryLockRenew = base(
+  "inventory_lock_renew",
+  "申请续期",
+  30,
+  "record.operation_type == 'lock' && (record.status == 'draft' || record.status == 'active')",
+  `${helpers}
+const days=Number(ctx.input.renew_days||7);if(!(days>0)||days>365)throw new Error('续期天数必须在 1-365 之间');
+const currentDue=op.due_at?new Date(op.due_at):new Date(Date.now()),baseDate=currentDue.getTime()>Date.now()?currentDue:new Date(Date.now()),nextDue=new Date(baseDate.getTime()+days*86400000);
+await ctx.api.object('forge_inventory_operation').update({id,due_at:nextDue.toISOString()});
+await ctx.api.object('forge_inventory_ledger').insert({name:op.code+' 锁定续期',code:op.code+'-RENEW-'+String(Date.now()).slice(-6),warehouse_id:op.source_warehouse_id,sku_id:op.sku_id,direction:'inbound',movement_type:'inventory_lock',quantity:0,before_on_hand:Number(balance.on_hand_quantity||0),after_on_hand:Number(balance.on_hand_quantity||0),before_available:Number(balance.available_quantity||0),after_available:Number(balance.available_quantity||0),unit_cost:0,amount:0,occurred_at:now,source_object:'forge_inventory_operation',source_id:id,responsible_id:actor,remarks:'锁定续期 '+days+' 天，到期 '+nextDue.toISOString().slice(0,10)+(String(ctx.input.renew_reason||'').trim()?'：'+String(ctx.input.renew_reason).trim():'')});
+return{id,due_at:nextDue.toISOString(),status:op.status};
+`,
+  "锁定已续期",
+  [
+    { name: "renew_days", label: "续期天数", type: "text", required: true },
+    { name: "renew_reason", label: "续期原因", type: "text" },
+  ],
+);
+
+export const InventoryLockVoid = base(
+  "inventory_lock_void",
+  "作废锁定单",
+  40,
+  "record.operation_type == 'lock' && (record.status == 'draft' || record.status == 'pending_approval' || record.status == 'active')",
+  `${helpers}
+const reason=String(ctx.input.void_reason||'').trim();if(!reason)throw new Error('请填写作废原因');
+if(op.status==='active'){const remaining=round(qty-Number(op.released_quantity||0));
+if(remaining>0){const reserved=round(Number(balance.reserved_quantity||0)-remaining),available=round(Number(balance.on_hand_quantity||0)-reserved);
+await ctx.api.object('forge_inventory_balance').update({id:balance.id,reserved_quantity:Math.max(0,reserved),available_quantity:available,last_movement_at:now});
+await ctx.api.object('forge_inventory_ledger').insert({name:op.code+' 锁定作废释放',code:op.code+'-VOID',warehouse_id:op.source_warehouse_id,sku_id:op.sku_id,direction:'inbound',movement_type:'inventory_release',quantity:remaining,before_on_hand:Number(balance.on_hand_quantity||0),after_on_hand:Number(balance.on_hand_quantity||0),before_available:Number(balance.available_quantity||0),after_available:available,unit_cost:Number(op.unit_cost||0),amount:round(remaining*Number(op.unit_cost||0)),occurred_at:now,source_object:'forge_inventory_operation',source_id:id,responsible_id:actor,remarks:'锁定作废：'+reason});
+await ctx.api.object('forge_inventory_operation').update({id,released_quantity:Number(op.released_quantity||0)+remaining});}}
+await ctx.api.object('forge_inventory_operation').update({id,status:'voided',remarks:(op.remarks?op.remarks+' / ':'')+'作废原因：'+reason});
+return{id,status:'voided'};
+`,
+  "锁定单已作废",
+  [{ name: "void_reason", label: "作废原因", type: "text", required: true }],
+);
+
 export const InventoryLockRelease = base(
   "inventory_lock_release",
   "释放库存",
   20,
   "record.operation_type == 'lock' && record.status == 'active'",
   `${helpers}
-const remaining=round(qty-Number(op.released_quantity||0));if(!(remaining>0))throw new Error('该锁定已全部释放');
+const remaining=round(qty-Number(op.released_quantity||0));if(!(remaining>0))throw new Error('该锁定已全部释放');const releaseReason=String(ctx.input.release_reason||'').trim();if(!releaseReason)throw new Error('请填写释放原因');
 if(Number(balance.reserved_quantity||0)<remaining)throw new Error('当前锁定余额不足，请刷新后重试');
 const reserved=round(Number(balance.reserved_quantity||0)-remaining),available=round(Number(balance.on_hand_quantity||0)-reserved);
 const beforeAvailable=Number(balance.available_quantity||0),unit=Number(op.unit_cost||balance.average_cost||0),amount=round(remaining*unit);
 await ctx.api.object('forge_inventory_balance').update({id:balance.id,reserved_quantity:reserved,available_quantity:available,last_movement_at:now});
-await ctx.api.object('forge_inventory_ledger').insert({name:op.code+' 锁定释放',code:op.code+'-RELEASE',warehouse_id:op.source_warehouse_id,sku_id:op.sku_id,direction:'inbound',movement_type:'inventory_release',quantity:remaining,before_on_hand:Number(balance.on_hand_quantity||0),after_on_hand:Number(balance.on_hand_quantity||0),before_available:beforeAvailable,after_available:available,unit_cost:unit,amount,occurred_at:now,source_object:'forge_inventory_operation',source_id:id,responsible_id:actor,remarks:op.reason});
+await ctx.api.object('forge_inventory_ledger').insert({name:op.code+' 锁定释放',code:op.code+'-RELEASE',warehouse_id:op.source_warehouse_id,sku_id:op.sku_id,direction:'inbound',movement_type:'inventory_release',quantity:remaining,before_on_hand:Number(balance.on_hand_quantity||0),after_on_hand:Number(balance.on_hand_quantity||0),before_available:beforeAvailable,after_available:available,unit_cost:unit,amount,occurred_at:now,source_object:'forge_inventory_operation',source_id:id,responsible_id:actor,remarks:'释放原因：'+releaseReason});
 await ctx.api.object('forge_inventory_operation').update({id,released_quantity:qty,status:'released',completed_at:now});
 return{id,status:'released',released_quantity:qty,reserved_quantity:reserved};
 `,
   "库存锁定已释放",
+  [{ name: "release_reason", label: "释放原因", type: "text", required: true }],
 );
 
 export const InventoryCountComplete = base(

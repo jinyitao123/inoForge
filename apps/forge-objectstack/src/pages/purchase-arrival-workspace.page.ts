@@ -107,7 +107,7 @@ function App(){
 <td>{line.name}</td>
 <td>{line.specification||line.model||'—'}</td>
 <td>{line.quantity}</td>
-<td>{line.batch_number||'—'}</td>
+<td>{line.batch_number||'—'}<div className="fp-secondary">{line.external_sn?('SN '+line.external_sn):'无 SN'}</div></td>
 <td>{warehouseName(line.warehouse_id)}</td>
 <td>{money(line.taxed_amount)}</td>
 <td>
@@ -163,6 +163,17 @@ function App(){
 </div>
 </section>
 <section className="card">
+<h2>到货登记摘要</h2>
+<div className="grid">
+<div className="value"><small>到货类型</small>{state.receipt.receipt_type==='other'?'其他到货':'采购到货'}</div>
+<div className="value"><small>到货日期</small>{state.receipt.received_on||state.receipt.arrived_on||'—'}</div>
+<div className="value"><small>物料行数</small>{state.receipt.line_count}</div>
+<div className="value"><small>到货数量</small>{state.receipt.total_quantity}</div>
+<div className="value"><small>不含税金额</small>{money(state.receipt.untaxed_amount)}</div>
+<div className="value"><small>含税金额</small>{money(state.receipt.taxed_amount)}</div>
+</div>
+</section>
+<section className="card">
 <h2>到货物料明细</h2>
 <div className="table">
 <table>
@@ -174,7 +185,7 @@ function App(){
 <th>型号</th>
 <th>单位</th>
 <th>数量</th>
-<th>批次</th>
+<th>批次 / SN</th>
 <th>含税单价</th>
 <th>不含税单价</th>
 <th>含税金额</th>
@@ -190,7 +201,7 @@ function App(){
 <td>{line.model}</td>
 <td>{line.unit_name}</td>
 <td>{line.quantity}</td>
-<td>{line.batch_number||'—'}</td>
+<td>{line.batch_number||'—'}<div className="fp-secondary">{line.external_sn?('SN '+line.external_sn):'无 SN'}</div></td>
 <td>{money(line.taxed_unit_price)}</td>
 <td>{money(line.untaxed_unit_price)}</td>
 <td>{money(line.taxed_amount)}</td>
