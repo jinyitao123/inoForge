@@ -12,7 +12,7 @@ function App(){
   const [state,setState]=React.useState({loading:true,receipts:[],allReceiptLines:[],notice:null,noticeLines:[],order:null,orderLines:{},receipt:null,receiptLines:[],supplier:null,suppliers:{},orders:{},warehouses:[],error:''});
   const [form,setForm]=React.useState({arrived_on:new Date(Date.now()+8*60*60*1000).toISOString().slice(0,10),contact_name:'',contact_phone:'',carrier:'',logistics_number:'',remarks:''});
   const [lines,setLines]=React.useState([]),[busy,setBusy]=React.useState(false),[confirm,setConfirm]=React.useState(null),[listMode,setListMode]=React.useState('orders'),[listQuery,setListQuery]=React.useState(''),[listStatus,setListStatus]=React.useState(''),[listType,setListType]=React.useState(''),[page,setPage]=React.useState(1),[taskOpen,setTaskOpen]=React.useState(false),[toast,setToast]=React.useState('');
-  async function request(path,options){const response=await fetch('/api/v1'+path,{credentials:'include',headers:{'Content-Type':'application/json'},...options});const payload=await response.json().catch(()=>({}));if(!response.ok)throw new Error(payload.error?.message||payload.message||'请求失败');return payload;}
+  async function request(path,options){const response=await fetch('/api/v1'+path,{credentials:'include',headers:{'Content-Type':'application/json'},...options});const payload=await response.json().catch(()=>({}));if(!response.ok)throw new Error((typeof payload.error==='string'?payload.error:payload.error?.message)||(Array.isArray(payload.fields)&&payload.fields.length?payload.fields.map(f=>f.message||f.label).filter(Boolean).join('；'):'')||payload.message||'请求失败');return payload;}
   async function find(object,where){const filter=where?('&$filter='+encodeURIComponent(JSON.stringify(where))):'';return (await request('/data/'+object+'?$top=100'+filter)).records||[];}
   async function read(object,id){return (await request('/data/'+object+'/'+id)).record;}
   async function load(){try{if(!receiptId&&!requestedNotice){const [receipts,allReceiptLines,suppliers,orders,warehouses]=await Promise.all([find('forge_purchase_receipt'),find('forge_purchase_receipt_line'),find('forge_supplier'),find('forge_purchase_order'),find('forge_warehouse')]);setState(s=>({...s,loading:false,receipts,allReceiptLines,suppliers:Object.fromEntries(suppliers.map(x=>[x.id,x])),orders:Object.fromEntries(orders.map(x=>[x.id,x])),warehouses,error:''}));return;}let receipt=receiptId?await read('forge_purchase_receipt',receiptId):null,noticeId=requestedNotice||receipt?.notice_id;if(!noticeId)throw new Error('缺少到货通知');const notice=await read('forge_purchase_arrival_notice',noticeId);const [noticeLines,order,supplier,warehouses,receiptLines]=await Promise.all([find('forge_purchase_arrival_notice_line',{notice_id:noticeId}),read('forge_purchase_order',notice.order_id),read('forge_supplier',notice.supplier_id),find('forge_warehouse'),receipt?find('forge_purchase_receipt_line',{receipt_id:receipt.id}):Promise.resolve([])]);const orderLines=Object.fromEntries((await find('forge_purchase_order_line',{order_id:notice.order_id})).map(item=>[item.id,item]));if(!receipt){const defaultWarehouse=notice.warehouse_id||warehouses[0]?.id||'';setLines(noticeLines.map(item=>({notice_line_id:item.id,quantity:Math.max(0,Number(item.planned_quantity||0)-Number(item.arrived_quantity||0)),warehouse_id:defaultWarehouse,warehouse_location:'',external_sn:'',batch_number:'',remarks:''})));}else setLines(receiptLines.map(item=>({...item})));setState(s=>({...s,loading:false,notice,noticeLines,order,orderLines,receipt,receiptLines,supplier,warehouses,error:''}));}catch(error){setState(s=>({...s,loading:false,error:String(error.message||error)}));}}
@@ -273,6 +273,7 @@ function App(){
 <th>单位</th>
 <th>到货数量 *</th>
 <th>批次</th>
+<th>外部 SN</th>
 <th>含税单价</th>
 <th>不含税单价</th>
 <th>税率</th>
@@ -295,6 +296,9 @@ function App(){
 </td>
 <td>
 <input aria-label={noticeLine.item_code+' 批次'} value={line.batch_number||''} onChange={e=>setLine(index,'batch_number',e.target.value)}/>
+</td>
+<td>
+<input aria-label={noticeLine.item_code+' 外部 SN'} value={line.external_sn||''} onChange={e=>setLine(index,'external_sn',e.target.value)} placeholder="多个用逗号分隔"/>
 </td>
 <td>{money(orderLine.taxed_unit_price)}</td>
 <td>{money(orderLine.untaxed_unit_price)}</td>
