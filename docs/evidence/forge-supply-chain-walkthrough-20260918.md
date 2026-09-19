@@ -660,3 +660,11 @@ RISEMAP 侧 URL：`/inventory/flow`、`/inventory/pending-inspection`、`/invent
 
 - RISEMAP：Edge 实时页面 `/production/shortages`。
 - Forge：`docs/evidence/walkthrough-20260918/92-shortage-forge.png`（修复前）、`93-shortage-forge-fixed.png`（KPI 修复后）。
+
+### 缺料待办 修复结果（同轮）
+
+- 缺口总额：¥39,350,240.00 → **¥1,157,360.00**（按「组装单 × 物料」保留最新快照去重后汇总）
+- 计划完工列：由全 `—` 变为真实日期（如 `2026-09-22`），增加按组装单回查兜底
+- 缺料物料：4148 种 → **5 种**（按物料编码去重）
+- 工具条文案：组装单页「导入/导出」→「导入/导出任务」，对齐 RISEMAP
+- 证据：`94-shortage-forge-deduped.png`
