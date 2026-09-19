@@ -73,7 +73,7 @@ function App(){
 <td>{state.orders[row.order_id]?.code||'—'}</td>
 <td>{row.arrived_on||'—'}</td>
 <td>
-<span className="pill">{row.status==='pending'?'待检验':row.status==='inspection_created'?'检验中':row.status==='inspected'?'已检验':'免检'}</span>
+<span className="pill">{row.status==='pending'?'待检验':row.status==='inspection_created'?'检验中':row.status==='inspected'?'已检验':row.status==='stocked'?'已入库':'免检'}</span>
 </td>
 <td>{row.inspection_id?(state.inspections&&state.inspections[row.inspection_id]?state.inspections[row.inspection_id].code:row.inspection_id):'—'}</td>
 <td>{inspectResult(row)}</td>

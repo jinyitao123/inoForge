@@ -143,6 +143,7 @@ export const InventoryLedger = master('forge_inventory_ledger', '库存流水', 
   ], { label: '变动方向', ...required }),
   movement_type: Field.select([
     { value: 'opening_inbound', label: '期初入库' }, { value: 'purchase_inbound', label: '采购入库' },
+    { value: 'purchase_in_transit', label: '采购在途' },
     { value: 'other_inbound', label: '其他入库' },
     { value: 'production_issue', label: '生产领料' }, { value: 'production_supply', label: '生产补料' },
     { value: 'production_return', label: '生产退料' }, { value: 'production_inbound', label: '生产入库' },
