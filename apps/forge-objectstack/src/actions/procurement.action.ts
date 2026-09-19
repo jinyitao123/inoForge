@@ -401,3 +401,119 @@ if(order.payable_trigger==='inbound'){
 await ctx.api.object('forge_purchase_inbound').update({id,status:'stocked',stocked_at:now,stocked_by:actor});await ctx.api.object('forge_purchase_inbound_approval_log').insert({name:inbound.code+' 执行入库',inbound_id:id,action:'stocked',from_status:'approved',to_status:'stocked',comment:'采购入库完成',occurred_at:now,operator_id:actor});return{id,status:'stocked',line_count:lines.length,total_quantity:total,order_status:orderStatus};
 `},
 });
+
+export const PurchaseOrderCreate = defineAction({
+  name: 'purchase_order_create', label: '新建采购订单', objectName: 'forge_purchase_order', icon: 'shopping-cart',
+  locations: [...locations], order: 50, visible: `false`, refreshAfter: true,
+  description: '按采购来源（库存补充/项目采购/以销定采/BOM缺料/采购申请）创建采购订单，可保存草稿或提交审核。',
+  successMessage: '采购订单已创建',
+  params: [
+    { name: 'mode', label: '办理方式', type: 'select', required: true, options: [{ value: 'draft', label: '保存草稿' }, { value: 'submit', label: '提交审核' }] },
+    { name: 'source_type', label: '采购来源', type: 'select', required: true, options: [
+      { value: 'inventory_replenishment', label: '库存补充' }, { value: 'project', label: '项目采购' },
+      { value: 'sales_driven', label: '以销定采' }, { value: 'bom_shortage', label: 'BOM缺料' },
+      { value: 'purchase_request', label: '采购申请' },
+    ] },
+    { name: 'code', label: '采购订单号' },
+    { name: 'supplier_id', label: '供应商', type: 'text', required: true },
+    { name: 'warehouse_id', label: '目标仓库', type: 'text' },
+    { name: 'expected_arrival_on', label: '期望到货日期', type: 'date', required: true },
+    { name: 'payment_term', label: '付款条件', type: 'text', required: true },
+    { name: 'payment_method', label: '付款方式', type: 'text', required: true },
+    { name: 'project_id', label: '关联项目', type: 'text' },
+    { name: 'purchase_request_id', label: '关联采购申请', type: 'text' },
+    { name: 'remarks', label: '备注', type: 'textarea' },
+    { name: 'lines_json', label: '采购明细', type: 'textarea', required: true },
+  ],
+  body: { language: 'js', capabilities: ['api.read', 'api.write'], source: `
+const actor = ctx.session && ctx.session.userId;
+if (!actor) throw new Error('无法识别当前操作人');
+const mode = String(ctx.input.mode || '');
+if (!['draft', 'submit'].includes(mode)) throw new Error('办理方式不正确');
+const sourceType = String(ctx.input.source_type || '');
+if (!['inventory_replenishment', 'project', 'sales_driven', 'bom_shortage', 'purchase_request'].includes(sourceType)) throw new Error('请选择采购来源');
+const supplier = ctx.input.supplier_id ? await ctx.api.object('forge_supplier').findOne({ where: { id: ctx.input.supplier_id } }) : null;
+if (!supplier || supplier.status !== 'active' || supplier.approval_status !== 'approved') throw new Error('供应商必须启用且已审批');
+if (!ctx.input.expected_arrival_on) throw new Error('期望到货日期不能为空');
+const paymentTerm = String(ctx.input.payment_term || '').trim();
+if (!paymentTerm) throw new Error('付款条件不能为空');
+const paymentMethod = String(ctx.input.payment_method || '').trim();
+if (!paymentMethod) throw new Error('付款方式不能为空');
+let rawLines = [];
+try { rawLines = JSON.parse(String(ctx.input.lines_json || '[]')); } catch (error) { throw new Error('采购明细格式不正确'); }
+if (!Array.isArray(rawLines) || !rawLines.length) throw new Error('采购订单至少需要一条物料明细');
+const round4 = value => Math.round((Number(value) + Number.EPSILON) * 10000) / 10000;
+const prepared = [];
+for (const item of rawLines) {
+  const sku = item.sku_id ? await ctx.api.object('forge_material_sku').findOne({ where: { id: item.sku_id } }) : null;
+  if (!sku) throw new Error('采购明细存在无效物料规格');
+  const material = sku.material_id ? await ctx.api.object('forge_material').findOne({ where: { id: sku.material_id } }) : null;
+  const quantity = Number(item.quantity || 0);
+  if (!(quantity > 0)) throw new Error('采购数量必须大于0');
+  const taxed = round4(Number(item.taxed_unit_price || 0));
+  const rate = Number(item.tax_rate == null ? 13 : item.tax_rate);
+  const untaxed = round4(taxed / (1 + rate / 100));
+  prepared.push({ sku, material, quantity, taxed, untaxed, rate, subtotal: round4(quantity * taxed) });
+}
+const totalQuantity = round4(prepared.reduce((sum, item) => sum + item.quantity, 0));
+const totalAmount = round4(prepared.reduce((sum, item) => sum + item.subtotal, 0));
+const today = new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString().slice(0, 10);
+const year = String(ctx.input.expected_arrival_on || today).slice(0, 4) || today.slice(0, 4);
+let code = String(ctx.input.code || '').trim();
+if (!code) {
+  const all = await ctx.api.object('forge_purchase_order').find({ where: {} });
+  const head = 'PO-' + year + '-';
+  let max = 0;
+  for (const row of all) { const text = String(row.code || ''); if (text.slice(0, head.length) !== head) continue; const tail = Number(text.slice(head.length)); if (Number.isFinite(tail) && tail > max) max = tail; }
+  code = head + String(max + 1).padStart(4, '0');
+}
+const duplicated = await ctx.api.object('forge_purchase_order').find({ where: { code } });
+if (duplicated.length) throw new Error('采购订单号已存在：' + code);
+const status = mode === 'submit' ? 'pending_approval' : 'draft';
+const now = new Date().toISOString();
+const created = await ctx.api.object('forge_purchase_order').insert({
+  name: supplier.name + ' - 采购订单', code, supplier_id: supplier.id,
+  source_type: sourceType, purchase_request_id: ctx.input.purchase_request_id || null, project_id: ctx.input.project_id || null,
+  warehouse_id: ctx.input.warehouse_id || null, expected_arrival_on: ctx.input.expected_arrival_on, order_on: today,
+  payment_term: paymentTerm, payment_method: paymentMethod, currency: 'cny', exchange_rate: 1, payable_trigger: 'inbound',
+  responsible_id: actor, line_count: prepared.length, total_quantity: totalQuantity, total_amount: totalAmount,
+  arrived_quantity: 0, inbound_quantity: 0, returned_quantity: 0, replenished_quantity: 0,
+  status, submitted_at: mode === 'submit' ? now : null, submitted_by: mode === 'submit' ? actor : null,
+  remarks: ctx.input.remarks ? String(ctx.input.remarks).trim() : null,
+});
+const orderId = typeof created === 'string' ? created : created && (created.id || (created.record && created.record.id));
+if (!orderId) throw new Error('采购订单创建后未返回记录ID');
+for (const item of prepared) {
+  await ctx.api.object('forge_purchase_order_line').insert({
+    name: (item.material && item.material.name) || item.sku.name || item.sku.code, order_id: orderId,
+    sku_id: item.sku.id, item_code: (item.material && item.material.code) || item.sku.code, model: (item.material && item.material.model) || null,
+    specification: item.sku.name || null, unit_name: (item.material && item.material.unit_name) || null,
+    quantity: item.quantity, arrived_quantity: 0, inspected_quantity: 0, accepted_quantity: 0, inbound_quantity: 0,
+    taxed_unit_price: item.taxed, untaxed_unit_price: item.untaxed, tax_rate: item.rate, taxed_subtotal: item.subtotal,
+    expected_arrival_on: ctx.input.expected_arrival_on,
+  });
+}
+if (mode === 'submit') {
+  await ctx.api.object('forge_purchase_order_approval_log').insert({ name: code + ' 提交审核', order_id: orderId, action: 'submitted', from_status: 'draft', to_status: 'pending_approval', comment: '新建并提交审核', occurred_at: now, operator_id: actor });
+}
+return { id: orderId, code, status, line_count: prepared.length, total_quantity: totalQuantity, total_amount: totalAmount };
+` },
+});
+
+export const PurchaseOrderSyncRollups = defineAction({
+  name: 'purchase_order_sync_rollups', label: '同步订单汇总', objectName: 'forge_purchase_order', icon: 'refresh-cw',
+  locations: [...locations], order: 60, visible: `false`, refreshAfter: true,
+  description: '按采购订单明细重算物料数、采购总数量与含税总额（供批量建单等客户端路径调用）。',
+  successMessage: '采购订单汇总已同步',
+  body: { language: 'js', capabilities: ['api.read', 'api.write'], source: `
+const id = ctx.recordId || (ctx.record && ctx.record.id);
+if (ctx.recordLoadDenied === true || !id) throw new Error('当前采购订单不存在或不可访问');
+const lines = await ctx.api.object('forge_purchase_order_line').find({ where: { order_id: id } });
+if (!lines.length) throw new Error('采购订单至少需要一条物料明细');
+const round4 = value => Math.round((Number(value) + Number.EPSILON) * 10000) / 10000;
+const totalQuantity = round4(lines.reduce((sum, line) => sum + Number(line.quantity || 0), 0));
+const totalAmount = round4(lines.reduce((sum, line) => sum + Number(line.taxed_subtotal || 0), 0));
+await ctx.api.object('forge_purchase_order').update({ id, line_count: lines.length, total_quantity: totalQuantity, total_amount: totalAmount });
+return { id, line_count: lines.length, total_quantity: totalQuantity, total_amount: totalAmount };
+` },
+});
