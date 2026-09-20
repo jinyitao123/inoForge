@@ -66,8 +66,14 @@ try {
 // --- file-resource tree (default view) -------------------------------------
 assert.equal(await page.locator('text=文件目录').count() > 0, true, 'tree view must show 文件目录');
 assert.equal((await page.locator('.dw-modes button.dw-mode.active').innerText()).trim(), '文件资源树', 'file tree is the default mode');
+const treeCountText = (await page.locator('.dw-list-count').filter({ hasText: '张图纸' }).innerText()).trim();
+const treeCount = Number((treeCountText.match(/\d+/) || ['0'])[0]);
+if (treeCount > 0) {
+  assert.equal(await page.locator('.dw-list-panel table tbody tr').count(), treeCount, 'tree view must render every drawing in 全部图纸');
+  assert.equal(await page.locator('.dw-list-panel button:has-text("查看属性")').count(), treeCount, 'each tree row must open a real attribute view');
+}
 await page.screenshot({ path: shot('01-file-tree-mode') });
-note('file-resource tree renders as the default view');
+note('file-resource tree renders as the default view and does not hide existing drawings');
 
 // --- ledger view ------------------------------------------------------------
 await page.click('button:has-text("台账模式")');
