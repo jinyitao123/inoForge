@@ -29,6 +29,7 @@ export * from './sales-direct-outbounds.page.js';
 export * from './purchase-return-outbounds.page.js';
 export * from './outbound-lines-list.page.js';
 export * from './sales-contract-workspace.page.js';
+export * from './sales-contract-create.page.js';
 export * from './project-operating-analysis.page.js';
 export * from './project-settings.page.js';
 export * from './project-timesheet-cost.page.js';
