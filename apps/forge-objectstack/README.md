@@ -24,6 +24,8 @@ pnpm dev
 
 `OS_BASE_URL` 必须是客户端实际访问的地址，可按客户内网环境配置为 HTTP 或 HTTPS；`OS_TRUSTED_ORIGINS` 同步包含该地址。部署后用 `FORGE_EXPECT_BROWSER_OAUTH=1 pnpm acceptance:deploy-smoke` 检查发现文档和三个 OAuth 端点是否完整。
 
+使用非本机 HTTP 承载 MCP OAuth 时，还需部署包含内网开关的 ObjectStack 版本，并由管理员显式设置 `OS_ALLOW_INSECURE_OAUTH_HTTP=true`。该开关默认关闭，其他值均不能放开；仅浏览器登录、不使用 MCP OAuth 时无需开启。
+
 ## 代码入口
 
 | 路径 | 职责 |
