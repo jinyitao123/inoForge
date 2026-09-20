@@ -23,4 +23,13 @@ ${forgeProductUiRuntime}
 `;
 
 export const InvoiceAdjustmentsPage = { name: 'page_invoice_adjustments', label: '调整记录', description: '开票申请与正式发票金额调整差异留痕', icon: 'history', type: 'app' as const, kind: 'react' as const, source: invoiceAuditSource };
-export const InvoiceTaxVariancesPage = { name: 'page_invoice_tax_variances', label: '税率差异留痕', description: '订单约定税率与发票实际税率差异追踪', icon: 'badge-percent', type: 'app' as const, kind: 'react' as const, source: invoiceAuditSource };
+// A dedicated page keeps its own business mode when opened through the standard
+// pageName route. Leave the adjustments source unchanged in this single-page fix.
+const invoiceTaxVariancesSource = invoiceAuditSource
+  .replace("varianceMode=nav==='invoice_tax_variances'", 'varianceMode=true')
+  .replace('  const variances=', "  const varianceFilterActive=direction!=='all'||!!sourceQuery||!!invoiceQuery||!!start||!!end;\n  const variances=")
+  .replace('placeholder="搜索来源单号"', 'placeholder="来源单号" aria-label="来源单号"')
+  .replace('placeholder="搜索发票号码"', 'placeholder="发票号码" aria-label="发票号码"')
+  .replace('</div></div>{rows.length?', '</div>{varianceFilterActive&&<button className="fp-button" onClick={()=>{setDirection(\'all\');setSourceQuery(\'\');setInvoiceQuery(\'\');setStart(\'\');setEnd(\'\')}}>清空</button>}</div>{rows.length?')
+  .replace('title="暂无税率差异留痕"', 'title={varianceFilterActive?\'未找到匹配的差异留痕\':\'暂无税率差异留痕\'}');
+export const InvoiceTaxVariancesPage = { name: 'page_invoice_tax_variances', label: '税率差异留痕', description: '订单约定税率与发票实际税率差异追踪', icon: 'badge-percent', type: 'app' as const, kind: 'react' as const, source: invoiceTaxVariancesSource };
