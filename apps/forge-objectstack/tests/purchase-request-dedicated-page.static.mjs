@@ -30,5 +30,10 @@ assert.match(page, /pr-table th:last-child,\.pr-table td:last-child\{position:st
 assert.match(page, /pr-table th:first-child,\.pr-table td:first-child\{position:sticky;left:0/, 'application code column must stay readable while the wide table scrolls');
 assert.match(page, /pr-table td:nth-child\(2\)[\s\S]{0,200}word-break:break-word/, 'long text columns must wrap instead of stretching the row');
 assert.match(page, /actions=\{<><button className="fp-button pr-next"[\s\S]{0,160}page_purchase_todo_pool[\s\S]{0,40}下一步操作/, 'next-step entry must stay available in the header toolbar');
+assert.match(
+  page,
+  /\.forge-purchase-request \.pr-table td\.fp-empty-cell \.fp-empty\{position:sticky;right:0/,
+  'empty state must stay inside the visible area of the wide table on narrow screens',
+);
 
 console.log('PASS purchase request is a dedicated executable page with mixed detail entry and approval actions');
