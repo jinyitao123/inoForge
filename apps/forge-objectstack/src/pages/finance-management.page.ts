@@ -115,3 +115,4 @@ export const OutputInvoicesPage = pages.page_output_invoices;
 export const InputInvoicesPage = pages.page_input_invoices;
 export const InvoiceTasksPage = pages.page_invoice_tasks;
 
+
