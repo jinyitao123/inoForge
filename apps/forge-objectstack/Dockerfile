@@ -16,7 +16,7 @@ RUN corepack enable
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
 COPY . .
-RUN pnpm build                # → dist/objectstack.json
+RUN pnpm exec objectstack build  # → dist/objectstack.json
 
 # ── Runtime: the official ObjectStack runtime image ──────────────────
 # Ships Node + @objectstack/cli with `os start`, a non-root user, the
