@@ -24,6 +24,9 @@ services:
       # secret is shipped or stored.
       OS_OIDC_PROVIDER_ENABLED: ${OS_OIDC_PROVIDER_ENABLED:-true}
       OS_OIDC_DCR_ENABLED: ${OS_OIDC_DCR_ENABLED:-true}
+      # Default-off ObjectStack escape hatch for customer intranets that
+      # explicitly accept OAuth bearer transport over plain HTTP.
+      OS_ALLOW_INSECURE_OAUTH_HTTP: ${OS_ALLOW_INSECURE_OAUTH_HTTP:-false}
     depends_on:
       db:
         condition: service_healthy
