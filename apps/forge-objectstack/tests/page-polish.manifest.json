@@ -164,7 +164,9 @@
       ],
       "archetype": "analysis",
       "reference": "project-timesheet-cost.page.ts",
-      "designStatus": "review_required"
+      "designStatus": "review_required",
+      "contract": "docs/forge-finance-narrow-metrics-20260917.md",
+      "acceptance": "docs/evidence/finance-narrow-metrics-20260917/bank_flow.json"
     },
     {
       "file": "bank-statement.page.ts",
@@ -239,7 +241,9 @@
       ],
       "archetype": "analysis",
       "reference": "project-timesheet-cost.page.ts",
-      "designStatus": "review_required"
+      "designStatus": "review_required",
+      "contract": "docs/forge-finance-narrow-metrics-20260917.md",
+      "acceptance": "docs/evidence/finance-narrow-metrics-20260917/invoice_adjustments.json"
     },
     {
       "file": "invoice-audit.page.ts",
@@ -286,7 +290,9 @@
       ],
       "archetype": "analysis",
       "reference": "project-timesheet-cost.page.ts",
-      "designStatus": "review_required"
+      "designStatus": "review_required",
+      "contract": "docs/forge-finance-narrow-metrics-20260917.md",
+      "acceptance": "docs/evidence/finance-narrow-metrics-20260917/receivables_payables.json"
     },
     {
       "file": "finance-management.page.ts",
@@ -340,7 +346,9 @@
       ],
       "archetype": "workbench",
       "reference": "workbench.page.ts",
-      "designStatus": "review_required"
+      "designStatus": "review_required",
+      "contract": "docs/forge-finance-narrow-metrics-20260917.md",
+      "acceptance": "docs/evidence/finance-narrow-metrics-20260917/invoice_overview.json"
     },
     {
       "file": "finance-management.page.ts",
@@ -349,7 +357,9 @@
       ],
       "archetype": "task_workspace",
       "reference": "project-task-workspace.page.ts",
-      "designStatus": "review_required"
+      "designStatus": "review_required",
+      "contract": "docs/forge-finance-narrow-metrics-20260917.md",
+      "acceptance": "docs/evidence/finance-narrow-metrics-20260917/output_invoices.json"
     },
     {
       "file": "finance-management.page.ts",
