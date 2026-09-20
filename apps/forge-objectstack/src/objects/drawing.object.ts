@@ -6,16 +6,29 @@ const select = (label: string, options: Array<[string, string]>, defaultValue?: 
   { label, ...(defaultValue ? { defaultValue } : {}) },
 );
 
-const drawingTypes: Array<[string, string]> = [['assembly','装配图'],['part','零件图'],['electrical','电气图'],['process','工艺图'],['layout','布置图'],['foundation','基础图'],['piping','管路图'],['schematic','原理图'],['software','软件图'],['inspection','检验图'],['packaging','包装图'],['other','其他']];
-const drawingCategories: Array<[string, string]> = [['product','产品图纸'],['project','项目图纸'],['process','工艺图纸'],['equipment','设备图纸'],['tooling','工装图纸'],['quality','质量图纸'],['supplier','供应商图纸'],['customer','客户图纸'],['standard','标准图纸'],['other','其他']];
+const drawingTypes: Array<[string, string]> = [
+  ['assembly','装配图'],['part','零件图'],['electrical','电气图'],['schematic','原理图'],['layout','布置图'],['installation','安装图'],
+  ['construction','施工图'],['pid','P&ID图'],['control','控制图'],['network_topology','网络拓扑图'],['flowchart','流程图'],['manual','说明书'],
+  // Preserve values used by historical Forge records while new entry follows the current RISEMAP list.
+  ['process','工艺图'],['foundation','基础图'],['piping','管路图'],['software','软件图'],['inspection','检验图'],['packaging','包装图'],['other','其他'],
+];
+const drawingCategories: Array<[string, string]> = [
+  ['mechanical','机械图'],['electrical','电气图'],['hydraulic','液压图'],['pneumatic','气动图'],['pid','P&ID图'],['civil','土建图'],['control','控制图'],['purchased','外购件图'],['subcontract','外协件图'],['reference','参考图'],
+  // Legacy Forge categories remain readable for existing records.
+  ['product','产品图纸'],['project','项目图纸'],['process','工艺图纸'],['equipment','设备图纸'],['tooling','工装图纸'],['quality','质量图纸'],['supplier','供应商图纸'],['customer','客户图纸'],['standard','标准图纸'],['other','其他'],
+];
 
 // RM-073: the drawing number archive is the aggregate root for version, review, release, change and distribution.
 export const Drawing = master('forge_drawing', '图号档案', 'ruler', {
-  name: text('图纸名称', true), code: code('图号'), drawing_type: select('图纸类型', drawingTypes), category: select('图纸分类', drawingCategories),
+  name: text('图纸名称', true), short_name: text('图纸简称'), code: code('图号'), drawing_type: select('图纸类型', drawingTypes), category: select('图纸分类', drawingCategories),
   folder: text('所属文件夹'), department: text('所属部门'), controlled: Field.boolean({ label: '受控图纸', defaultValue: false }),
   controlled_number: text('受控编号'), controlled_copies: Field.number({ label: '受控份数', min: 1, scale: 0 }),
   confidentiality: select('保密等级', [['normal','普通'],['secret','秘密'],['confidential','机密']], 'normal'),
   material_id: reference('forge_material', '关联物料'), project_id: reference('forge_project', '关联项目'), supplier_id: reference('forge_supplier', '关联供应商'),
+  key_part: Field.boolean({ label: '关键件', defaultValue: false }), purchase_by_drawing: Field.boolean({ label: '按图采购', defaultValue: false }),
+  allow_old_version_substitution: Field.boolean({ label: '允许旧版本替代', defaultValue: false }), substitution_condition: Field.textarea({ label: '替代条件说明' }),
+  incoming_inspection: Field.boolean({ label: '来料质检', defaultValue: false }), first_article_confirmation: Field.boolean({ label: '首件确认', defaultValue: false }),
+  subcontractable: Field.boolean({ label: '可外协', defaultValue: false }), batch_traceable: Field.boolean({ label: '批次追溯', defaultValue: false }),
   current_version_id: reference('forge_drawing_version', '当前版本'), current_version: { ...text('当前版本号'), readonly: true },
   status: { ...select('状态', [['draft','草稿'],['reviewing','评审中'],['released','已发布'],['obsolete','已作废'],['archived','已归档']], 'draft'), readonly: true },
   allow_print: Field.boolean({ label: '允许打印', defaultValue: true }), allow_download: Field.boolean({ label: '允许下载', defaultValue: true }), watermark_required: Field.boolean({ label: '强制水印', defaultValue: false }),

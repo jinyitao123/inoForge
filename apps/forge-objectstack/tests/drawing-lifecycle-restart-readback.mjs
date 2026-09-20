@@ -32,6 +32,41 @@ const [drawing, v1, v2, release, cancelledRelease, change, distribution, custome
 ]);
 
 assert.equal(drawing.status, 'released');
+assert.deepEqual({
+  shortName: drawing.short_name,
+  type: drawing.drawing_type,
+  category: drawing.category,
+  department: drawing.department,
+  controlled: drawing.controlled,
+  controlledNumber: drawing.controlled_number,
+  controlledCopies: drawing.controlled_copies,
+  keyPart: drawing.key_part,
+  purchaseByDrawing: drawing.purchase_by_drawing,
+  oldVersion: drawing.allow_old_version_substitution,
+  condition: drawing.substitution_condition,
+  incoming: drawing.incoming_inspection,
+  firstArticle: drawing.first_article_confirmation,
+  subcontractable: drawing.subcontractable,
+  batchTraceable: drawing.batch_traceable,
+  versionRequired: drawing.version_required,
+}, {
+  shortName: '800 控制柜总装',
+  type: 'assembly',
+  category: 'mechanical',
+  department: '机械设计部',
+  controlled: true,
+  controlledNumber: 'CTRL-800-001',
+  controlledCopies: 3,
+  keyPart: true,
+  purchaseByDrawing: true,
+  oldVersion: true,
+  condition: '仅限已投产批次且须经工程负责人书面确认',
+  incoming: true,
+  firstArticle: true,
+  subcontractable: true,
+  batchTraceable: true,
+  versionRequired: true,
+});
 assert.ok(['V1.0', 'V1.1'].includes(drawing.current_version));
 assert.ok(['released', 'superseded'].includes(v1.status));
 assert.ok(['reviewed', 'released'].includes(v2.status));
