@@ -16,7 +16,7 @@ function App(){const adapter=useAdapter();
  async function find(object){return(await request('/data/'+object+'?$top=1000')).records||[]}
  async function load(){setState(s=>({...s,loading:true,error:''}));try{const objects=['forge_warehouse_type','forge_warehouse','forge_material','forge_material_sku','forge_bom','forge_bom_node','forge_inventory_balance','forge_other_inbound_type','forge_production_disassembly_reason','forge_production_replacement_reason','forge_drawing_business_setting','forge_drawing','forge_drawing_version','forge_supplier','forge_subcontract_supplier_profile','forge_subcontract_business_setting','forge_subcontract_processing_price','forge_subcontract_policy','forge_payment_condition'];const rows=await Promise.all(objects.map(find)),data=Object.fromEntries(objects.map((x,i)=>[x,rows[i]]));setState({loading:false,data,error:''})}catch(error){setState({loading:false,data:{},error:String(error.message||error)})}}
  React.useEffect(()=>{load()},[]);
- const d=state.data,active=x=>x.status==='active'||x.enabled===true||x.enabled===1||x.enabled==='1',count=(object,fn=()=>true)=>(d[object]||[]).filter(fn).length,categories=object=>new Set((d[object]||[]).filter(active).map(x=>x.category)).size;
+ const d=state.data,active=x=>x.status==='active'||x.enabled===true||x.enabled===1||x.enabled==='1',count=(object,fn=()=>true)=>(d[object]||[]).filter(fn).length,categories=object=>new Set((d[object]||[]).map(x=>x.category).filter(Boolean)).size;
  const checks={assembly:[
   ['仓库类型与仓库',count('forge_warehouse_type')>0&&count('forge_warehouse')>0,count('forge_warehouse')+' 个仓库可选',forgeBase+'/forge_warehouse'],
   ['物料与规格',count('forge_material')>0&&count('forge_material_sku')>0,count('forge_material')+' 项物料、'+count('forge_material_sku')+' 个规格',forgeBase+'/forge_material'],
@@ -25,7 +25,7 @@ function App(){const adapter=useAdapter();
   ['可用库存',count('forge_inventory_balance',x=>Number(x.available_quantity||0)>0)>0,count('forge_inventory_balance',x=>Number(x.available_quantity||0)>0)+' 项物料有可用库存',forgeBase+'/forge_inventory_balance'],
   ['拆解与改制原因',count('forge_production_disassembly_reason',active)>0&&count('forge_production_replacement_reason',active)>0,'拆解 '+count('forge_production_disassembly_reason',active)+'，改制 '+count('forge_production_replacement_reason',active),forgeBase+'/page/page_production_config'],
  ],drawing:[
-  ['图纸配置',categories('forge_drawing_business_setting')===9,categories('forge_drawing_business_setting')+' / 9 类已有可用值',forgeBase+'/page/page_drawing_business_config'],
+  ['图纸配置',categories('forge_drawing_business_setting')===9,categories('forge_drawing_business_setting')+' / 9 类已建档，无线上可用值的类别保留停用占位',forgeBase+'/page/page_drawing_business_config'],
   ['图号档案',count('forge_drawing')>0,count('forge_drawing')+' 个图号',forgeBase+'/page/page_drawing_workspace'],
   ['可用发布版本',count('forge_drawing_version',x=>x.status==='released')>0,count('forge_drawing_version',x=>x.status==='released')+' 个已发布版本',forgeBase+'/page/page_drawing_release'],
  ],subcontract:[
