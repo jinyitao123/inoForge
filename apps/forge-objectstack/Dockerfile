@@ -10,12 +10,13 @@
 # Docs: https://objectstack.ai/docs/deployment/self-hosting
 
 # ── Build stage: compile TypeScript metadata to the artifact ─────────
-FROM node:22-slim AS build
+FROM node:24.19.0-slim AS build
 WORKDIR /app
-COPY package*.json ./
-RUN npm ci
+RUN corepack enable
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+RUN pnpm install --frozen-lockfile
 COPY . .
-RUN npx os build              # → dist/objectstack.json
+RUN pnpm build                # → dist/objectstack.json
 
 # ── Runtime: the official ObjectStack runtime image ──────────────────
 # Ships Node + @objectstack/cli with `os start`, a non-root user, the
@@ -26,7 +27,7 @@ RUN npx os build              # → dist/objectstack.json
 # not be resolved for you. `latest` floats to whatever release is newest,
 # which is unrelated to the @objectstack/cli your app resolves — pin it to
 # that version, the CLI that builds your artifact, before you deploy.
-FROM ghcr.io/objectstack-ai/objectstack:latest
+FROM ghcr.io/objectstack-ai/objectstack:17.4.0
 COPY --from=build --chown=node:node /app/dist/objectstack.json /srv/app/objectstack.json
 
 # OS_DATABASE_URL, OS_AUTH_SECRET, and OS_SECRET_KEY are injected at runtime —
