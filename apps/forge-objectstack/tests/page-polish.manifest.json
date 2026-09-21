@@ -59,6 +59,16 @@
       "reference": "project-timesheet-cost.page.ts",
       "designStatus": "review_required",
       "contract": "docs/evidence/reports-system-placeholders-20260921/page-profit-loss.md"
+    },
+    {
+      "file": "management-profit-report.page.ts",
+      "pages": [
+        "page_management_profit_report"
+      ],
+      "archetype": "analysis",
+      "reference": "project-timesheet-cost.page.ts",
+      "designStatus": "review_required",
+      "contract": "docs/evidence/reports-system-placeholders-20260921/page-management-profit-report.md"
     }
   ],
   "administration": [
