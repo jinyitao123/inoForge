@@ -1,4 +1,16 @@
 {
+  "reports": [
+    {
+      "file": "sales-statistics.page.ts",
+      "pages": [
+        "page_sales_statistics"
+      ],
+      "archetype": "analysis",
+      "reference": "project-timesheet-cost.page.ts",
+      "designStatus": "review_required",
+      "contract": "docs/evidence/reports-system-placeholders-20260921/page-sales-statistics.md"
+    }
+  ],
   "administration": [
     {
       "file": "approval-center.page.ts",
