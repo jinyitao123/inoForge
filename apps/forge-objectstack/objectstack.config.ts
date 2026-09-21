@@ -298,7 +298,7 @@ export default defineStack({
             page('finance_overview', '财务总览', 'page_finance_overview', 'layout-dashboard'),
             page('profit_loss', '损益分析', 'page_profit_loss', 'chart-pie'),
             page('management_profit_report', '管理利润表', 'page_management_profit_report', 'file-chart-column'),
-            page('fund_analysis', '资金分析', 'page_reports_gap', 'chart-line'),
+            page('fund_analysis', '资金分析', 'page_fund_analysis', 'chart-line'),
             page('receivable_report', '往来账款', 'page_reports_gap', 'scale'),
             page('tax_inventory', '税务库存', 'page_reports_gap', 'file-chart-column'),
             page('risk_monitoring', '风险监控', 'page_reports_gap', 'shield-alert'),

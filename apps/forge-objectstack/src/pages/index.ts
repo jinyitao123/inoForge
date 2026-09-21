@@ -77,6 +77,7 @@ export * from './assembly-statistics.page.js';
 export * from './finance-overview.page.js';
 export * from './profit-loss.page.js';
 export * from './management-profit-report.page.js';
+export * from './fund-analysis.page.js';
 export * from './sales-invoice-request.page.js';
 export * from './sales-return-workspace.page.js';
 export * from './sales-additional-fee.page.js';
