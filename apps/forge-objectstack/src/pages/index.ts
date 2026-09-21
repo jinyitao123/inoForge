@@ -84,6 +84,7 @@ export * from './risk-monitoring.page.js';
 export * from './finance-business-config.page.js';
 export * from './administration-business-config.page.js';
 export * from './other-business-config.page.js';
+export * from './hr-business-config.page.js';
 export * from './sales-invoice-request.page.js';
 export * from './sales-return-workspace.page.js';
 export * from './sales-additional-fee.page.js';
