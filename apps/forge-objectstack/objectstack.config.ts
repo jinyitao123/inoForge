@@ -3,6 +3,7 @@ import * as objects from './src/objects/index.js';
 import * as actions from './src/actions/index.js';
 import * as pages from './src/pages/index.js';
 import * as hooks from './src/hooks/index.js';
+import * as seedData from './src/data/index.js';
 
 const object = (id: string, label: string, objectName: string, icon?: string) => ({
   id, type: 'object' as const, label, objectName, ...(icon ? { icon } : {}),
@@ -35,6 +36,7 @@ export default defineStack({
     engines: { protocol: '>=17.3.0 <18' },
   },
   objects: Object.values(objects),
+  data: Object.values(seedData),
   actions: Object.values(actions),
   hooks: Object.values(hooks),
   pages: Object.values(pages),
@@ -306,17 +308,7 @@ export default defineStack({
         ],
       },
       {
-        id: 'system', label: '系统', icon: 'settings', navigation: [
-          group('system_settings', '系统设置', [
-            page('system_base_config', '基础配置', 'page_system_gap', 'settings-2'),
-            page('system_users_roles', '用户与角色', 'page_system_gap', 'users'),
-            page('system_departments', '部门管理', 'page_system_gap', 'network'),
-            page('system_sessions', '用户会话', 'page_system_gap', 'monitor'),
-            page('system_audit', '审计日志', 'page_system_gap', 'scroll-text'),
-          ]),
-          group('business_settings', '业务设置', [
-          group('finance_settings', '财务配置', [page('finance_config_gap', '财务配置', 'page_system_gap', 'landmark')]),
-          group('administration_settings', '行政管理', [page('administration_config_gap', '行政管理', 'page_system_gap', 'building')]),
+        id: 'business_settings', label: '业务设置', icon: 'settings', navigation: [
           group('material_settings', '商品管理', [
             object('material_skus', '规格与价格', 'forge_material_sku', 'boxes'),
             object('material_categories', '物料分类', 'forge_material_category', 'tags'),
@@ -341,6 +333,8 @@ export default defineStack({
           group('project_business_settings', '项目管理', [
             object('project_types', '项目类型', 'forge_project_type', 'tags'),
           ]),
+          group('finance_settings', '财务配置', [page('finance_business_config', '付款方式与费用类别', 'page_finance_business_config', 'landmark')]),
+          group('administration_settings', '行政管理', [page('administration_config_gap', '行政管理配置', 'page_system_gap', 'building')]),
           group('other_settings', '其他配置', [page('other_config_gap', '其他配置', 'page_system_gap', 'sliders-horizontal')]),
           group('hr_settings', '人事配置', [page('hr_config_gap', '人事配置', 'page_system_gap', 'users')]),
           group('drawing_settings', '图纸配置', [page('drawing_business_config', '图纸配置', 'page_drawing_business_config', 'ruler')]),
@@ -354,7 +348,6 @@ export default defineStack({
           group('service_subscription', '服务订阅', [page('service_subscription_gap', '服务订阅', 'page_system_gap', 'rss')]),
           group('promotion_rewards', '推广奖励', [page('promotion_rewards_gap', '推广奖励', 'page_system_gap', 'award')]),
           group('field_management', '字段管理', [page('field_management_gap', '字段管理', 'page_system_gap', 'list')]),
-          ]),
         ],
       },
     ],

@@ -81,6 +81,7 @@ export * from './fund-analysis.page.js';
 export * from './current-account-analysis.page.js';
 export * from './tax-inventory-analysis.page.js';
 export * from './risk-monitoring.page.js';
+export * from './finance-business-config.page.js';
 export * from './sales-invoice-request.page.js';
 export * from './sales-return-workspace.page.js';
 export * from './sales-additional-fee.page.js';
