@@ -30,3 +30,24 @@ export const BusinessSettingOption = ObjectSchema.create({
   ],
   enable: { apiEnabled: true, searchable: true, trackHistory: true, feeds: false, activities: false },
 });
+
+export const MeetingRoom = ObjectSchema.create({
+  name: 'forge_meeting_room',
+  label: '会议室',
+  pluralLabel: '会议室',
+  description: '行政日程预约使用的会议室主数据',
+  icon: 'map-pin',
+  sharingModel: 'public_read_write',
+  nameField: 'name',
+  searchableFields: ['name', 'location', 'description'],
+  fields: {
+    name: Field.text({ label: '会议室名称', maxLength: 120, ...required }),
+    location: Field.text({ label: '位置', maxLength: 200, ...required }),
+    capacity: Field.number({ label: '容量', min: 1, scale: 0, ...required }),
+    enabled: Field.boolean({ label: '启用', defaultValue: true }),
+    description: Field.textarea({ label: '备注', maxLength: 500 }),
+  },
+  listViews: { all: { label: '全部会议室', type: 'grid', columns: ['name', 'location', 'capacity', 'enabled'] } },
+  indexes: [{ fields: ['name'], unique: 'organization' }, { fields: ['enabled', 'capacity'] }],
+  enable: { apiEnabled: true, searchable: true, trackHistory: true, feeds: false, activities: false },
+});
