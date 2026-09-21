@@ -86,6 +86,7 @@ export * from './administration-business-config.page.js';
 export * from './other-business-config.page.js';
 export * from './hr-business-config.page.js';
 export * from './project-business-config.page.js';
+export * from './print-business-config.page.js';
 export * from './sales-invoice-request.page.js';
 export * from './sales-return-workspace.page.js';
 export * from './sales-additional-fee.page.js';

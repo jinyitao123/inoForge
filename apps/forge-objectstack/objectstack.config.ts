@@ -343,7 +343,7 @@ export default defineStack({
             page('subcontract_business_config', '委外字典', 'page_subcontract_business_config', 'truck'),
             page('subcontract_policy', '委外控制规则', 'page_subcontract_policy', 'shield-check'),
           ]),
-          group('document_printing', '单据打印', [page('document_printing_gap', '单据打印', 'page_system_gap', 'printer')]),
+          group('document_printing', '单据打印', [page('document_printing', '单据打印', 'page_print_business_config', 'printer')]),
           group('plugin_center', '插件中心', [page('plugin_center_gap', '插件中心', 'page_system_gap', 'blocks')]),
           group('service_subscription', '服务订阅', [page('service_subscription_gap', '服务订阅', 'page_system_gap', 'rss')]),
           group('promotion_rewards', '推广奖励', [page('promotion_rewards_gap', '推广奖励', 'page_system_gap', 'award')]),
