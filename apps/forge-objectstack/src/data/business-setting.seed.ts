@@ -55,7 +55,9 @@ const hrSettings: Array<[string, string[]]> = [
 
 export const BusinessSettingSeed = defineSeed(BusinessSettingOption, {
   externalId: 'code',
-  mode: 'upsert',
+  // These rows become tenant-owned configuration after bootstrap. Reapplying
+  // authored defaults would undo page edits and recreate deleted options.
+  mode: 'ignore',
   records: [
     ...paymentMethods.map((name, index) => ({ name, code: `finance_payment_${index + 1}`, scope: 'finance', setting_type: 'payment_method', description: `${name}付款方式`, enabled: true, system_record: true, sort_order: (index + 1) * 10 })),
     ...expenseCategories.map(([code, name, parent_code, sort_order]) => ({ name, code: `finance_expense_${code}`, scope: 'finance', setting_type: 'expense_category', parent_code: parent_code ? `finance_expense_${parent_code}` : null, description: `${name}分类`, enabled: true, system_record: true, sort_order })),
@@ -66,6 +68,7 @@ export const BusinessSettingSeed = defineSeed(BusinessSettingOption, {
 
 export const HrLeaveConfigSeed = defineSeed(HrLeaveConfig, {
   externalId: 'name',
-  mode: 'upsert',
+  // Preserve the administrator's saved rule across process restarts.
+  mode: 'ignore',
   records: [{ name: '全局请假规则', minimum_minutes: 30, deduct_lunch: false, cross_shift_strategy: '按起始日班次' }],
 });
