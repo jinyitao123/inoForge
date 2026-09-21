@@ -179,3 +179,28 @@ export const ProjectCostEntry = master('forge_project_cost_entry', '项目成本
   status: { ...select('归集状态', [['unallocated', '待归集'], ['allocated', '已归集'], ['suspended', '暂挂'], ['reversed', '已冲销']], 'unallocated'), readonly: true },
   responsible_id: owner(true), remarks: remarks(),
 }, ['code', 'source_type', 'cost_type', 'name', 'customer_id', 'project_id', 'occurred_on', 'total_amount', 'allocated_amount', 'remaining_amount', 'status']);
+
+// RISEMAP project detail keeps project files, journal entries and per-user tab visibility as project-scoped records.
+export const ProjectAttachment = master('forge_project_attachment', '项目附件', 'paperclip', {
+  name: text('附件名称', true), project_id: reference('forge_project', '项目', true),
+  file_ids: Field.file({ label: '附件文件', multiple: true }), uploaded_by: Field.user({ label: '上传人', ...required }),
+  uploaded_at: Field.datetime({ label: '上传时间', ...required }), remarks: remarks(),
+}, ['project_id', 'name', 'file_ids', 'uploaded_by', 'uploaded_at']);
+
+export const ProjectLog = master('forge_project_log', '项目日志', 'notebook-pen', {
+  name: text('日志标题', true), project_id: reference('forge_project', '项目', true),
+  category: select('日志分类', [
+    ['change', '变更记录'], ['issue', '问题反馈'], ['progress', '日常进展'], ['decision', '决策记录'],
+    ['stage_summary', '阶段总结'], ['risk', '风险预警'], ['milestone', '里程碑达成'],
+    ['internal', '内部讨论'], ['external', '外部协调'], ['customer', '客户沟通'],
+  ], 'progress'),
+  content: Field.textarea({ label: '日志内容', ...required }), author_id: Field.user({ label: '记录人', ...required }),
+  logged_at: Field.datetime({ label: '记录时间', ...required }), risk_resolved: Field.boolean({ label: '风险已解除', defaultValue: false }),
+  reply_count: Field.number({ label: '回复数', min: 0, scale: 0, defaultValue: 0 }), remarks: remarks(),
+}, ['project_id', 'category', 'name', 'author_id', 'logged_at', 'risk_resolved', 'reply_count']);
+
+export const ProjectModulePreference = master('forge_project_module_preference', '项目功能模块偏好', 'sliders-horizontal', {
+  name: text('偏好名称', true), preference_key: code('偏好编号'), project_id: reference('forge_project', '项目', true),
+  user_id: Field.user({ label: '用户', ...required }), enabled_modules_json: Field.textarea({ label: '启用模块(JSON)', ...required }),
+  saved_at: Field.datetime({ label: '保存时间', ...required }),
+}, ['project_id', 'user_id', 'enabled_modules_json', 'saved_at']);
