@@ -99,6 +99,16 @@
       "reference": "project-timesheet-cost.page.ts",
       "designStatus": "review_required",
       "contract": "docs/evidence/reports-system-placeholders-20260921/page-tax-inventory-analysis.md"
+    },
+    {
+      "file": "risk-monitoring.page.ts",
+      "pages": [
+        "page_risk_monitoring"
+      ],
+      "archetype": "analysis",
+      "reference": "project-timesheet-cost.page.ts",
+      "designStatus": "review_required",
+      "contract": "docs/evidence/reports-system-placeholders-20260921/page-risk-monitoring.md"
     }
   ],
   "administration": [
