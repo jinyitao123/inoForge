@@ -122,6 +122,12 @@ return { id: contractId, quotation_id: id, line_count: lines.length };
 
 export const ContractSubmit = defineAction({
   name: 'contract_submit', label: '提交审批', objectName: 'forge_sales_contract', icon: 'send', locations: [...locations], order: 10,
+  ai: {
+    exposed: true,
+    description: '以当前员工身份提交一份草稿销售合同。提交前校验来源报价、合同明细和金额，成功后合同进入待审批状态。',
+    category: 'action',
+    requiresConfirmation: false,
+  },
   visible: `record.status == 'draft'`, confirmText: '提交前将校验来源报价和合同金额，是否继续？', refreshAfter: true,
   successMessage: '合同已提交审批',
   body: {
