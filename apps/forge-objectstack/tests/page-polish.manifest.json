@@ -19,6 +19,16 @@
       "reference": "project-timesheet-cost.page.ts",
       "designStatus": "review_required",
       "contract": "docs/evidence/reports-system-placeholders-20260921/page-purchase-statistics.md"
+    },
+    {
+      "file": "inventory-statistics.page.ts",
+      "pages": [
+        "page_inventory_statistics"
+      ],
+      "archetype": "analysis",
+      "reference": "project-timesheet-cost.page.ts",
+      "designStatus": "review_required",
+      "contract": "docs/evidence/reports-system-placeholders-20260921/page-inventory-statistics.md"
     }
   ],
   "administration": [
