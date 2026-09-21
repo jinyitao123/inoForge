@@ -141,6 +141,16 @@
       "reference": "project-timesheet-cost.page.ts",
       "designStatus": "review_required",
       "contract": "docs/evidence/system-placeholders-20260921/page-other-business-config.md"
+    },
+    {
+      "file": "hr-business-config.page.ts",
+      "pages": [
+        "page_hr_business_config"
+      ],
+      "archetype": "configuration",
+      "reference": "project-timesheet-cost.page.ts",
+      "designStatus": "review_required",
+      "contract": "docs/evidence/system-placeholders-20260921/page-hr-business-config.md"
     }
   ],
   "administration": [

@@ -1,5 +1,5 @@
 import { defineSeed } from '@objectstack/spec/data';
-import { BusinessSettingOption } from '../objects/business-setting.object.js';
+import { BusinessSettingOption, HrLeaveConfig } from '../objects/business-setting.object.js';
 
 const paymentMethods = ['银行转账', '支付宝', '微信支付', '现金', '支票', '其他', '电汇', '承兑汇票', '在线支付', '信用证'];
 const expenseCategories: Array<[string, string, string | null, number]> = [
@@ -44,6 +44,15 @@ const administrationSettings: Array<[string, string, string[]]> = [
   ['declaration_stage', 'stage', ['待评估', '准备材料', '已提交', '形式审查', '专家评审', '公示中', '已立项', '补材料中', '已拨付', '已驳回']],
 ];
 
+const hrSettings: Array<[string, string[]]> = [
+  ['correction_type', ['上班补签', '下班补签', '上下班补签', '外勤补签', '出差补签', '加班补签', '夜班/跨天补签', '排班异常补签', '系统/设备异常补签', '管理员修正补签']],
+  ['shift_type', ['常白班', '早班', '中班', '夜班', '两班倒', '三班倒', '综合工时', '弹性工时']],
+  ['holiday_type', ['法定节假日', '周末双休', '调休工作日', '公司福利假', '地区性假日', '临时停工日']],
+  ['recruitment_channel', ['BOSS直聘', '智联招聘', '前程无忧', '猎聘网', '拉勾网', '脉脉', '领英', '猎头服务', '内部推荐', '校园招聘', '线下招聘会', '官网投递', '其他']],
+  ['handbook_category', ['入职指南', '行为规范', '公司概况', '培训发展', '薪酬福利', '离职指南', '报销流程', '考勤与假期', 'IT使用指南', '安全生产', '办公协作']],
+  ['policy_category', ['信息安全', '保密制度', '知识产权', '财务制度', '人事制度', '商务合规', '行政管理', '销售管理', '采购管理', '安全管理', '质量管理', '技术研发']],
+];
+
 export const BusinessSettingSeed = defineSeed(BusinessSettingOption, {
   externalId: 'code',
   mode: 'upsert',
@@ -51,5 +60,12 @@ export const BusinessSettingSeed = defineSeed(BusinessSettingOption, {
     ...paymentMethods.map((name, index) => ({ name, code: `finance_payment_${index + 1}`, scope: 'finance', setting_type: 'payment_method', description: `${name}付款方式`, enabled: true, system_record: true, sort_order: (index + 1) * 10 })),
     ...expenseCategories.map(([code, name, parent_code, sort_order]) => ({ name, code: `finance_expense_${code}`, scope: 'finance', setting_type: 'expense_category', parent_code: parent_code ? `finance_expense_${parent_code}` : null, description: `${name}分类`, enabled: true, system_record: true, sort_order })),
     ...administrationSettings.flatMap(([setting_type, codePrefix, names]) => names.map((name, index) => ({ name, code: `administration_${codePrefix}_${index + 1}`, scope: 'administration', setting_type, description: `${name}${setting_type === 'meeting_type' ? '会议类型' : '行政配置'}`, enabled: true, system_record: true, sort_order: (index + 1) * 10 }))),
+    ...hrSettings.flatMap(([setting_type, names]) => names.map((name, index) => ({ name, code: `hr_${setting_type}_${index + 1}`, scope: 'hr', setting_type, option_value: ['correction_type', 'shift_type', 'holiday_type'].includes(setting_type) ? String(index) : null, icon_name: ['handbook_category', 'policy_category'].includes(setting_type) ? 'file-text' : null, color: ['handbook_category', 'policy_category'].includes(setting_type) ? '#0052CC' : null, description: null, enabled: true, system_record: true, sort_order: index + 1 }))),
   ],
+});
+
+export const HrLeaveConfigSeed = defineSeed(HrLeaveConfig, {
+  externalId: 'name',
+  mode: 'upsert',
+  records: [{ name: '全局请假规则', minimum_minutes: 30, deduct_lunch: false, cross_shift_strategy: '按起始日班次' }],
 });

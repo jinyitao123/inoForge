@@ -336,7 +336,7 @@ export default defineStack({
           group('finance_settings', '财务配置', [page('finance_business_config', '付款方式与费用类别', 'page_finance_business_config', 'landmark')]),
           group('administration_settings', '行政管理', [page('administration_business_config', '行政管理配置', 'page_administration_business_config', 'building')]),
           group('other_settings', '其他配置', [page('other_business_config', '其他配置', 'page_other_business_config', 'sliders-horizontal')]),
-          group('hr_settings', '人事配置', [page('hr_config_gap', '人事配置', 'page_system_gap', 'users')]),
+          group('hr_settings', '人事配置', [page('hr_business_config', '人事配置', 'page_hr_business_config', 'users')]),
           group('drawing_settings', '图纸配置', [page('drawing_business_config', '图纸配置', 'page_drawing_business_config', 'ruler')]),
           group('production_settings', '生产配置', [page('production_config', '生产配置', 'page_production_config', 'factory')]),
           group('subcontract_settings', '委外配置', [

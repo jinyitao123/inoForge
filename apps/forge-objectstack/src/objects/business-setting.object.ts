@@ -16,6 +16,9 @@ export const BusinessSettingOption = ObjectSchema.create({
     scope: Field.text({ label: '业务范围', maxLength: 80, ...required }),
     setting_type: Field.text({ label: '设置类型', maxLength: 80, ...required }),
     parent_code: Field.text({ label: '上级编码', maxLength: 100 }),
+    option_value: Field.text({ label: '选项值', maxLength: 100 }),
+    icon_name: Field.text({ label: '图标', maxLength: 80 }),
+    color: Field.text({ label: '主题色', maxLength: 30 }),
     description: Field.textarea({ label: '说明', maxLength: 500 }),
     enabled: Field.boolean({ label: '启用', defaultValue: true }),
     system_record: Field.boolean({ label: '系统预置', defaultValue: false }),
@@ -49,5 +52,44 @@ export const MeetingRoom = ObjectSchema.create({
   },
   listViews: { all: { label: '全部会议室', type: 'grid', columns: ['name', 'location', 'capacity', 'enabled'] } },
   indexes: [{ fields: ['name'], unique: 'organization' }, { fields: ['enabled', 'capacity'] }],
+  enable: { apiEnabled: true, searchable: true, trackHistory: true, feeds: false, activities: false },
+});
+
+export const HrLeaveConfig = ObjectSchema.create({
+  name: 'forge_hr_leave_config',
+  label: '请假配置',
+  pluralLabel: '请假配置',
+  description: '请假最小单位与跨时段处理规则',
+  icon: 'settings',
+  sharingModel: 'public_read_write',
+  nameField: 'name',
+  fields: {
+    name: Field.text({ label: '配置名称', maxLength: 80, ...required }),
+    minimum_minutes: Field.number({ label: '最小请假单位', min: 15, scale: 0, defaultValue: 30, ...required }),
+    deduct_lunch: Field.boolean({ label: '跨午休自动扣减', defaultValue: false }),
+    cross_shift_strategy: Field.text({ label: '跨班次处理策略', maxLength: 100, defaultValue: '按起始日班次', ...required }),
+  },
+  indexes: [{ fields: ['name'], unique: 'organization' }],
+  enable: { apiEnabled: true, searchable: false, trackHistory: true, feeds: false, activities: false },
+});
+
+export const HrSalaryItem = ObjectSchema.create({
+  name: 'forge_hr_salary_item',
+  label: '工资项',
+  pluralLabel: '工资项',
+  description: '工资条模板中的收入项与扣款项',
+  icon: 'badge-dollar-sign',
+  sharingModel: 'public_read_write',
+  nameField: 'name',
+  searchableFields: ['name', 'code'],
+  fields: {
+    code: Field.text({ label: '编码', maxLength: 80, ...required }),
+    name: Field.text({ label: '名称', maxLength: 120, ...required }),
+    item_type: Field.select({ label: '类型', options: [{ label: '收入', value: 'income' }, { label: '扣款', value: 'deduction' }], defaultValue: 'income', ...required }),
+    required_item: Field.boolean({ label: '必填', defaultValue: false }),
+    enabled: Field.boolean({ label: '启用', defaultValue: true }),
+    sort_order: Field.number({ label: '排序', min: 0, scale: 0, defaultValue: 0 }),
+  },
+  indexes: [{ fields: ['code'], unique: 'organization' }, { fields: ['item_type', 'sort_order'] }],
   enable: { apiEnabled: true, searchable: true, trackHistory: true, feeds: false, activities: false },
 });
