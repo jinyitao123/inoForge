@@ -40,6 +40,8 @@ const receipts = await find('forge_cash_receipt');
 assert.equal(project.customer_id, customer.id);
 assert.equal(project.status, 'in_progress');
 assert.equal(project.contract_amount, 243200);
+assert.equal(project.invoice_amount, 243200);
+assert.equal(project.collected_amount, 243200);
 assert.equal(plan.status, 'active');
 assert.equal(phase.name, '审计走查-方案设计与交付执行');
 assert.equal(phase.status, 'pending');
@@ -50,9 +52,14 @@ assert.equal(contract.quotation_id, quotation.id);
 assert.equal(contract.status, 'active');
 assert.equal(contract.total_amount, 243200);
 assert.equal(order.contract_id, contract.id);
-assert.equal(order.status, 'active');
+assert.equal(order.status, 'shipped');
 assert.equal(order.total_amount, 243200);
+assert.equal(order.shipped_amount, 243200);
+assert.equal(order.invoiced_amount, 243200);
+assert.equal(order.collected_amount, 243200);
 assert.equal(orderLine.quantity, 2);
+assert.equal(orderLine.shipped_quantity, 2);
+assert.equal(orderLine.invoiced_quantity, 2);
 assert.equal(orderLine.item_code, 'FG-RM-CAB-800');
 assert.equal(link.order_id, order.id);
 assert.equal(link.contract_id, contract.id);
@@ -60,10 +67,10 @@ assert.equal(link.order_amount, 243200);
 assert.equal(bom.status, 'active');
 assert.equal(bom.node_count, 4);
 assert.equal(shipmentLine.order_id, order.id);
-assert.equal(shipment.status, 'pending_shipment');
+assert.equal(shipment.status, 'outbounded');
 assert.equal(shipment.total_quantity, 2);
-assert.equal(shipment.outbound_quantity, 0);
-assert.equal(shipment.total_amount, 256000);
+assert.equal(shipment.outbound_quantity, 2);
+assert.equal(shipment.total_amount, 243200);
 assert.equal(invoice.status, 'settled');
 assert.equal(invoice.total_amount, 243200);
 assert.equal(receivable.status, 'settled');
@@ -113,17 +120,7 @@ const gaps = [
   {
     id: 'G02',
     severity: 'blocker',
-    finding: '发货单仍为待发货且出库数量为0，没有调试、交付包、客户验收或项目结算。',
-  },
-  {
-    id: 'G03',
-    severity: 'blocker',
-    finding: 'Forge 已有结清发票与243200元已审批核销，但销售订单、合同和项目的开票汇总仍为0或空。',
-  },
-  {
-    id: 'G04',
-    severity: 'high',
-    finding: '发货单按折前金额256000元建单，而订单合同金额为折后243200元。',
+    finding: '销售出库已按来源回读，但没有调试、交付包、客户验收或项目结算。',
   },
   {
     id: 'G05',
@@ -134,7 +131,7 @@ const gaps = [
 
 const report = {
   kind: 'otc-same-material-audit-walkthrough-readback',
-  status: 'blocked_before-procurement-and-production',
+  status: 'blocked_before-procurement-production-and-delivery-acceptance',
   endpoint,
   database,
   restartReadback: process.argv.includes('--restart'),
@@ -153,12 +150,17 @@ const report = {
   observed: {
     project: { status: project.status, progress: project.progress, contractAmount: project.contract_amount, invoiceAmount: project.invoice_amount, collectedAmount: project.collected_amount },
     plan: { status: plan.status, itemCount: plan.item_count, phase: phase.name, phaseStatus: phase.status },
-    commercial: { quotationStatus: quotation.status, contractStatus: contract.status, orderStatus: order.status, orderAmount: order.total_amount },
+    commercial: { quotationStatus: quotation.status, contractStatus: contract.status, orderStatus: order.status, orderAmount: order.total_amount, shippedAmount: order.shipped_amount, invoicedAmount: order.invoiced_amount, collectedAmount: order.collected_amount },
     supplyAndProduction: { purchaseOrders: 0, assemblies: 0, subcontractOrders: 0 },
     shipment: { status: shipment.status, quantity: shipment.total_quantity, outboundQuantity: shipment.outbound_quantity, amount: shipment.total_amount },
     delivery: { commissioningRecords: 0, deliveryPackages: 0, customerAcceptances: 0 },
     finance: { invoiceStatus: invoice.status, invoiceAmount: invoice.total_amount, receivableStatus: receivable.status, approvedAllocatedAmount, projectSettlementCount: 0 },
   },
+  resolved: [
+    '已按实际出库回读订单行与发货单，状态为已出库，数量为2。',
+    '发货金额已从折前256000元校正为订单折后243200元。',
+    '订单、合同、项目的开票和回款汇总已与有效发票、应收和已审核核销一致。',
+  ],
   gaps,
   boundary: '该结果只证明独立 Forge 数据库中的同一材料现状与断点；RISEMAP 同材料结果必须以浏览器实时页面单独记录，不能由本报告替代。',
 };
