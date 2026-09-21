@@ -29,6 +29,16 @@
       "reference": "project-timesheet-cost.page.ts",
       "designStatus": "review_required",
       "contract": "docs/evidence/reports-system-placeholders-20260921/page-inventory-statistics.md"
+    },
+    {
+      "file": "assembly-statistics.page.ts",
+      "pages": [
+        "page_assembly_statistics"
+      ],
+      "archetype": "analysis",
+      "reference": "project-timesheet-cost.page.ts",
+      "designStatus": "review_required",
+      "contract": "docs/evidence/reports-system-placeholders-20260921/page-assembly-statistics.md"
     }
   ],
   "administration": [
