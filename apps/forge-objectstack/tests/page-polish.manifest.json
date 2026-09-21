@@ -39,6 +39,16 @@
       "reference": "project-timesheet-cost.page.ts",
       "designStatus": "review_required",
       "contract": "docs/evidence/reports-system-placeholders-20260921/page-assembly-statistics.md"
+    },
+    {
+      "file": "finance-overview.page.ts",
+      "pages": [
+        "page_finance_overview"
+      ],
+      "archetype": "analysis",
+      "reference": "project-timesheet-cost.page.ts",
+      "designStatus": "review_required",
+      "contract": "docs/evidence/reports-system-placeholders-20260921/page-finance-overview.md"
     }
   ],
   "administration": [
