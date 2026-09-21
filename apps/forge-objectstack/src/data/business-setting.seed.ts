@@ -1,5 +1,6 @@
 import { defineSeed } from '@objectstack/spec/data';
 import { BusinessSettingOption, HrLeaveConfig } from '../objects/business-setting.object.js';
+import { DrawingBusinessSetting } from '../objects/production-prerequisite.object.js';
 
 const paymentMethods = ['银行转账', '支付宝', '微信支付', '现金', '支票', '其他', '电汇', '承兑汇票', '在线支付', '信用证'];
 const expenseCategories: Array<[string, string, string | null, number]> = [
@@ -62,6 +63,21 @@ const projectSettings: Array<[string, string[]]> = [
   ['plan_template_category', ['默认分类']],
 ];
 
+const drawingSettings: Array<[string, string[]]> = [
+  ['drawing_type', ['装配图', '零件图', '电气图', '原理图', '布置图', '安装图', '施工图', 'P&ID图', '控制图', '网络拓扑图', '流程图', '说明书']],
+  ['drawing_category', ['机械图', '电气图', '液压图', '气动图', 'P&ID图', '土建图', '控制图', '外购件图', '外协件图', '参考图']],
+  ['change_type', ['设计变更', '工艺变更', '材料变更', '规格变更', '客户变更', '采购替代', '紧急变更', '临时变更']],
+  ['version_type', ['初版(V0.1)', '内部评审版(VR1)', '客户评审版(A1)', '正式版(V1.0)', '修订版(V1.x)', '终版/归档', '临时版', '试制版']],
+  ['review_category', ['设计评审', '工艺评审', '安全评审', '质量评审', '成本评审', '可靠性评审', '可制造性评审', '环境评审', '客户评审', '综合评审']],
+  ['issue_category', ['尺寸', '干涉', '工艺', '材料', '标准', '可采购', '装配', '风险', '标注', '其他']],
+  ['issue_severity', ['致命(P0/阻塞)', '严重(P1)', '一般(P2)', '建议(P3)']],
+];
+const drawingCodePrefixes: Record<string, string> = {
+  drawing_type: 'DRAW-TYPE', drawing_category: 'DRAW-CAT', change_type: 'DRAW-CHANGE',
+  version_type: 'DRAW-VERSION', review_category: 'DRAW-REVIEW', issue_category: 'DRAW-ISSUE',
+  issue_severity: 'DRAW-SEVERITY',
+};
+
 export const BusinessSettingSeed = defineSeed(BusinessSettingOption, {
   externalId: 'code',
   // These rows become tenant-owned configuration after bootstrap. Reapplying
@@ -81,4 +97,19 @@ export const HrLeaveConfigSeed = defineSeed(HrLeaveConfig, {
   // Preserve the administrator's saved rule across process restarts.
   mode: 'ignore',
   records: [{ name: '全局请假规则', minimum_minutes: 30, deduct_lunch: false, cross_shift_strategy: '按起始日班次' }],
+});
+
+export const DrawingBusinessSettingSeed = defineSeed(DrawingBusinessSetting, {
+  externalId: 'code',
+  // Mirror the currently visible RISEMAP defaults once, then preserve tenant edits.
+  mode: 'ignore',
+  records: drawingSettings.flatMap(([category, names]) => names.map((name, index) => ({
+    name,
+    code: `${drawingCodePrefixes[category]}-${String(index + 1).padStart(2, '0')}`,
+    category,
+    description: null,
+    color: '#245bdb',
+    enabled: true,
+    sort_order: index,
+  }))),
 });

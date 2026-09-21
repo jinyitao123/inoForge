@@ -161,6 +161,16 @@
       "reference": "project-timesheet-cost.page.ts",
       "designStatus": "review_required",
       "contract": "docs/evidence/system-placeholders-20260921/page-project-business-config.md"
+    },
+    {
+      "file": "business-prerequisite-config.page.ts",
+      "pages": [
+        "page_drawing_business_config"
+      ],
+      "archetype": "configuration",
+      "reference": "project-timesheet-cost.page.ts",
+      "designStatus": "review_required",
+      "contract": "docs/evidence/system-placeholders-20260921/page-drawing-business-config.md"
     }
   ],
   "administration": [
