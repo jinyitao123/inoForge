@@ -300,7 +300,7 @@ export default defineStack({
             page('management_profit_report', '管理利润表', 'page_management_profit_report', 'file-chart-column'),
             page('fund_analysis', '资金分析', 'page_fund_analysis', 'chart-line'),
             page('receivable_report', '往来账款', 'page_current_account_analysis', 'scale'),
-            page('tax_inventory', '税务库存', 'page_reports_gap', 'file-chart-column'),
+            page('tax_inventory', '税务库存', 'page_tax_inventory_analysis', 'file-chart-column'),
             page('risk_monitoring', '风险监控', 'page_reports_gap', 'shield-alert'),
           ]),
         ],
