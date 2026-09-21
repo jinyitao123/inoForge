@@ -291,7 +291,7 @@ export default defineStack({
           group('business_reports', '报表', [
             page('sales_statistics', '销售统计', 'page_sales_statistics', 'chart-column'),
             page('purchase_statistics', '采购统计', 'page_purchase_statistics', 'chart-column'),
-            page('inventory_statistics', '库存统计', 'page_reports_gap', 'chart-column'),
+            page('inventory_statistics', '库存统计', 'page_inventory_statistics', 'chart-column'),
             page('assembly_statistics', '组装统计', 'page_reports_gap', 'chart-column'),
           ]),
           group('finance_reports', '财务统计', [

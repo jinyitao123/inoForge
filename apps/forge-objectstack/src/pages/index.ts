@@ -72,6 +72,7 @@ export * from './feature-gap-status.page.js';
 export * from './sales-collection-flow.page.js';
 export * from './sales-statistics.page.js';
 export * from './purchase-statistics.page.js';
+export * from './inventory-statistics.page.js';
 export * from './sales-invoice-request.page.js';
 export * from './sales-return-workspace.page.js';
 export * from './sales-additional-fee.page.js';
