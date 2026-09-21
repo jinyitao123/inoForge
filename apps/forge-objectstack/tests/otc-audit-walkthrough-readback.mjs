@@ -30,6 +30,9 @@ const link = await one('forge_project_sales_link', { project_id: project.id });
 const plan = await one('forge_project_plan', { project_id: project.id });
 const phase = await one('forge_project_work_item', { plan_id: plan.id });
 const bom = await one('forge_bom', { code: 'BOM-RM-CAB-800-V1' });
+const projectBom = await one('forge_bom', { code: 'BOM-RM-CAB-800-V1-PRJ-2026-002' });
+const shortageAnalysis = await one('forge_bom_shortage_analysis', { bom_id: projectBom.id });
+const shortageLines = await find('forge_bom_shortage_line', { analysis_id: shortageAnalysis.id });
 const assembly = await one('forge_assembly_order', { code: 'ASM-2026-0075' });
 const materialDocument = await one('forge_production_material_document', { code: 'MAT-2026-0031' });
 const productionInbound = await one('forge_production_inbound', { code: 'WIN-2026-0048' });
@@ -73,6 +76,22 @@ assert.equal(link.contract_id, contract.id);
 assert.equal(link.order_amount, 243200);
 assert.equal(bom.status, 'active');
 assert.equal(bom.node_count, 4);
+assert.equal(projectBom.status, 'active');
+assert.equal(projectBom.bom_type, 'project');
+assert.equal(projectBom.project_id, project.id);
+assert.equal(projectBom.source_bom_id, bom.id);
+assert.equal(projectBom.node_count, 4);
+assert.equal(projectBom.total_cost, 14442.48);
+assert.equal(shortageAnalysis.status, 'completed');
+assert.equal(shortageAnalysis.project_id, project.id);
+assert.equal(shortageAnalysis.planned_quantity, 2);
+assert.equal(shortageAnalysis.component_count, 4);
+assert.equal(shortageAnalysis.shortage_count, 0);
+assert.equal(shortageAnalysis.kit_rate, 100);
+assert.equal(shortageAnalysis.estimated_purchase_amount, 0);
+assert.equal(shortageLines.length, 4);
+assert.ok(shortageLines.every(record => Number(record.shortage_quantity) === 0));
+assert.ok(shortageLines.every(record => record.fulfillment_status === 'sufficient'));
 assert.equal(assembly.sales_order_id, order.id);
 assert.equal(assembly.bom_id, bom.id);
 assert.equal(assembly.status, 'completed');
@@ -150,7 +169,7 @@ const gaps = [
   {
     id: 'G01',
     severity: 'blocker',
-    finding: '项目/BOM仍没有采购订单或委外订单承接；组装已关联销售订单并完工，但使用现有历史库存，不能证明项目缺料到采购入库的唯一来源链。',
+    finding: '项目 BOM 与缺料快照已建立，但现有历史库存使 4 项物料全部充足，没有生成采购订单或委外订单；组装虽已关联销售订单并完工，仍不能证明项目缺料到采购入库的唯一来源链。',
   },
   {
     id: 'G02',
@@ -178,6 +197,7 @@ const report = {
     order: order.code,
     item: orderLine.item_code,
     bom: bom.code,
+    projectBom: projectBom.code,
     shipment: shipment.code,
     invoice: invoice.code,
     receivable: receivable.code,
@@ -189,6 +209,12 @@ const report = {
     supplyAndProduction: {
       purchaseOrders: 0,
       subcontractOrders: 0,
+      projectBom: projectBom.code,
+      projectBomStatus: projectBom.status,
+      shortageAnalysis: shortageAnalysis.code,
+      shortageCount: shortageAnalysis.shortage_count,
+      kitRate: shortageAnalysis.kit_rate,
+      estimatedPurchaseAmount: shortageAnalysis.estimated_purchase_amount,
       assembly: assembly.code,
       assemblyStatus: assembly.status,
       plannedQuantity: assembly.planned_quantity,
@@ -208,6 +234,7 @@ const report = {
     '已按实际出库回读订单行与发货单，状态为已出库，数量为2。',
     '发货金额已从折前256000元校正为订单折后243200元。',
     '订单、合同、项目的开票和回款汇总已与有效发票、应收和已审核核销一致。',
+    '项目 BOM BOM-RM-CAB-800-V1-PRJ-2026-002 已从标准 BOM 派生并审批生效；计划数量 2 的缺料快照已持久化。',
     '组装单 ASM-2026-0075 已按销售订单生成，MAT-2026-0031 完成 4 种/10 件领料过账，WIN-2026-0048 完成 2 台合格生产入库并完工。',
     'Forge 本库历史平均成本导致本次物料投入为 1278.4426 元，与 RISEMAP 本次 28885 元左右的标准成本口径不一致，仅数量和单据链通过。',
   ],
