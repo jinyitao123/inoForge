@@ -30,6 +30,13 @@ const link = await one('forge_project_sales_link', { project_id: project.id });
 const plan = await one('forge_project_plan', { project_id: project.id });
 const phase = await one('forge_project_work_item', { plan_id: plan.id });
 const bom = await one('forge_bom', { code: 'BOM-RM-CAB-800-V1' });
+const assembly = await one('forge_assembly_order', { code: 'ASM-2026-0075' });
+const materialDocument = await one('forge_production_material_document', { code: 'MAT-2026-0031' });
+const productionInbound = await one('forge_production_inbound', { code: 'WIN-2026-0048' });
+const assemblyLines = await find('forge_assembly_material_line', { assembly_id: assembly.id });
+const productionLedgers = (await find('forge_inventory_ledger')).filter(record =>
+  record.source_id === materialDocument.id || record.source_id === productionInbound.id,
+);
 const shipment = await one('forge_sales_shipment', { code: 'DN-HC-20261030-001' });
 const shipmentLine = await one('forge_sales_shipment_line', { shipment_id: shipment.id });
 const invoice = await one('forge_sales_invoice', { order_id: order.id });
@@ -66,6 +73,33 @@ assert.equal(link.contract_id, contract.id);
 assert.equal(link.order_amount, 243200);
 assert.equal(bom.status, 'active');
 assert.equal(bom.node_count, 4);
+assert.equal(assembly.sales_order_id, order.id);
+assert.equal(assembly.bom_id, bom.id);
+assert.equal(assembly.status, 'completed');
+assert.equal(assembly.planned_quantity, 2);
+assert.equal(assembly.qualified_quantity, 2);
+assert.equal(assembly.rejected_quantity, 0);
+assert.equal(assembly.inbound_quantity, 2);
+assert.equal(assembly.issued_quantity, 10);
+assert.equal(assembly.returned_quantity, 0);
+assert.equal(assemblyLines.length, 4);
+assert.equal(assemblyLines.reduce((sum, record) => sum + Number(record.required_quantity || 0), 0), 10);
+assert.equal(assemblyLines.reduce((sum, record) => sum + Number(record.net_issued_quantity || 0), 0), 10);
+assert.ok(assemblyLines.every(record => record.status === 'completed'));
+assert.equal(materialDocument.assembly_id, assembly.id);
+assert.equal(materialDocument.document_type, 'issue');
+assert.equal(materialDocument.status, 'confirmed');
+assert.equal(materialDocument.line_count, 4);
+assert.equal(materialDocument.total_quantity, 10);
+assert.equal(productionInbound.assembly_id, assembly.id);
+assert.equal(productionInbound.status, 'stocked');
+assert.equal(productionInbound.qualified_quantity, 2);
+assert.equal(productionInbound.rejected_quantity, 0);
+assert.equal(productionInbound.batch_number, 'ASM-AUDIT-20260921-001');
+assert.equal(productionLedgers.filter(record => record.movement_type === 'production_issue').length, 4);
+assert.equal(productionLedgers.filter(record => record.movement_type === 'production_inbound').length, 1);
+assert.equal(productionLedgers.filter(record => record.movement_type === 'production_issue').reduce((sum, record) => sum + Number(record.quantity || 0), 0), 10);
+assert.equal(productionLedgers.filter(record => record.movement_type === 'production_inbound').reduce((sum, record) => sum + Number(record.quantity || 0), 0), 2);
 assert.equal(shipmentLine.order_id, order.id);
 assert.equal(shipment.status, 'outbounded');
 assert.equal(shipment.total_quantity, 2);
@@ -104,7 +138,8 @@ const linkedAcceptances = acceptances.filter(record => record.project_id === pro
 const linkedSettlements = settlements.filter(record => record.project_id === project.id);
 
 assert.equal(linkedPurchaseOrders.length, 0);
-assert.equal(linkedAssemblies.length, 0);
+assert.equal(linkedAssemblies.length, 1);
+assert.equal(linkedAssemblies[0].id, assembly.id);
 assert.equal(linkedSubcontractOrders.length, 0);
 assert.equal(linkedCommissioning.length, 0);
 assert.equal(linkedDeliveryPackages.length, 0);
@@ -115,7 +150,7 @@ const gaps = [
   {
     id: 'G01',
     severity: 'blocker',
-    finding: '项目/BOM没有采购订单、组装单或委外订单承接，物料齐套与生产来源链为空。',
+    finding: '项目/BOM仍没有采购订单或委外订单承接；组装已关联销售订单并完工，但使用现有历史库存，不能证明项目缺料到采购入库的唯一来源链。',
   },
   {
     id: 'G02',
@@ -131,7 +166,7 @@ const gaps = [
 
 const report = {
   kind: 'otc-same-material-audit-walkthrough-readback',
-  status: 'blocked_before-procurement-production-and-delivery-acceptance',
+  status: 'blocked_before-procurement-and-delivery-acceptance',
   endpoint,
   database,
   restartReadback: process.argv.includes('--restart'),
@@ -151,7 +186,20 @@ const report = {
     project: { status: project.status, progress: project.progress, contractAmount: project.contract_amount, invoiceAmount: project.invoice_amount, collectedAmount: project.collected_amount },
     plan: { status: plan.status, itemCount: plan.item_count, phase: phase.name, phaseStatus: phase.status },
     commercial: { quotationStatus: quotation.status, contractStatus: contract.status, orderStatus: order.status, orderAmount: order.total_amount, shippedAmount: order.shipped_amount, invoicedAmount: order.invoiced_amount, collectedAmount: order.collected_amount },
-    supplyAndProduction: { purchaseOrders: 0, assemblies: 0, subcontractOrders: 0 },
+    supplyAndProduction: {
+      purchaseOrders: 0,
+      subcontractOrders: 0,
+      assembly: assembly.code,
+      assemblyStatus: assembly.status,
+      plannedQuantity: assembly.planned_quantity,
+      qualifiedQuantity: assembly.qualified_quantity,
+      materialDocument: materialDocument.code,
+      issuedQuantity: materialDocument.total_quantity,
+      productionInbound: productionInbound.code,
+      inboundQuantity: productionInbound.qualified_quantity,
+      batchNumber: productionInbound.batch_number,
+      materialCost: assembly.material_cost,
+    },
     shipment: { status: shipment.status, quantity: shipment.total_quantity, outboundQuantity: shipment.outbound_quantity, amount: shipment.total_amount },
     delivery: { commissioningRecords: 0, deliveryPackages: 0, customerAcceptances: 0 },
     finance: { invoiceStatus: invoice.status, invoiceAmount: invoice.total_amount, receivableStatus: receivable.status, approvedAllocatedAmount, projectSettlementCount: 0 },
@@ -160,6 +208,8 @@ const report = {
     '已按实际出库回读订单行与发货单，状态为已出库，数量为2。',
     '发货金额已从折前256000元校正为订单折后243200元。',
     '订单、合同、项目的开票和回款汇总已与有效发票、应收和已审核核销一致。',
+    '组装单 ASM-2026-0075 已按销售订单生成，MAT-2026-0031 完成 4 种/10 件领料过账，WIN-2026-0048 完成 2 台合格生产入库并完工。',
+    'Forge 本库历史平均成本导致本次物料投入为 1278.4426 元，与 RISEMAP 本次 28885 元左右的标准成本口径不一致，仅数量和单据链通过。',
   ],
   gaps,
   boundary: '该结果只证明独立 Forge 数据库中的同一材料现状与断点；RISEMAP 同材料结果必须以浏览器实时页面单独记录，不能由本报告替代。',
