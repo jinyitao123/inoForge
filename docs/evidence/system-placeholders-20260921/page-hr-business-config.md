@@ -13,4 +13,4 @@
 - 同材料交互：使用 `审计走查-交通方式-0921` 在两侧完成新增，编辑为 `审计走查-交通方式-0921-已编辑`，再停用。Forge 完整停服重启后记录名称和停用状态均保持。Forge 空名称提交出现“请填写名称”；RISEMAP 空名称保存未显示明确字段错误，属于当前线上交互事实。
 - 删除阶段：RISEMAP 的垃圾桶图标没有二次确认，点击后立即删除测试记录并显示“已删除”；Forge 按产品安全决策展示包含对象名称、不可恢复影响和“确认删除”的标准二次确认弹窗。获得用户确认后执行删除，页面显示“配置已删除”；完整停服重启后记录仍不存在且交通方式恢复空态。
 - 同视口证据：`hr-business-config/risemap-transport-disabled-906x776.jpg`、`hr-business-config/forge-transport-disabled-906x776.jpg`、`hr-business-config/full-viewport-overlay-906x776.png`、`hr-business-config/full-viewport-diff-906x776.png`、`hr-business-config/risemap-after-delete-906x776.jpg`、`hr-business-config/forge-delete-confirmation-906x776.jpg`、`hr-business-config/forge-after-delete-restart-906x776.jpg`。全视口 SSIM 为 `0.731285`，PSNR 为 `17.743206 dB`；数值包含 RISEMAP 展开侧栏、顶栏、页签栏与 Forge Console 外壳差异，不能作为业务内容区通过值。
-- 验收结论：2026-09-21 用户确认当前页面可以视为完成；人事配置按已保存的双侧页面、同材料交互、删除确认和停服重启回读证据记为 `accepted`。既有全视口差异数值仅用于记录外壳差异，不再作为本页继续实施的阻断项。
+- 收口结论：2026-09-21 用户确认当前页面可视为业务完成并继续后续页面；已保存双侧页面、同材料交互、删除确认和停服重启回读证据。清单仍保留 `review_required` 仅表示仓库级 `accepted` 门禁要求的结构化像素文件尚不齐全，不再作为继续后续页面的阻断项。

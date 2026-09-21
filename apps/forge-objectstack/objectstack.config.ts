@@ -331,7 +331,7 @@ export default defineStack({
             page('inventory_business_config', '库存管理配置', 'page_inventory_business_config', 'sliders-horizontal'),
           ]),
           group('project_business_settings', '项目管理', [
-            object('project_types', '项目类型', 'forge_project_type', 'tags'),
+            page('project_business_config', '项目管理配置', 'page_project_business_config', 'briefcase-business'),
           ]),
           group('finance_settings', '财务配置', [page('finance_business_config', '付款方式与费用类别', 'page_finance_business_config', 'landmark')]),
           group('administration_settings', '行政管理', [page('administration_business_config', '行政管理配置', 'page_administration_business_config', 'building')]),
