@@ -53,6 +53,15 @@ const hrSettings: Array<[string, string[]]> = [
   ['policy_category', ['信息安全', '保密制度', '知识产权', '财务制度', '人事制度', '商务合规', '行政管理', '销售管理', '采购管理', '安全管理', '质量管理', '技术研发']],
 ];
 
+const projectSettings: Array<[string, string[]]> = [
+  ['project_role', ['项目经理', '硬件工程师', '技术负责人', '软件工程师', '质量工程师', '客户对接人', '测试工程师', '产品经理', '实习生', 'UI设计师', '文档管理', '采购协调', '外部顾问']],
+  ['task_type', ['方案设计', '测试验证', '文档编写', '培训交付', '问题处理', '沟通协调', '评审会议', '开发实施', '其他', '外部协调', '需求分析']],
+  ['idle_category', ['等待返工', '内部会议', '设备故障', '培训学习', '文档整理', '缺料停工', '待命', '其他停工', '客户接待', '行政事务']],
+  ['timesheet_type', ['培训工时', '外协工时', '调休工时', '请假工时', '会议工时', '出差工时', '正常工时', '加班工时']],
+  ['log_type', ['变更记录', '问题反馈', '日常进展', '决策记录', '阶段总结', '风险预警', '里程碑达成', '内部讨论', '外部协调', '客户沟通']],
+  ['plan_template_category', ['默认分类']],
+];
+
 export const BusinessSettingSeed = defineSeed(BusinessSettingOption, {
   externalId: 'code',
   // These rows become tenant-owned configuration after bootstrap. Reapplying
@@ -63,6 +72,7 @@ export const BusinessSettingSeed = defineSeed(BusinessSettingOption, {
     ...expenseCategories.map(([code, name, parent_code, sort_order]) => ({ name, code: `finance_expense_${code}`, scope: 'finance', setting_type: 'expense_category', parent_code: parent_code ? `finance_expense_${parent_code}` : null, description: `${name}分类`, enabled: true, system_record: true, sort_order })),
     ...administrationSettings.flatMap(([setting_type, codePrefix, names]) => names.map((name, index) => ({ name, code: `administration_${codePrefix}_${index + 1}`, scope: 'administration', setting_type, description: `${name}${setting_type === 'meeting_type' ? '会议类型' : '行政配置'}`, enabled: true, system_record: true, sort_order: (index + 1) * 10 }))),
     ...hrSettings.flatMap(([setting_type, names]) => names.map((name, index) => ({ name, code: `hr_${setting_type}_${index + 1}`, scope: 'hr', setting_type, option_value: ['correction_type', 'shift_type', 'holiday_type'].includes(setting_type) ? String(index) : null, icon_name: ['handbook_category', 'policy_category'].includes(setting_type) ? 'file-text' : null, color: ['handbook_category', 'policy_category'].includes(setting_type) ? '#0052CC' : null, description: null, enabled: true, system_record: true, sort_order: index + 1 }))),
+    ...projectSettings.flatMap(([setting_type, names]) => names.map((name, index) => ({ name, code: `project_${setting_type}_${index + 1}`, scope: 'project', setting_type, color: ['task_type', 'log_tag'].includes(setting_type) ? ['#0052CC', '#36B37E', '#6554C0', '#FF8B00'][index % 4] : null, description: setting_type === 'project_role' ? JSON.stringify({ permissions: {} }) : null, enabled: true, system_record: setting_type === 'project_role' ? index === 0 : setting_type === 'plan_template_category', sort_order: index + 1 }))),
   ],
 });
 

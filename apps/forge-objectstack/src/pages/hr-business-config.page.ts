@@ -1,7 +1,7 @@
 import { forgeProductUiCss, forgeProductUiRuntime } from './product-ui.js';
 
 const source = `
-const MODULES=[['商品管理','/forge_material_sku'],['财务配置','/page/page_finance_business_config'],['行政管理','/page/page_administration_business_config'],['客户管理','/forge_customer_category'],['采购销售','/forge_payment_condition'],['库存管理','/page/page_inventory_business_config'],['其他配置','/page/page_other_business_config'],['人事配置','/page/page_hr_business_config'],['项目管理','/forge_project_type'],['图纸配置','/page/page_drawing_business_config'],['生产配置','/page/page_production_config'],['委外配置','/page/page_subcontract_business_config'],['打印管理','/page/page_system_gap?nav=document_printing_gap']];
+const MODULES=[['商品管理','/forge_material_sku'],['财务配置','/page/page_finance_business_config'],['行政管理','/page/page_administration_business_config'],['客户管理','/forge_customer_category'],['采购销售','/forge_payment_condition'],['库存管理','/page/page_inventory_business_config'],['其他配置','/page/page_other_business_config'],['人事配置','/page/page_hr_business_config'],['项目管理','/page/page_project_business_config'],['图纸配置','/page/page_drawing_business_config'],['生产配置','/page/page_production_config'],['委外配置','/page/page_subcontract_business_config'],['打印管理','/page/page_system_gap?nav=document_printing_gap']];
 const TYPES=[
  ['position','岗位管理','岗位管理','管理公司岗位配置，在员工档案和招聘中使用','briefcase'],
  ['job_level','职级管理','职级管理','管理职级序列配置，如专业序列、管理序列','award'],
