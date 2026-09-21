@@ -34,11 +34,22 @@ const expenseCategories: Array<[string, string, string | null, number]> = [
   ['legal_compliance', '法务合规费用', 'finance_legal_expense', 730], ['lawyer', '律师费', 'legal_compliance', 731], ['contract_review', '合同审查费', 'legal_compliance', 732],
 ];
 
+const administrationSettings: Array<[string, string, string[]]> = [
+  ['asset_category', 'asset', ['软件/无形资产', '其他', '电子设备(IT)', '房屋建筑', '办公家具', '检测/仪器仪表', '交通工具', '生产设备', '办公设备']],
+  ['material_category', 'material', ['五金工具', '办公用品', '食品饮品', '礼品/福利物料', '清洁用品', '宣传物料', '文具耗材', '电子设备/IT耗材', '劳保用品', '其他']],
+  ['purchase_channel', 'purchase', ['拼多多企业版', '1688批发', '线下门店', '京东企业购', '淘宝/天猫', '内部调拨', '其他', '供应商直送', '海外采购', '苏宁易购']],
+  ['welfare_category', 'welfare', ['实物礼品', '兑换券码', '充值卡', '现金红包', '报销额度', '生日福利', '节日福利(春节/端午/中秋)', '司庆福利', '入职周年', '婚育福利', '高温/防寒福利', '体检福利', '团建福利']],
+  ['meeting_type', 'meeting', ['项目会议', '经营分析', '技术评审', '部门例会', '全体大会', '专题讨论', '客户会议', '供应商会议', '培训会议', '面试招聘']],
+  ['declaration_category', 'declaration', ['高新技术企业', '专精特新', '科技型中小企业', 'ISO体系认证', '安全生产标准化', '研发费用加计扣除', '技改补贴', '研发补贴', '示范项目', '创新基金', '知识产权(专利/商标/版权)', '其他']],
+  ['declaration_stage', 'stage', ['待评估', '准备材料', '已提交', '形式审查', '专家评审', '公示中', '已立项', '补材料中', '已拨付', '已驳回']],
+];
+
 export const BusinessSettingSeed = defineSeed(BusinessSettingOption, {
   externalId: 'code',
   mode: 'upsert',
   records: [
     ...paymentMethods.map((name, index) => ({ name, code: `finance_payment_${index + 1}`, scope: 'finance', setting_type: 'payment_method', description: `${name}付款方式`, enabled: true, system_record: true, sort_order: (index + 1) * 10 })),
     ...expenseCategories.map(([code, name, parent_code, sort_order]) => ({ name, code: `finance_expense_${code}`, scope: 'finance', setting_type: 'expense_category', parent_code: parent_code ? `finance_expense_${parent_code}` : null, description: `${name}分类`, enabled: true, system_record: true, sort_order })),
+    ...administrationSettings.flatMap(([setting_type, codePrefix, names]) => names.map((name, index) => ({ name, code: `administration_${codePrefix}_${index + 1}`, scope: 'administration', setting_type, description: `${name}${setting_type === 'meeting_type' ? '会议类型' : '行政配置'}`, enabled: true, system_record: true, sort_order: (index + 1) * 10 }))),
   ],
 });

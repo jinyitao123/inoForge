@@ -334,7 +334,7 @@ export default defineStack({
             object('project_types', '项目类型', 'forge_project_type', 'tags'),
           ]),
           group('finance_settings', '财务配置', [page('finance_business_config', '付款方式与费用类别', 'page_finance_business_config', 'landmark')]),
-          group('administration_settings', '行政管理', [page('administration_config_gap', '行政管理配置', 'page_system_gap', 'building')]),
+          group('administration_settings', '行政管理', [page('administration_business_config', '行政管理配置', 'page_administration_business_config', 'building')]),
           group('other_settings', '其他配置', [page('other_config_gap', '其他配置', 'page_system_gap', 'sliders-horizontal')]),
           group('hr_settings', '人事配置', [page('hr_config_gap', '人事配置', 'page_system_gap', 'users')]),
           group('drawing_settings', '图纸配置', [page('drawing_business_config', '图纸配置', 'page_drawing_business_config', 'ruler')]),
