@@ -75,6 +75,7 @@ export * from './purchase-statistics.page.js';
 export * from './inventory-statistics.page.js';
 export * from './assembly-statistics.page.js';
 export * from './finance-overview.page.js';
+export * from './profit-loss.page.js';
 export * from './sales-invoice-request.page.js';
 export * from './sales-return-workspace.page.js';
 export * from './sales-additional-fee.page.js';

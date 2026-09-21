@@ -296,7 +296,7 @@ export default defineStack({
           ]),
           group('finance_reports', '财务统计', [
             page('finance_overview', '财务总览', 'page_finance_overview', 'layout-dashboard'),
-            page('profit_loss', '损益分析', 'page_reports_gap', 'chart-pie'),
+            page('profit_loss', '损益分析', 'page_profit_loss', 'chart-pie'),
             page('fund_analysis', '资金分析', 'page_reports_gap', 'chart-line'),
             page('receivable_report', '往来账款', 'page_reports_gap', 'scale'),
             page('tax_inventory', '税务库存', 'page_reports_gap', 'file-chart-column'),
