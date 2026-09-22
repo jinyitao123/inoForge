@@ -18,6 +18,7 @@ services:
       OS_DATABASE_URL: postgres://objectstack:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-myapp}
       OS_AUTH_SECRET: ${OS_AUTH_SECRET}
       OS_SECRET_KEY: ${OS_SECRET_KEY}
+      FORGE_WEAVE_EVENT_SECRET: ${FORGE_WEAVE_EVENT_SECRET:-}
       OS_BASE_URL: ${OS_BASE_URL:-http://localhost:8080}
       OS_TRUSTED_ORIGINS: ${OS_TRUSTED_ORIGINS:-http://localhost:8080}
     depends_on:
