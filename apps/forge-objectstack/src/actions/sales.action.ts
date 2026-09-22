@@ -185,11 +185,20 @@ const record = ctx.record;
 const fileId = String(ctx.input.material_file_id || '').trim();
 const materialName = String(ctx.input.material_name || '').trim();
 const sha256 = String(ctx.input.material_sha256 || '').trim().toLowerCase();
+const storedFileId = value => {
+  if (typeof value !== 'string') return value && typeof value === 'object' ? String(value.id || '') : '';
+  const text = value.trim();
+  if (!text.startsWith('"')) return text;
+  try {
+    const parsed = JSON.parse(text);
+    return typeof parsed === 'string' ? parsed : '';
+  } catch { return ''; }
+};
 if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(fileId)) throw new Error('合同文件标识无效');
 if (!materialName || materialName.length > 255) throw new Error('合同文件名称无效');
 if (!/^[0-9a-f]{64}$/.test(sha256)) throw new Error('合同文件摘要无效');
 if (record.submitted_material_id || record.submitted_material_sha256) {
-  if (record.submitted_material_id === fileId && record.submitted_material_sha256 === sha256 && record.submitted_material_name === materialName) {
+  if (storedFileId(record.submitted_material_id) === fileId && record.submitted_material_sha256 === sha256 && record.submitted_material_name === materialName) {
     return { id, status: record.status, material_file_id: fileId, material_name: materialName, material_sha256: sha256, repeated: true };
   }
   throw new Error('当前合同已经绑定另一份提交版本，请刷新合同后处理');
@@ -236,7 +245,7 @@ try {
     if (submission || current.submitted_material_id || current.submitted_material_sha256) {
       const sameMaterial = submission
         ? submission.material_file_id === fileId && submission.material_sha256 === sha256 && submission.material_name === materialName
-        : current.submitted_material_id === fileId && current.submitted_material_sha256 === sha256 && current.submitted_material_name === materialName;
+        : storedFileId(current.submitted_material_id) === fileId && current.submitted_material_sha256 === sha256 && current.submitted_material_name === materialName;
       if (sameMaterial) return { repeated: true, status: current.status, submitted_at: current.submitted_at || submission.submitted_at };
       throw new Error('当前合同已经绑定另一份提交版本，请刷新合同后处理');
     }
@@ -265,7 +274,7 @@ try {
   }
 }
 const saved = await ctx.api.object('forge_sales_contract').findOne({ where: { id } });
-if (!saved || saved.submitted_material_id !== fileId || saved.submitted_material_sha256 !== sha256 || saved.status !== 'pending_approval') {
+if (!saved || storedFileId(saved.submitted_material_id) !== fileId || saved.submitted_material_sha256 !== sha256 || saved.status !== 'pending_approval') {
   throw new Error('合同提交结果与本次固定材料不一致，请核对后重试');
 }
 return { id, total_amount: saved.total_amount, status: saved.status, material_file_id: fileId, material_name: materialName, material_sha256: sha256, submitted_at: outcome.submitted_at, repeated: outcome.repeated };
