@@ -225,6 +225,7 @@
     "acceptance:subcontract-group": "node tests/subcontract-group-ui-readback.mjs"
   },
   "dependencies": {
+    "@objectstack/core": "17.3.0",
     "@objectstack/connector-mcp": "17.3.0",
     "@objectstack/connector-openapi": "17.3.0",
     "@objectstack/connector-rest": "17.3.0",
