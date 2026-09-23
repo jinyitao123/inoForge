@@ -4,6 +4,7 @@ import { sharedForgeCoreBundle } from '../src/apps/shared-core.js';
 import { forgeApplicationPackages } from '../src/apps/index.js';
 import {
   flattenApplicationNavigation,
+  flattenNavigation,
   forgeApplicationDefinitions,
 } from '../src/apps/navigation.js';
 import {
@@ -13,12 +14,12 @@ import {
   forgeSourcePageDefinitionCount,
   excludedPageDefinitions,
 } from '../src/apps/page-ownership.js';
-import { flattenNavigation, legacyAreas, navigationMigrationSource } from '../src/apps/legacy-navigation.js';
 import {
   settingMigrations,
   workspaceNavigationMigrations,
   type ForgeApplicationKey,
 } from '../src/apps/settings-migration.js';
+import navigationBaseline from './fixtures/forge-app-navigation.baseline.json';
 
 function values<T>(collection: unknown): T[] {
   if (Array.isArray(collection)) return collection as T[];
@@ -37,7 +38,7 @@ const expectedBusinessApps = [
 ] as const;
 
 assert.equal(
-  navigationMigrationSource.commit,
+  navigationBaseline.sourceCommit,
   '8200b958397a5dee63f1b98cda73db2a851f1b3b',
   'the migration source must stay pinned to the reviewed legacy package',
 );
@@ -123,21 +124,7 @@ assert.equal(
   'every unregistered source Page needs one explicit disposition',
 );
 
-const oldLeaves = Object.entries(legacyAreas).flatMap(([areaId, area]) =>
-  flattenNavigation(area.navigation ?? []).map((item) => ({
-    areaId,
-    id: item.id,
-    label: 'label' in item ? item.label : undefined,
-    type: item.type,
-    target: item.type === 'page'
-      ? item.pageName
-      : item.type === 'object'
-        ? item.objectName
-        : item.type === 'url'
-          ? item.url
-          : undefined,
-  })),
-);
+const oldLeaves = navigationBaseline.leaves;
 const newLeaves = flattenApplicationNavigation();
 const settingById = new Map(settingMigrations.map((setting) => [setting.id, setting]));
 const workspaceMigrationById = new Map(workspaceNavigationMigrations.map((migration) => [migration.id, migration]));
@@ -227,19 +214,19 @@ assert.deepEqual(
   salesPermissionSets.map((permission) => permission.name).sort(),
   ['sales_contract_operator', 'sales_contract_reviewer'],
 );
-const originalSettingsLeaves = flattenNavigation(legacyAreas.business_settings.navigation ?? []);
+const originalSettingsLeaves = oldLeaves.filter((leaf) => leaf.sourceArea === 'business_settings');
 for (const migration of settingMigrations.filter((setting) => setting.accessFinding)) {
   const original = originalSettingsLeaves.find((item) => item.id === migration.id);
   assert.equal(original?.type, 'object', migration.id + ' access status must identify an object setting');
-  if (original?.type !== 'object' || typeof original.objectName !== 'string') continue;
+  if (original?.type !== 'object' || typeof original.target !== 'string') continue;
   const declaredReadGrants = salesPermissionSets.filter((permission) => {
-    const grant = permission.objects?.[original.objectName];
+    const grant = permission.objects?.[original.target];
     return grant?.allowRead || grant?.viewAllRecords;
   });
   if (migration.accessFinding === 'no_declared_read_grant') {
-    assert.equal(declaredReadGrants.length, 0, original.objectName + ' must not receive an invented read grant');
+    assert.equal(declaredReadGrants.length, 0, original.target + ' must not receive an invented read grant');
   } else {
-    assert.ok(declaredReadGrants.length > 0, original.objectName + ' should retain only its existing sales-set grants');
+    assert.ok(declaredReadGrants.length > 0, original.target + ' should retain only its existing sales-set grants');
   }
 }
 assert.deepEqual(

@@ -5,6 +5,11 @@ const readReferenceData = {
   viewAllRecords: true,
 };
 
+const readOrganizationReferenceData = {
+  allowRead: true,
+  readScope: 'org' as const,
+};
+
 /**
  * Lets a salesperson prepare and submit contracts they own while keeping
  * shared customer, material and contract dictionaries read-only.
@@ -30,12 +35,17 @@ export const salesContractOperatorPermission = definePermissionSet({
       writeScope: 'own',
     },
     forge_customer: readReferenceData,
+    forge_customer_category: readOrganizationReferenceData,
+    forge_customer_level: readOrganizationReferenceData,
     forge_contact: readReferenceData,
     forge_contract_type: readReferenceData,
     forge_quotation: readReferenceData,
     forge_quotation_line: readReferenceData,
+    forge_quotation_type: readOrganizationReferenceData,
+    forge_quotation_issuer: readOrganizationReferenceData,
     forge_material_sku: readReferenceData,
     forge_material: readReferenceData,
+    forge_material_category: readOrganizationReferenceData,
     forge_unit: readReferenceData,
     forge_fund_account: readReferenceData,
     forge_product_bundle: readReferenceData,

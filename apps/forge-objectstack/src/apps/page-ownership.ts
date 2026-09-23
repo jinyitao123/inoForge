@@ -14,14 +14,6 @@ const unlinkedPageOwners: Record<string, ForgeApplicationKey> = {
   page_project_plan_risemap: 'project',
   page_subcontract_orders: 'production',
   page_subcontract_ncr_workspace: 'production',
-  page_subcontract_reconciliation_recovery_status: 'production',
-  page_administration_recovery_status: 'administration',
-  page_administration_gap: 'administration',
-  page_finance_gap: 'finance',
-  page_production_gap: 'production',
-  page_reports_gap: 'reports',
-  page_sales_gap: 'sales',
-  page_supply_chain_gap: 'supply_chain',
 };
 
 const sharedPageOwners: Record<string, ForgeApplicationKey> = {
@@ -38,9 +30,10 @@ const sourcePages = Object.values(pageExports).filter(
 );
 
 /**
- * This generic placeholder only backed the former shared settings entries.
- * Those entries now point to native Setup or remain pending, so no active App
- * package owns or registers this Page.
+ * These four shared-workspace pages, seven gap placeholders and three
+ * recovery diagnostics have no active business navigation or internal Page consumer.
+ * Their destinations or retirement reasons are recorded here; none is
+ * registered in the Runtime.
  */
 export const excludedPageDefinitions: Record<string, string> = {
   page_workbench: 'shared employee entry now belongs to GooeyPi',
@@ -48,6 +41,14 @@ export const excludedPageDefinitions: Record<string, string> = {
   page_onboarding_center: 'initialization guidance belongs to native Setup',
   page_todo_management: 'personal work belongs to GooeyPi and the native inbox',
   page_workspace_recovery_status: 'old shared-workspace diagnostic with no business application target',
+  page_administration_recovery_status: 'recovery diagnostic has no navigation or internal consumer',
+  page_subcontract_reconciliation_recovery_status: 'recovery diagnostic has no navigation or internal consumer',
+  page_administration_gap: 'gap placeholder has no navigation or business consumer',
+  page_finance_gap: 'gap placeholder has no navigation or business consumer',
+  page_production_gap: 'gap placeholder has no navigation or business consumer',
+  page_reports_gap: 'gap placeholder has no navigation or business consumer',
+  page_sales_gap: 'gap placeholder has no navigation or business consumer',
+  page_supply_chain_gap: 'gap placeholder has no navigation or business consumer',
   page_system_gap: 'former settings placeholder; no active application navigation target',
 };
 

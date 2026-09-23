@@ -5,6 +5,7 @@ import * as actions from '../actions/index.js';
 import * as hooks from '../hooks/index.js';
 import * as seedData from '../data/index.js';
 import * as flows from '../flows/index.js';
+import { documentPrintingSettingsManagerPermission } from '../permissions/application-settings.permission.js';
 import { weaveTeamDeveloperPermission } from '../permissions/team-development.permission.js';
 
 /**
@@ -29,7 +30,7 @@ export const sharedForgeCoreBundle = defineStack({
   actions: Object.values(actions),
   hooks: Object.values(hooks),
   flows: Object.values(flows),
-  permissions: [weaveTeamDeveloperPermission],
+  permissions: [weaveTeamDeveloperPermission, documentPrintingSettingsManagerPermission],
 });
 
 export const sharedForgeCorePlugin = new AppPlugin(sharedForgeCoreBundle);
