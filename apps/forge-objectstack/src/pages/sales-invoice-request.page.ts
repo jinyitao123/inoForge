@@ -6,9 +6,9 @@ const salesInvoiceCss = `
 
 const source = `
 const css=${JSON.stringify(forgeProductUiCss + salesInvoiceCss)};
-function App(){
+function App(){const adapter=useAdapter();
   const [state,setState]=React.useState({loading:true,invoices:[],orders:[],customers:[],users:[],receivables:[],error:''}),[tab,setTab]=React.useState('all'),[query,setQuery]=React.useState(''),[toast,setToast]=React.useState(''),[dialog,setDialog]=React.useState(null);
-  async function request(path,options){const token=localStorage.getItem('auth-session-token'),r=await fetch('/api/v1'+path,{credentials:'include',headers:{'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{}),...(options?.headers||{})},...options}),p=await r.json().catch(()=>({}));if(!r.ok)throw new Error((typeof p.error==='string'?p.error:p.error?.message)||(Array.isArray(p.fields)&&p.fields.length?p.fields.map(f=>f.message||f.label).filter(Boolean).join('；'):'')||p.message||'请求失败');return p}
+  async function request(path,options){const r=await ForgeApiResponse(adapter,path,{credentials:'include',headers:{'Content-Type':'application/json',,...(options?.headers||{})},...options}),p=await r.json().catch(()=>({}));if(!r.ok)throw new Error((typeof p.error==='string'?p.error:p.error?.message)||(Array.isArray(p.fields)&&p.fields.length?p.fields.map(f=>f.message||f.label).filter(Boolean).join('；'):'')||p.message||'请求失败');return p}
   async function find(object,filter){const q=new URLSearchParams({$top:'500'});if(filter)q.set('$filter',JSON.stringify(filter));return (await request('/data/'+object+'?'+q)).records||[]}
   async function load(){try{const [invoices,orders,customers,users,receivables]=await Promise.all(['forge_sales_invoice','forge_sales_order','forge_customer','sys_user','forge_accounts_receivable'].map(x=>find(x)));setState({loading:false,invoices,orders,customers,users,receivables,error:''})}catch(e){setState(s=>({...s,loading:false,error:String(e.message||e)}))}}
   React.useEffect(()=>{load()},[]);React.useEffect(()=>{if(!toast)return;const t=setTimeout(()=>setToast(''),2200);return()=>clearTimeout(t)},[toast]);
