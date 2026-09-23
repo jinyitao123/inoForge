@@ -5,6 +5,7 @@ import { ApprovalsServicePlugin } from '@objectstack/plugin-approvals';
 import { MCPServerPlugin } from '@objectstack/mcp';
 import { RecordChangeTriggerPlugin } from '@objectstack/trigger-record-change';
 import { ApprovalWorkbenchContextPlugin } from './src/plugins/approval-workbench-context.plugin.js';
+import { ApprovalResubmitGuardPlugin } from './src/plugins/approval-resubmit-guard.plugin.js';
 import { ContractRevisionMaterialPlugin } from './src/plugins/contract-revision-material.js';
 import { WeaveRunEventPlugin } from './src/plugins/weave-run-event.plugin.js';
 import { forgeApplicationPlugins } from './src/apps/index.js';
@@ -21,6 +22,7 @@ export default defineStack({
     new AutomationServicePlugin(),
     new MessagingServicePlugin(),
     new ApprovalsServicePlugin({ recordReaderVisibleObjects: ['forge_sales_contract'] }),
+    new ApprovalResubmitGuardPlugin({ requiredMaterialObjects: ['forge_sales_contract'] }),
     new RecordChangeTriggerPlugin(),
     new MCPServerPlugin(),
     new WeaveRunEventPlugin(),
