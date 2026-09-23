@@ -6,9 +6,9 @@ const pendingOutboundCss = `
 
 const source = `
 const css=${JSON.stringify(forgeProductUiCss + pendingOutboundCss)};
-function App(){
+function App(){const adapter=useAdapter();
   const [state,setState]=React.useState({loading:true,shipments:[],lines:[],orders:[],customers:[],contacts:[],outbounds:[],warehouses:[],balances:[],users:[],error:''}),[query,setQuery]=React.useState(''),[dialog,setDialog]=React.useState(null),[busy,setBusy]=React.useState(false),[toast,setToast]=React.useState('');
-  async function request(path,options){const r=await fetch('/api/v1'+path,{credentials:'include',headers:{'Content-Type':'application/json'},...options}),p=await r.json().catch(()=>({}));if(!r.ok)throw new Error((typeof p.error==='string'?p.error:p.error?.message)||(Array.isArray(p.fields)&&p.fields.length?p.fields.map(f=>f.message||f.label).filter(Boolean).join('；'):'')||p.message||'请求失败');return p}
+  async function request(path,options){const r=await ForgeApiResponse(adapter,path,{credentials:'include',headers:{'Content-Type':'application/json'},...options}),p=await r.json().catch(()=>({}));if(!r.ok)throw new Error((typeof p.error==='string'?p.error:p.error?.message)||(Array.isArray(p.fields)&&p.fields.length?p.fields.map(f=>f.message||f.label).filter(Boolean).join('；'):'')||p.message||'请求失败');return p}
   async function find(object,filter){const q=new URLSearchParams({$top:'500'});if(filter)q.set('$filter',JSON.stringify(filter));return (await request('/data/'+object+'?'+q)).records||[]}
   async function load(){try{const [shipments,lines,orders,customers,contacts,outbounds,warehouses,balances,users]=await Promise.all(['forge_sales_shipment','forge_sales_shipment_line','forge_sales_order','forge_customer','forge_contact','forge_sales_outbound','forge_warehouse','forge_inventory_balance','sys_user'].map(x=>find(x)));setState({loading:false,shipments,lines,orders,customers,contacts,outbounds,warehouses,balances,users,error:''})}catch(e){setState(s=>({...s,loading:false,error:String(e.message||e)}))}}
   React.useEffect(()=>{load()},[]);React.useEffect(()=>{if(!toast)return;const t=setTimeout(()=>setToast(''),2600);return()=>clearTimeout(t)},[toast]);
