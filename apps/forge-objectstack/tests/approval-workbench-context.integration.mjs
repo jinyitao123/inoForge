@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import test from 'node:test';
 import { ApprovalWorkbenchContextPlugin } from '../src/plugins/approval-workbench-context.plugin.ts';
+import { approvalPayloadVersion } from '../src/plugins/contract-revision-material.ts';
 
 const CONTRACT_OBJECT = 'forge_sales_contract';
 const CONTRACT_A = 'contract-A';
@@ -190,6 +191,8 @@ test('pending approver receives only this request snapshot and verified text byt
   assert.equal(result.body.title, '设备验收合同 A');
   assert.deepEqual(result.body.businessObject, { objectName: CONTRACT_OBJECT, recordId: CONTRACT_A, recordName: '设备验收合同 A' });
   assert.match(result.body.sourceMaterialVersion, /^[0-9a-f]{64}$/);
+  assert.equal(result.body.sourceMaterialVersion,
+    await approvalPayloadVersion(contextPayload(harness.fixtureFiles.materialA, [harness.fixtureFiles.attachmentA])));
   assert.deepEqual(result.body.fields, [
     { label: '合同名称', value: '设备验收合同' },
     { label: '合同编号', value: 'HT-2026-001' },
