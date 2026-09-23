@@ -12,7 +12,7 @@ const groups=[
 ];
 function App(){const adapter=useAdapter();
  const [state,setState]=React.useState({loading:true,data:{},error:''});
- async function request(path){const response=await fetch('/api/v1'+path,{credentials:'include',headers:{...(adapter?.getAuthHeaders?.()||{})}}),payload=await response.json().catch(()=>({}));if(!response.ok)throw new Error(payload.error?.message||'请求失败');return payload}
+ async function request(path){const response=await ForgeApiResponse(adapter,path,{credentials:'include',headers:{...(adapter?.getAuthHeaders?.()||{})}}),payload=await response.json().catch(()=>({}));if(!response.ok)throw new Error(payload.error?.message||'请求失败');return payload}
  async function find(object){return(await request('/data/'+object+'?$top=1000')).records||[]}
  async function load(){setState(s=>({...s,loading:true,error:''}));try{const objects=['forge_warehouse_type','forge_warehouse','forge_material','forge_material_sku','forge_bom','forge_bom_node','forge_inventory_balance','forge_other_inbound_type','forge_production_disassembly_reason','forge_production_replacement_reason','forge_drawing_business_setting','forge_drawing','forge_drawing_version','forge_supplier','forge_subcontract_supplier_profile','forge_subcontract_business_setting','forge_subcontract_processing_price','forge_subcontract_policy','forge_payment_condition'];const rows=await Promise.all(objects.map(find)),data=Object.fromEntries(objects.map((x,i)=>[x,rows[i]]));setState({loading:false,data,error:''})}catch(error){setState({loading:false,data:{},error:String(error.message||error)})}}
  React.useEffect(()=>{load()},[]);
