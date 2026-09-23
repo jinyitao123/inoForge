@@ -21,7 +21,7 @@ export const Customer = master('forge_customer', '客户管理', 'building-2', {
 // “我参与的 / 下属参与的” customer-owner scopes.
 export const CustomerTeamMember = master('forge_customer_team_member', '客户团队成员', 'users', {
   name: text('成员名称', true), membership_key: code('成员关系键'),
-  customer_id: { ...reference('forge_customer', '客户', true), relatedList: true, relatedListTitle: '客户团队成员', relatedListColumns: ["name", "member_duty", "active"] }, user_id: Field.user({ label: '团队成员', required: true, storage: { notNull: true } }),
+  customer_id: { ...reference('forge_customer', '客户', true), relatedList: false }, user_id: Field.user({ label: '团队成员', required: true, storage: { notNull: true } }),
   member_duty: Field.select([{ value: 'collaborator', label: '协同销售' }], { label: '成员职责', defaultValue: 'collaborator' }),
   active: Field.boolean({ label: '有效成员', defaultValue: true }), remarks: remarks(),
 }, ['customer_id', 'user_id', 'member_duty', 'active']);

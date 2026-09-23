@@ -22,7 +22,7 @@ const paymentMethod = (label = '收款方式') => Field.select([
 // This first executable slice represents the issued finance-side document directly.
 export const SalesInvoice = master('forge_sales_invoice', '销项发票', 'receipt-text', {
   name: text('发票名称', true), code: code('发票编号'), order_id: reference('forge_sales_order', '销售订单', true),
-  contract_id: reference('forge_sales_contract', '销售合同'), customer_id: { ...reference('forge_customer', '客户', true), relatedList: true, relatedListTitle: '客户销项发票', relatedListColumns: ["code", "invoice_on", "due_on", "total_amount", "red_reversed_amount", "outstanding_amount", "status"] },
+  contract_id: reference('forge_sales_contract', '销售合同'), customer_id: { ...reference('forge_customer', '客户', true), relatedList: false },
   invoice_on: Field.date({ label: '开票日期', ...required }), due_on: Field.date({ label: '应收日期', ...required }),
   total_amount: amount('价税合计'), collected_amount: { ...amount('已收金额'), readonly: true },
   outstanding_amount: { ...amount('未收金额'), readonly: true }, red_reversed_amount: { ...amount('已红冲金额'), defaultValue: 0, readonly: true },
@@ -52,7 +52,7 @@ export const AccountsReceivable = master('forge_accounts_receivable', '应收账
   ], { label: '应收来源', defaultValue: 'sales_invoice', ...required }), invoice_id: reference('forge_sales_invoice', '销项发票'),
   service_settlement_id: reference('forge_service_settlement', '服务结算单'),
   order_id: reference('forge_sales_order', '销售订单'), contract_id: reference('forge_sales_contract', '销售合同'),
-  customer_id: { ...reference('forge_customer', '客户', true), relatedList: true, relatedListTitle: '客户应收账款', relatedListColumns: ["code", "source_type", "recognized_on", "due_on", "original_amount", "collected_amount", "outstanding_amount", "status"] }, recognized_on: Field.date({ label: '确认日期', ...required }),
+  customer_id: { ...reference('forge_customer', '客户', true), relatedList: false }, recognized_on: Field.date({ label: '确认日期', ...required }),
   due_on: Field.date({ label: '到期日期', ...required }), original_amount: amount('应收原值'),
   collected_amount: { ...amount('已核销金额'), readonly: true }, offset_amount: { ...amount('已对冲金额'), defaultValue: 0, readonly: true }, red_reversed_amount: { ...amount('已红冲金额'), defaultValue: 0, readonly: true }, outstanding_amount: { ...amount('应收余额'), readonly: true },
   historical_contract_no: text('历史合同编号'), invoice_marker: Field.select([{ value: 'invoiced', label: '已开票' }, { value: 'not_invoiced', label: '未开票' }, { value: 'unknown', label: '不详' }], { label: '历史开票标记', defaultValue: 'unknown' }),
@@ -151,7 +151,7 @@ export const FinanceLoanTransaction = master('forge_finance_loan_transaction', '
 }, ['code', 'loan_id', 'transaction_type', 'account_id', 'occurred_on', 'principal_amount', 'interest_amount', 'balance_after']);
 
 export const FinanceCreditRequest = master('forge_finance_credit_request', '客户授信申请', 'badge-check', {
-  name: text('申请名称', true), code: code('申请编号'), customer_id: { ...reference('forge_customer', '客户', true), relatedList: true, relatedListTitle: '客户授信申请', relatedListColumns: ["code", "requested_limit", "payment_days", "reason", "status", "submitted_at", "reviewed_at"] }, requested_limit: amount('申请额度'), payment_days: Field.number({ label: '申请账期天数', min: 0, scale: 0 }),
+  name: text('申请名称', true), code: code('申请编号'), customer_id: { ...reference('forge_customer', '客户', true), relatedList: false }, requested_limit: amount('申请额度'), payment_days: Field.number({ label: '申请账期天数', min: 0, scale: 0 }),
   reason: Field.textarea({ label: '申请原因', ...required }), status: { ...Field.select([{ value: 'pending_review', label: '待审批' }, { value: 'approved', label: '已通过' }, { value: 'rejected', label: '已驳回' }], { label: '审批状态', defaultValue: 'pending_review' }), readonly: true },
   applicant_id: Field.user({ label: '申请人', readonly: true }), submitted_at: Field.datetime({ label: '提交时间', readonly: true }), reviewer_id: Field.user({ label: '审批人', readonly: true }), reviewed_at: Field.datetime({ label: '审批时间', readonly: true }), review_comment: Field.textarea({ label: '审批意见', readonly: true }), responsible_id: owner(true), remarks: remarks(),
 }, ['code', 'customer_id', 'requested_limit', 'payment_days', 'reason', 'status', 'applicant_id', 'submitted_at', 'reviewer_id', 'reviewed_at']);
@@ -164,7 +164,7 @@ export const SalesInvoiceRequest = master('forge_sales_invoice_request', '销项
 }, ['code', 'order_id', 'customer_id', 'requested_quantity', 'requested_amount', 'requested_on', 'expected_invoice_on', 'due_on', 'status', 'invoice_code', 'invoice_id']);
 
 export const CashReceipt = master('forge_cash_receipt', '收款流水', 'badge-dollar-sign', {
-  name: text('收款流水名称', true), code: code('流水号'), customer_id: { ...reference('forge_customer', '客户', true), relatedList: true, relatedListTitle: '客户收款记录', relatedListColumns: ["code", "received_on", "payment_method", "amount", "allocated_amount", "unallocated_amount", "status"] },
+  name: text('收款流水名称', true), code: code('流水号'), customer_id: { ...reference('forge_customer', '客户', true), relatedList: false },
   account_id: reference('forge_fund_account', '收款账户', true), received_on: Field.date({ label: '收款日期', ...required }),
   payment_method: paymentMethod(), amount: amount('收款金额'), allocated_amount: { ...amount('已分配金额'), readonly: true },
   unallocated_amount: { ...amount('未分配金额'), readonly: true },
@@ -200,7 +200,7 @@ export const CollectionReversalLog = master('forge_collection_reversal_log', '�
 }, ['receipt_id', 'allocation_id', 'action', 'amount', 'reason', 'operator_id', 'occurred_at']);
 
 export const CustomerPrepayment = master('forge_customer_prepayment', '客户预收款', 'landmark', {
-  name: text('预收款名称', true), code: code('预收款编号'), customer_id: { ...reference('forge_customer', '客户', true), relatedList: true, relatedListTitle: '客户预收款', relatedListColumns: ["code", "original_amount", "offset_amount", "refunded_amount", "balance_amount", "status"] },
+  name: text('预收款名称', true), code: code('预收款编号'), customer_id: { ...reference('forge_customer', '客户', true), relatedList: false },
   order_id: reference('forge_sales_order', '销售订单', true), contract_id: reference('forge_sales_contract', '销售合同'),
   receipt_id: reference('forge_cash_receipt', '收款流水', true), original_amount: amount('预收金额'),
   offset_amount: { ...amount('已冲抵金额'), readonly: true }, refunded_amount: { ...amount('已退款金额'), readonly: true },
@@ -229,7 +229,7 @@ export const CustomerPrepaymentOffset = master('forge_customer_prepayment_offset
 export const CustomerRefund = master('forge_customer_refund', '客户退款', 'undo-2', {
   name: text('退款名称', true), code: code('申请单号'), prepayment_id: reference('forge_customer_prepayment', '客户预收款', true),
   order_id: reference('forge_sales_order', '关联销售订单', true), contract_id: reference('forge_sales_contract', '关联合同'),
-  customer_id: { ...reference('forge_customer', '客户', true), relatedList: true, relatedListTitle: '客户退款单', relatedListColumns: ["code", "currency", "actual_amount", "refund_method", "document_status", "finance_status", "payment_status", "writeoff_status", "application_on"] },
+  customer_id: { ...reference('forge_customer', '客户', true), relatedList: false },
   currency: Field.select([{ value: 'cny', label: '人民币' }, { value: 'usd', label: '美元' }, { value: 'eur', label: '欧元' }], { label: '币种', defaultValue: 'cny' }),
   requested_amount: amount('申请退款金额'), actual_amount: { ...amount('实退金额'), readonly: true },
   refund_method: paymentMethod('退款方式'), application_on: Field.date({ label: '申请日期', ...required }), reason: Field.textarea({ label: '退款原因', ...required }),
@@ -471,7 +471,7 @@ export const CounterpartyStatement = master('forge_counterparty_statement', '往
   name: text('对账单名称', true), code: code('对账单号'), party_type: Field.select([
     { value: 'customer', label: '客户应收' }, { value: 'supplier', label: '供应商应付' },
   ], { label: '往来方向', ...required }),
-  customer_id: { ...reference('forge_customer', '客户'), relatedList: true, relatedListTitle: '客户往来对账单', relatedListColumns: ["code", "period_start", "period_end", "dimension", "basis", "opening_balance", "period_charge", "period_settlement", "closing_balance", "status"] }, supplier_id: reference('forge_supplier', '供应商'),
+  customer_id: { ...reference('forge_customer', '客户'), relatedList: false }, supplier_id: reference('forge_supplier', '供应商'),
   period_start: Field.date({ label: '期间开始', ...required }), period_end: Field.date({ label: '期间结束', ...required }),
   dimension: Field.select([
     { value: 'party', label: '按往来单位' }, { value: 'contract', label: '按合同' }, { value: 'order', label: '按订单' },
