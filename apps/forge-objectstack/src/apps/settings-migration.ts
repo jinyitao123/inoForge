@@ -1,0 +1,103 @@
+export type ForgeApplicationKey =
+  | 'supply_chain'
+  | 'sales'
+  | 'production'
+  | 'project'
+  | 'administration'
+  | 'finance'
+  | 'reports';
+
+export type ForgeBusinessApplicationKey = ForgeApplicationKey;
+
+export type SettingMigration = {
+  id: string;
+  label: string;
+  targetApplications: ForgeApplicationKey[];
+  resolution: 'moved' | 'native_setup' | 'pending_business_decision';
+  accessFinding?: 'declared_in_sales_sets_only' | 'no_declared_read_grant';
+  nativeTarget?: {
+    appName: 'setup';
+    capability: 'package_management' | 'service_subscriptions' | 'field_definitions';
+    route: null;
+  };
+};
+
+const allBusinessApplications: ForgeBusinessApplicationKey[] = [
+  'supply_chain',
+  'sales',
+  'production',
+  'project',
+  'administration',
+  'finance',
+  'reports',
+];
+
+export type WorkspaceNavigationMigration = {
+  id: string;
+  resolution: 'gooeypi' | 'native_setup' | 'native_inbox';
+  nativeTarget: {
+    surface: 'GooeyPi' | 'ObjectStack Setup' | 'ObjectStack native inbox';
+    capability: string;
+    route: null;
+  };
+};
+
+export const workspaceNavigationMigrations: WorkspaceNavigationMigration[] = [
+  { id: 'workspace_home', resolution: 'gooeypi', nativeTarget: { surface: 'GooeyPi', capability: 'employee_home', route: null } },
+  { id: 'workspace_ai', resolution: 'gooeypi', nativeTarget: { surface: 'GooeyPi', capability: 'ai_assistant', route: null } },
+  { id: 'workspace_guidance', resolution: 'native_setup', nativeTarget: { surface: 'ObjectStack Setup', capability: 'initialization_guidance', route: null } },
+  { id: 'workspace_todo', resolution: 'native_inbox', nativeTarget: { surface: 'ObjectStack native inbox', capability: 'personal_inbox', route: null } },
+];
+
+/**
+ * The authoritative disposition for the 27 leaves under the former shared
+ * Business Settings area. The Setup routes remain null until the official
+ * native target is resolved; no browser path is fabricated here.
+ */
+export const settingMigrations: SettingMigration[] = [
+  { id: 'material_skus', label: '规格与价格', targetApplications: ['supply_chain'], resolution: 'moved', accessFinding: 'declared_in_sales_sets_only' },
+  { id: 'material_categories', label: '物料分类', targetApplications: ['supply_chain'], resolution: 'moved', accessFinding: 'no_declared_read_grant' },
+  { id: 'units', label: '计量单位', targetApplications: ['supply_chain'], resolution: 'moved', accessFinding: 'declared_in_sales_sets_only' },
+  { id: 'supplier_categories', label: '供应商分类', targetApplications: ['supply_chain'], resolution: 'moved', accessFinding: 'no_declared_read_grant' },
+  { id: 'supplier_levels', label: '供应商级别', targetApplications: ['supply_chain'], resolution: 'moved', accessFinding: 'no_declared_read_grant' },
+  { id: 'customer_categories', label: '客户分类', targetApplications: ['sales'], resolution: 'moved', accessFinding: 'no_declared_read_grant' },
+  { id: 'customer_levels', label: '客户级别', targetApplications: ['sales'], resolution: 'moved', accessFinding: 'no_declared_read_grant' },
+  { id: 'payment_conditions', label: '付款条件', targetApplications: ['finance'], resolution: 'moved', accessFinding: 'no_declared_read_grant' },
+  { id: 'quotation_types', label: '报价类型', targetApplications: ['sales'], resolution: 'moved', accessFinding: 'no_declared_read_grant' },
+  { id: 'quotation_issuers', label: '报价主体', targetApplications: ['sales'], resolution: 'moved', accessFinding: 'no_declared_read_grant' },
+  { id: 'contract_types', label: '合同类型', targetApplications: ['sales'], resolution: 'moved', accessFinding: 'declared_in_sales_sets_only' },
+  { id: 'warehouse_types', label: '仓库类型', targetApplications: ['supply_chain'], resolution: 'moved', accessFinding: 'no_declared_read_grant' },
+  { id: 'inventory_business_config', label: '库存管理配置', targetApplications: ['supply_chain'], resolution: 'moved' },
+  { id: 'project_business_config', label: '项目管理配置', targetApplications: ['project'], resolution: 'moved' },
+  { id: 'finance_business_config', label: '付款方式与费用类别', targetApplications: ['finance'], resolution: 'moved' },
+  { id: 'administration_business_config', label: '行政管理配置', targetApplications: ['administration'], resolution: 'moved' },
+  { id: 'other_business_config', label: '其他配置', targetApplications: ['administration'], resolution: 'moved' },
+  { id: 'hr_business_config', label: '人事配置', targetApplications: ['administration'], resolution: 'moved' },
+  { id: 'drawing_business_config', label: '图纸配置', targetApplications: ['production'], resolution: 'moved' },
+  { id: 'production_config', label: '生产配置', targetApplications: ['production'], resolution: 'moved' },
+  { id: 'subcontract_business_config', label: '委外字典', targetApplications: ['production'], resolution: 'moved' },
+  { id: 'subcontract_policy', label: '委外控制规则', targetApplications: ['production'], resolution: 'moved' },
+  { id: 'document_printing', label: '单据打印', targetApplications: allBusinessApplications, resolution: 'moved' },
+  {
+    id: 'plugin_center_gap',
+    label: '插件中心',
+    targetApplications: [],
+    resolution: 'native_setup',
+    nativeTarget: { appName: 'setup', capability: 'package_management', route: null },
+  },
+  {
+    id: 'service_subscription_gap',
+    label: '服务订阅',
+    targetApplications: [],
+    resolution: 'native_setup',
+    nativeTarget: { appName: 'setup', capability: 'service_subscriptions', route: null },
+  },
+  { id: 'promotion_rewards_gap', label: '推广奖励', targetApplications: [], resolution: 'pending_business_decision' },
+  {
+    id: 'field_management_gap',
+    label: '字段管理',
+    targetApplications: [],
+    resolution: 'native_setup',
+    nativeTarget: { appName: 'setup', capability: 'field_definitions', route: null },
+  },
+];
