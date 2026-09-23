@@ -5,6 +5,7 @@ import { ApprovalsServicePlugin } from '@objectstack/plugin-approvals';
 import { MCPServerPlugin } from '@objectstack/mcp';
 import { RecordChangeTriggerPlugin } from '@objectstack/trigger-record-change';
 import { ApprovalWorkbenchContextPlugin } from './src/plugins/approval-workbench-context.plugin.js';
+import { ContractRevisionMaterialPlugin } from './src/plugins/contract-revision-material.js';
 import { WeaveRunEventPlugin } from './src/plugins/weave-run-event.plugin.js';
 import { forgeApplicationPlugins } from './src/apps/index.js';
 import { sharedForgeCorePlugin } from './src/apps/shared-core.js';
@@ -24,6 +25,7 @@ export default defineStack({
     new MCPServerPlugin(),
     new WeaveRunEventPlugin(),
     new ApprovalWorkbenchContextPlugin(),
+    new ContractRevisionMaterialPlugin(),
     sharedForgeCorePlugin,
     ...forgeApplicationPlugins,
   ],
