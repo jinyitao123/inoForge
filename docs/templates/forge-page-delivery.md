@@ -12,7 +12,7 @@
 
 ## 交付目标设计
 
-- surfaceType（object/dashboard/report/component/action/page）/ 目标对象、视图或定义 / pageId（仅自定义 Page 必填）/ 应用及旧新入口 / 旧收藏、通知与详情链接兼容：
+- surfaceType（object/dashboard/report/component/action/page）/ 目标对象、视图或定义 / pageId（仅自定义 Page 必填）/ 应用及新入口 / 新通知与详情链接：
 - 岗位 / 主任务 / 主单据 / 正式来源 / 下一岗位及结果：
 - 需求来源：用户目标 / 客户规则 / Forge 决策 / 可选外部参考（日期、采用内容及限制）：
 - 主原型 / Forge 设计基线版本、截图与材料 / 首屏顺序 / 主操作：
