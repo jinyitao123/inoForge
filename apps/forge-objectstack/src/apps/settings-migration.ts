@@ -14,7 +14,9 @@ export type SettingMigration = {
   label: string;
   targetApplications: ForgeApplicationKey[];
   resolution: 'moved' | 'native_setup' | 'pending_business_decision';
-  accessFinding?: 'declared_in_sales_sets_only' | 'no_declared_read_grant';
+  accessFinding?: 'declared_in_sales_sets_only' | 'declared_in_application_sets' | 'no_declared_read_grant';
+  permissionSetNames?: string[];
+  assignmentState?: 'requires_setup_assignment';
   nativeTarget?: {
     appName: 'setup';
     capability: 'package_management' | 'service_subscriptions' | 'field_definitions';
@@ -55,18 +57,18 @@ export const workspaceNavigationMigrations: WorkspaceNavigationMigration[] = [
  * native target is resolved; no browser path is fabricated here.
  */
 export const settingMigrations: SettingMigration[] = [
-  { id: 'material_skus', label: '规格与价格', targetApplications: ['supply_chain'], resolution: 'moved', accessFinding: 'declared_in_sales_sets_only' },
-  { id: 'material_categories', label: '物料分类', targetApplications: ['supply_chain'], resolution: 'moved', accessFinding: 'no_declared_read_grant' },
-  { id: 'units', label: '计量单位', targetApplications: ['supply_chain'], resolution: 'moved', accessFinding: 'declared_in_sales_sets_only' },
-  { id: 'supplier_categories', label: '供应商分类', targetApplications: ['supply_chain'], resolution: 'moved', accessFinding: 'no_declared_read_grant' },
-  { id: 'supplier_levels', label: '供应商级别', targetApplications: ['supply_chain'], resolution: 'moved', accessFinding: 'no_declared_read_grant' },
-  { id: 'customer_categories', label: '客户分类', targetApplications: ['sales'], resolution: 'moved', accessFinding: 'no_declared_read_grant' },
-  { id: 'customer_levels', label: '客户级别', targetApplications: ['sales'], resolution: 'moved', accessFinding: 'no_declared_read_grant' },
-  { id: 'payment_conditions', label: '付款条件', targetApplications: ['finance'], resolution: 'moved', accessFinding: 'no_declared_read_grant' },
-  { id: 'quotation_types', label: '报价类型', targetApplications: ['sales'], resolution: 'moved', accessFinding: 'no_declared_read_grant' },
-  { id: 'quotation_issuers', label: '报价主体', targetApplications: ['sales'], resolution: 'moved', accessFinding: 'no_declared_read_grant' },
-  { id: 'contract_types', label: '合同类型', targetApplications: ['sales'], resolution: 'moved', accessFinding: 'declared_in_sales_sets_only' },
-  { id: 'warehouse_types', label: '仓库类型', targetApplications: ['supply_chain'], resolution: 'moved', accessFinding: 'no_declared_read_grant' },
+  { id: 'material_skus', label: '规格与价格', targetApplications: ['supply_chain'], resolution: 'moved', accessFinding: 'declared_in_application_sets', permissionSetNames: ['forge_supply_chain_settings_manager', 'sales_contract_operator'], assignmentState: 'requires_setup_assignment' },
+  { id: 'material_categories', label: '物料分类', targetApplications: ['supply_chain'], resolution: 'moved', accessFinding: 'declared_in_application_sets', permissionSetNames: ['forge_supply_chain_reference_reader', 'forge_supply_chain_settings_manager', 'sales_contract_operator'], assignmentState: 'requires_setup_assignment' },
+  { id: 'units', label: '计量单位', targetApplications: ['supply_chain'], resolution: 'moved', accessFinding: 'declared_in_application_sets', permissionSetNames: ['forge_supply_chain_reference_reader', 'forge_supply_chain_settings_manager', 'sales_contract_operator'], assignmentState: 'requires_setup_assignment' },
+  { id: 'supplier_categories', label: '供应商分类', targetApplications: ['supply_chain'], resolution: 'moved', accessFinding: 'declared_in_application_sets', permissionSetNames: ['forge_supply_chain_reference_reader', 'forge_supply_chain_settings_manager'], assignmentState: 'requires_setup_assignment' },
+  { id: 'supplier_levels', label: '供应商级别', targetApplications: ['supply_chain'], resolution: 'moved', accessFinding: 'declared_in_application_sets', permissionSetNames: ['forge_supply_chain_reference_reader', 'forge_supply_chain_settings_manager'], assignmentState: 'requires_setup_assignment' },
+  { id: 'customer_categories', label: '客户分类', targetApplications: ['sales'], resolution: 'moved', accessFinding: 'declared_in_application_sets', permissionSetNames: ['sales_contract_operator', 'forge_sales_settings_manager'], assignmentState: 'requires_setup_assignment' },
+  { id: 'customer_levels', label: '客户级别', targetApplications: ['sales'], resolution: 'moved', accessFinding: 'declared_in_application_sets', permissionSetNames: ['sales_contract_operator', 'forge_sales_settings_manager'], assignmentState: 'requires_setup_assignment' },
+  { id: 'payment_conditions', label: '付款条件', targetApplications: ['finance'], resolution: 'moved', accessFinding: 'declared_in_application_sets', permissionSetNames: ['forge_finance_settings_manager', 'forge_production_reference_reader'], assignmentState: 'requires_setup_assignment' },
+  { id: 'quotation_types', label: '报价类型', targetApplications: ['sales'], resolution: 'moved', accessFinding: 'declared_in_application_sets', permissionSetNames: ['sales_contract_operator', 'forge_sales_settings_manager'], assignmentState: 'requires_setup_assignment' },
+  { id: 'quotation_issuers', label: '报价主体', targetApplications: ['sales'], resolution: 'moved', accessFinding: 'declared_in_application_sets', permissionSetNames: ['sales_contract_operator', 'forge_sales_settings_manager'], assignmentState: 'requires_setup_assignment' },
+  { id: 'contract_types', label: '合同类型', targetApplications: ['sales'], resolution: 'moved', accessFinding: 'declared_in_application_sets', permissionSetNames: ['sales_contract_operator', 'forge_sales_settings_manager'], assignmentState: 'requires_setup_assignment' },
+  { id: 'warehouse_types', label: '仓库类型', targetApplications: ['supply_chain'], resolution: 'moved', accessFinding: 'declared_in_application_sets', permissionSetNames: ['forge_supply_chain_reference_reader', 'forge_supply_chain_settings_manager', 'forge_production_reference_reader'], assignmentState: 'requires_setup_assignment' },
   { id: 'inventory_business_config', label: '库存管理配置', targetApplications: ['supply_chain'], resolution: 'moved' },
   { id: 'project_business_config', label: '项目管理配置', targetApplications: ['project'], resolution: 'moved' },
   { id: 'finance_business_config', label: '付款方式与费用类别', targetApplications: ['finance'], resolution: 'moved' },
