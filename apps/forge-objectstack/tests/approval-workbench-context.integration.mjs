@@ -156,6 +156,11 @@ function createHarness() {
 
   return {
     async start() { await ready(); },
+    changePayload(requestId, payload) {
+      const request = requests.get(requestId);
+      assert.ok(request, 'fixture request exists');
+      request.payload = payload;
+    },
     async call(requestId, token, extraHeaders = {}) {
       const handler = routes.get('/api/v1/approvals/requests/:requestId/workbench-context');
       assert.ok(handler, 'approval context route mounted');
@@ -232,6 +237,20 @@ test('returned request is readable only by its original submitter', async () => 
   assert.deepEqual(submitter.body.businessObject, { objectName: CONTRACT_OBJECT, recordId: 'contract-returned', recordName: '已退回合同' });
   assert.match(submitter.body.sourceMaterialVersion, /^[0-9a-f]{64}$/);
   assert.equal(submitter.body.revisionReady, undefined);
+});
+
+test('source material version is stable across key order and changes with the frozen payload', async () => {
+  const harness = createHarness();
+  await harness.start();
+  const initial = await harness.call('approval-A', 'reviewer-token');
+  assert.equal(initial.status, 200);
+  const original = contextPayload(harness.fixtureFiles.materialA, [harness.fixtureFiles.attachmentA]);
+  harness.changePayload('approval-A', Object.fromEntries(Object.entries(original).reverse()));
+  const reordered = await harness.call('approval-A', 'reviewer-token');
+  assert.equal(reordered.body.sourceMaterialVersion, initial.body.sourceMaterialVersion);
+  harness.changePayload('approval-A', { ...original, name: '经修改的合同' });
+  const changed = await harness.call('approval-A', 'reviewer-token');
+  assert.notEqual(changed.body.sourceMaterialVersion, initial.body.sourceMaterialVersion);
 });
 
 test('invalid bearer and material hash mismatch fail closed', async () => {
