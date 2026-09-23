@@ -9,7 +9,7 @@ const createCss = `
 const source = `
 const css=${JSON.stringify(forgeProductUiCss + createCss)};
 function App(){
- const today=new Date().toISOString().slice(0,10),nextYear=String(Number(today.slice(0,4))+1)+today.slice(4),listUrl=forgeBase+'/page/page_sales_contract_workspace';
+ const today=new Date().toISOString().slice(0,10),nextYear=String(Number(today.slice(0,4))+1)+today.slice(4),listUrl='/_console/apps/com.inoforge.forge.sales/page_sales_contract_workspace';
  const blankLine=()=>({key:Math.random().toString(36).slice(2),sku_id:'',name:'',item_code:'',model:'',specification:'',unit_name:'',quantity_limit:'1',taxed_unit_price:'0',tax_rate:'13',discount_rate:'0'}),blankFee=()=>({key:Math.random().toString(36).slice(2),fee_item:'',bearing_type:'customer',total_amount:'0'});
  const [data,setData]=React.useState({loading:true,error:'',customers:[],contacts:[],users:[],types:[],quotes:[],quoteLines:[],skus:[],materials:[],units:[],accounts:[],bundles:[],bundleLines:[]});
  const [form,setForm]=React.useState({name:'',code:'',customer_po_number:'',contract_type_id:'',customer_id:'',contact_id:'',company_account_id:'',delivery_address:'',delivery_contact:'',delivery_phone:'',responsible_id:'',collaborator_ids:[],quotation_id:'',project_name:'',signed_on:today,starts_on:today,ends_on:nextYear,remarks:'',has_order_amount_limit:false,order_amount_limit:'',allow_affiliate_orders:false,affiliate_company_names:'',outside_item_requires_approval:true,all_orders_require_approval:false,revenue_trigger:'shipment',payment_term:'',delivery_cycle_days:'21',warranty_months:'',business_terms:'',attachment_note:''});
