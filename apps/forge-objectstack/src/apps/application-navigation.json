@@ -2011,6 +2011,16 @@
                 "label": "业务设置",
                 "children": [
                   {
+                    "id": "report_templates",
+                    "label": "报表模板与默认口径",
+                    "icon": "file-chart-column",
+                    "type": "object",
+                    "objectName": "forge_report_template",
+                    "requiredPermissions": [
+                      "forge_reports_settings_manage"
+                    ]
+                  },
+                  {
                     "id": "document_printing",
                     "label": "单据打印",
                     "type": "group",

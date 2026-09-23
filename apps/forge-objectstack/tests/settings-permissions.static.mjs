@@ -7,6 +7,9 @@ const salesPermissions = await readFile(new URL('../src/permissions/sales-contra
 const settingsObjects = await readFile(new URL('../src/objects/business-setting.object.ts', import.meta.url), 'utf8');
 const salesObjects = await readFile(new URL('../src/objects/sales.object.ts', import.meta.url), 'utf8');
 const pageOwnership = await readFile(new URL('../src/apps/page-ownership.ts', import.meta.url), 'utf8');
+const migration = await readFile(new URL('../src/apps/settings-migration.ts', import.meta.url), 'utf8');
+const reportSettingsObject = await readFile(new URL('../src/objects/report-settings.object.ts', import.meta.url), 'utf8');
+const reportConsumer = await readFile(new URL('../src/pages/management-profit-report.page.ts', import.meta.url), 'utf8');
 
 const settingsGroups = {
   supply_chain: ['material_settings', 'inventory_settings'],
@@ -83,4 +86,51 @@ assert.ok(pageOwnership.includes("page_onboarding_center: 'initialization guidan
 assert.ok(!nav.applications.some((application) => JSON.stringify(application.definition).includes('page_company_entities')),
   'the retired onboarding destination must not appear in any registered app navigation');
 
-console.log('Settings access is app-scoped; nine dictionary reads, customer follow-up creation, and retired onboarding navigation are covered.');
+const reportApplication = nav.applications.find((application) => application.key === 'reports');
+const reportTemplateNav = reportApplication.definition.areas.flatMap((area) => area.navigation).flatMap((item) => item.children ?? []).find((item) => item.id === 'report_templates');
+assert.equal(reportTemplateNav?.type, 'object');
+assert.equal(reportTemplateNav?.objectName, 'forge_report_template');
+assert.deepEqual(reportTemplateNav?.requiredPermissions, ['forge_reports_settings_manage']);
+assert.ok(reportSettingsObject.includes("name: 'forge_report_template'"));
+assert.ok(reportSettingsObject.includes("fields: ['report_key'], unique: 'organization'"), 'one organization-owned default template per supported report');
+assert.ok(reportSettingsObject.includes('default_period') && reportSettingsObject.includes('default_dimension') && reportSettingsObject.includes('default_currency') && reportSettingsObject.includes('default_amount_unit'));
+assert.ok(reportConsumer.includes("'forge_report_template'"), 'management profit report must read the persisted default template');
+for (const field of ['default_period', 'default_dimension', 'default_compare_basis', 'default_currency', 'default_amount_unit']) {
+  assert.ok(reportConsumer.includes(`template.${field}`), `report must apply ${field} to its initial query controls`);
+}
+assert.ok(!reportSettingsObject.includes('forge_management_profit_report_version'), 'template settings must not duplicate report output snapshots');
+
+const consumerRequirements = [...migration.matchAll(/\{\s*objectName: '([^']+)', owningApplication: '([^']+)', recordScope: 'org',\s*permissionSetNames: \[([^\]]*)\],\s*consumers: \[([^\]]*)\],\s*\}/gs)].map((match) => ({
+  objectName: match[1],
+  application: match[2],
+  permissionSetNames: [...match[3].matchAll(/'([^']+)'/g)].map((entry) => entry[1]),
+  consumers: [...match[4].matchAll(/'([^']+)'/g)].map((entry) => entry[1]),
+}));
+assert.ok(consumerRequirements.length >= 18, 'the source must document the actual settings consumer read paths');
+assert.ok(permissions.includes("const orgRead = {\n  allowRead: true,\n  readScope: 'org'"));
+assert.ok(permissions.includes("const orgManage = {\n  allowCreate: true,\n  allowRead: true"));
+assert.ok(salesPermissions.includes("const readOrganizationReferenceData = {\n  allowRead: true,\n  readScope: 'org'"));
+for (const requirement of consumerRequirements) {
+  assert.ok(requirement.permissionSetNames.length > 0, `${requirement.objectName} has no declared reader set`);
+  assert.ok(requirement.consumers.length > 0, `${requirement.objectName} has no recorded consumer`);
+  for (const consumer of requirement.consumers) {
+    await readFile(new URL('../' + consumer, import.meta.url), 'utf8');
+  }
+  for (const permissionSetName of requirement.permissionSetNames) {
+    let matched = false;
+    for (const source of [permissions, salesPermissions]) {
+      const marker = `name: '${permissionSetName}'`;
+      const start = source.indexOf(marker);
+      if (start < 0) continue;
+      const end = source.indexOf('});', start);
+      const block = source.slice(start, end < 0 ? undefined : end);
+      if (new RegExp(`${requirement.objectName}:\\s*(?:orgRead|orgManage|readOrganizationReferenceData)`).test(block)) {
+        matched = true;
+        break;
+      }
+    }
+    assert.ok(matched, `${permissionSetName} must explicitly read ${requirement.objectName} for ${requirement.application}`);
+  }
+}
+
+console.log('Settings access is app-scoped; reader sets, report defaults, customer follow-up creation, and retired onboarding navigation are covered.');

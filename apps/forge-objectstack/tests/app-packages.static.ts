@@ -15,6 +15,8 @@ import {
   excludedPageDefinitions,
 } from '../src/apps/page-ownership.js';
 import {
+  applicationSettingAdditions,
+  settingConsumerReadRequirements,
   settingMigrations,
   workspaceNavigationMigrations,
   type ForgeApplicationKey,
@@ -62,9 +64,20 @@ assert.equal(
 );
 assert.equal(sharedForgeCoreBundle.manifest?.id, 'forge');
 assert.equal(sharedForgeCoreBundle.manifest?.type, 'plugin');
+assert.equal(
+  values<{ name: string }>(coreBundle?.objects).filter((object) => object.name === 'forge_report_template').length,
+  1,
+  'the shared forge package must be the unique owner of the report template object',
+);
 
 const packageByKey = new Map(
   forgeApplicationPackages.map((applicationPackage) => [applicationPackage.key, applicationPackage]),
+);
+const permissionSetsByName = new Map(
+  registeredAppBundles.flatMap((bundle) =>
+    values<{ name: string; objects?: Record<string, { allowRead?: boolean; readScope?: string }> }>(bundle.permissions)
+      .map((permission) => [permission.name, permission] as const),
+  ),
 );
 assert.deepEqual(
   [...packageByKey.keys()].sort(),
@@ -107,6 +120,20 @@ for (const application of expectedBusinessApps) {
     assert.equal(forgePageOwnerByName[page.name], application, 'wrong Page owner for ' + page.name);
   }
 }
+
+for (const requirement of settingConsumerReadRequirements) {
+  assert.ok(requirement.consumers.length > 0, requirement.objectName + ' must identify real read consumers');
+  for (const permissionSetName of requirement.permissionSetNames) {
+    const permissionSet = permissionSetsByName.get(permissionSetName);
+    assert.ok(permissionSet, permissionSetName + ' must be registered in a runtime bundle');
+    const grant = permissionSet.objects?.[requirement.objectName];
+    assert.equal(grant?.allowRead, true, permissionSetName + ' must explicitly read ' + requirement.objectName);
+    assert.equal(grant?.readScope, requirement.recordScope, permissionSetName + ' must keep ' + requirement.objectName + ' within ' + requirement.recordScope);
+  }
+}
+assert.equal(applicationSettingAdditions.length, 1);
+assert.equal(applicationSettingAdditions[0].id, 'report_templates');
+assert.deepEqual(applicationSettingAdditions[0].targetApplications, ['reports']);
 
 assert.equal(
   businessPageNames.size,
