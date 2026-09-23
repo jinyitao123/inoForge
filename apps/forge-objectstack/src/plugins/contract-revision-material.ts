@@ -1,4 +1,5 @@
 import { isFileIdToken } from '@objectstack/spec/data';
+import type { Plugin, PluginContext } from '@objectstack/core';
 import type { IApprovalService, IObjectQLEngine, IStorageService } from '@objectstack/spec/contracts';
 import type { ExecutionContext } from '@objectstack/spec/kernel';
 
@@ -9,6 +10,7 @@ const MAX_TOTAL_BYTES = 8 * 1024 * 1024;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const SHA256 = /^[0-9a-f]{64}$/;
 const SYSTEM_CONTEXT: ExecutionContext = { isSystem: true, positions: [], permissions: [] };
+export const CONTRACT_REVISION_MATERIAL_SERVICE = 'forge.contract.revision.material';
 
 export interface RevisionFileReference {
   fileId: string;
@@ -219,5 +221,23 @@ export class ContractRevisionMaterialService {
       if (existing) return fromExisting(existing);
       throw error;
     }
+  }
+}
+
+/** Registers the domain material validator; it does not resume approvals. */
+export class ContractRevisionMaterialPlugin implements Plugin {
+  name = 'com.inocube.forge.contract-revision-material';
+  version = '1.0.0';
+  type = 'standard' as const;
+  dependencies = ['com.objectstack.service.approvals'];
+
+  init(ctx: PluginContext): void {
+    ctx.hook('kernel:ready', () => {
+      const approvals = ctx.getService<IApprovalService>('approvals');
+      const engine = ctx.getService<IObjectQLEngine>('objectql');
+      const storage = ctx.getService<IStorageService>('storage');
+      ctx.registerService(CONTRACT_REVISION_MATERIAL_SERVICE,
+        new ContractRevisionMaterialService(approvals, engine, storage));
+    });
   }
 }
