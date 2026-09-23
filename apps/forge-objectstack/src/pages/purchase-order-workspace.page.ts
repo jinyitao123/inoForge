@@ -6,14 +6,14 @@ const purchaseOrderCss = `
 
 const purchaseOrderPageSource = `
 const css=${JSON.stringify(forgeProductUiCss + purchaseOrderCss)};
-function App(){
+function App(){const adapter=useAdapter();
   const pageSize=12,params=new URLSearchParams(window.location.search),initialId=params.get('id'),newMode=params.get('new')==='1'||!!params.get('analysis');
   const [view,setView]=React.useState(initialId?'detail':newMode?'new':'list');
   const [state,setState]=React.useState({loading:true,orders:[],orderLines:[],invoices:[],payables:[],paymentTasks:[],notices:[],inbounds:[],ordersById:{},order:null,lines:[],logs:[],analyses:[],analysis:null,analysisLines:[],boms:{},suppliers:[],warehouses:[],error:''});
   const [filters,setFilters]=React.useState({search:'',status:'',supplier:'',invoice:'',inbound:'',payment:''}),[page,setPage]=React.useState(1),[tab,setTab]=React.useState('基本信息'),[listMode,setListMode]=React.useState('orders');
   const [form,setForm]=React.useState({analysis_id:params.get('analysis')||'',source_type:'inventory_replenishment',code:'',supplier_id:'',warehouse_id:'',expected_arrival_on:'',payment_term:'',payment_method:'bank_transfer',project_id:'',purchase_request_id:'',remarks:'',lines:[]});
   const [dialog,setDialog]=React.useState(null),[busy,setBusy]=React.useState(false),[toast,setToast]=React.useState('');
-  async function request(path,options){const response=await fetch('/api/v1'+path,{credentials:'include',headers:{'Content-Type':'application/json'},...options}),payload=await response.json().catch(()=>({}));if(!response.ok)throw new Error((typeof payload.error==='string'?payload.error:payload.error?.message)||(Array.isArray(payload.fields)&&payload.fields.length?payload.fields.map(f=>f.message||f.label).filter(Boolean).join('；'):'')||payload.message||'请求失败');return payload}
+  async function request(path,options){const response=await ForgeApiResponse(adapter,path,{credentials:'include',headers:{'Content-Type':'application/json'},...options}),payload=await response.json().catch(()=>({}));if(!response.ok)throw new Error((typeof payload.error==='string'?payload.error:payload.error?.message)||(Array.isArray(payload.fields)&&payload.fields.length?payload.fields.map(f=>f.message||f.label).filter(Boolean).join('；'):'')||payload.message||'请求失败');return payload}
   async function fetchAll(object,where){const rows=[];let skip=0;for(let guard=0;guard<100;guard++){const query=new URLSearchParams({$top:'100',$skip:String(skip)});if(where)query.set('$filter',JSON.stringify(where));const batch=(await request('/data/'+object+'?'+query)).records||[];rows.push(...batch);if(batch.length<100)break;skip+=batch.length}return rows}
   const resultId=payload=>payload?.id||payload?.result?.id||payload?.data?.result?.id||payload?.data?.id||null;
   async function safeAll(object){try{return await fetchAll(object)}catch{return []}}

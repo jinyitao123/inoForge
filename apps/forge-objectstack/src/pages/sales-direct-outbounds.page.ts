@@ -6,9 +6,9 @@ const salesDirectCss = `
 
 const source = `
 const css=${JSON.stringify(forgeProductUiCss + salesDirectCss)};
-function App(){
+function App(){const adapter=useAdapter();
  const [state,setState]=React.useState({loading:true,shipments:[],lines:[],outbounds:[],orders:[],customers:[],error:''}),[query,setQuery]=React.useState(''),[status,setStatus]=React.useState(''),[page,setPage]=React.useState(1),[selected,setSelected]=React.useState([]),[toast,setToast]=React.useState('');
- async function request(path){const response=await fetch('/api/v1'+path,{credentials:'include',headers:{'Content-Type':'application/json'}}),payload=await response.json().catch(()=>({}));if(!response.ok)throw new Error((typeof payload.error==='string'?payload.error:payload.error?.message)||(Array.isArray(payload.fields)&&payload.fields.length?payload.fields.map(f=>f.message||f.label).filter(Boolean).join('；'):'')||payload.message||'请求失败');return payload}
+ async function request(path){const response=await ForgeApiResponse(adapter,path,{credentials:'include',headers:{'Content-Type':'application/json'}}),payload=await response.json().catch(()=>({}));if(!response.ok)throw new Error((typeof payload.error==='string'?payload.error:payload.error?.message)||(Array.isArray(payload.fields)&&payload.fields.length?payload.fields.map(f=>f.message||f.label).filter(Boolean).join('；'):'')||payload.message||'请求失败');return payload}
  async function find(object){const params=new URLSearchParams({$top:'500'});return (await request('/data/'+object+'?'+params)).records||[]}
  async function load(){setState(current=>({...current,loading:true,error:''}));try{const names=['forge_sales_shipment','forge_sales_shipment_line','forge_sales_outbound','forge_sales_order','forge_customer'],sets=await Promise.all(names.map(find)),data=Object.fromEntries(names.map((name,index)=>[name,sets[index]]));setState({loading:false,shipments:data.forge_sales_shipment,lines:data.forge_sales_shipment_line,outbounds:data.forge_sales_outbound,orders:data.forge_sales_order,customers:data.forge_customer,error:''})}catch(error){setState(current=>({...current,loading:false,error:String(error.message||error)}))}}
  React.useEffect(()=>{load()},[]);
