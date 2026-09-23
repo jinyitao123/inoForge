@@ -18,26 +18,26 @@ function App(){const adapter=useAdapter();
  React.useEffect(()=>{load()},[]);
  const d=state.data,active=x=>x.status==='active'||x.enabled===true||x.enabled===1||x.enabled==='1',count=(object,fn=()=>true)=>(d[object]||[]).filter(fn).length,categories=object=>new Set((d[object]||[]).map(x=>x.category).filter(Boolean)).size;
  const checks={assembly:[
-  ['仓库类型与仓库',count('forge_warehouse_type')>0&&count('forge_warehouse')>0,count('forge_warehouse')+' 个仓库可选',forgeBase+'/forge_warehouse'],
-  ['物料与规格',count('forge_material')>0&&count('forge_material_sku')>0,count('forge_material')+' 项物料、'+count('forge_material_sku')+' 个规格',forgeBase+'/forge_material'],
+  ['仓库类型与仓库',count('forge_warehouse_type')>0&&count('forge_warehouse')>0,count('forge_warehouse')+' 个仓库可选','/_console/apps/com.inoforge.forge.supply-chain/forge_warehouse'],
+  ['物料与规格',count('forge_material')>0&&count('forge_material_sku')>0,count('forge_material')+' 项物料、'+count('forge_material_sku')+' 个规格','/_console/apps/com.inoforge.forge.supply-chain/forge_material'],
   ['生效 BOM',count('forge_bom',x=>x.status==='active')>0,count('forge_bom',x=>x.status==='active')+' 个生效版本','/_console/apps/com.inoforge.forge.supply-chain/page_bom_workspace'],
   ['其他入库类型',count('forge_other_inbound_type',active)>0,count('forge_other_inbound_type',active)+' 个已启用类型','/_console/apps/com.inoforge.forge.supply-chain/page_inventory_business_config'],
-  ['可用库存',count('forge_inventory_balance',x=>Number(x.available_quantity||0)>0)>0,count('forge_inventory_balance',x=>Number(x.available_quantity||0)>0)+' 项物料有可用库存',forgeBase+'/forge_inventory_balance'],
+  ['可用库存',count('forge_inventory_balance',x=>Number(x.available_quantity||0)>0)>0,count('forge_inventory_balance',x=>Number(x.available_quantity||0)>0)+' 项物料有可用库存','/_console/apps/com.inoforge.forge.supply-chain/forge_inventory_balance'],
   ['拆解与改制原因',count('forge_production_disassembly_reason',active)>0&&count('forge_production_replacement_reason',active)>0,'拆解 '+count('forge_production_disassembly_reason',active)+'，改制 '+count('forge_production_replacement_reason',active),'/_console/apps/com.inoforge.forge.production/page_production_config'],
  ],drawing:[
   ['图纸配置',categories('forge_drawing_business_setting')===9,categories('forge_drawing_business_setting')+' / 9 类已建档，无线上可用值的类别保留停用占位','/_console/apps/com.inoforge.forge.production/page_drawing_business_config'],
   ['图号档案',count('forge_drawing')>0,count('forge_drawing')+' 个图号','/_console/apps/com.inoforge.forge.production/page_drawing_workspace'],
   ['可用发布版本',count('forge_drawing_version',x=>x.status==='released')>0,count('forge_drawing_version',x=>x.status==='released')+' 个已发布版本','/_console/apps/com.inoforge.forge.production/page_drawing_release'],
  ],subcontract:[
-  ['供应商已启用并审批',count('forge_supplier',x=>x.status==='active'&&x.approval_status==='approved')>0,count('forge_supplier',x=>x.status==='active'&&x.approval_status==='approved')+' 家可开通委外',forgeBase+'/forge_supplier'],
+  ['供应商已启用并审批',count('forge_supplier',x=>x.status==='active'&&x.approval_status==='approved')>0,count('forge_supplier',x=>x.status==='active'&&x.approval_status==='approved')+' 家可开通委外','/_console/apps/com.inoforge.forge.supply-chain/forge_supplier'],
   ['委外供应商与工艺能力',count('forge_subcontract_supplier_profile',x=>x.status==='active'&&String(x.process_capabilities||'').trim())>0,count('forge_subcontract_supplier_profile',x=>x.status==='active'&&String(x.process_capabilities||'').trim())+' 家已开通','/_console/apps/com.inoforge.forge.production/page_subcontract_suppliers'],
   ['已启用加工类型',count('forge_subcontract_business_setting',x=>x.category==='process_type'&&active(x))>0,count('forge_subcontract_business_setting',x=>x.category==='process_type'&&active(x))+' 个可选加工类型','/_console/apps/com.inoforge.forge.production/page_subcontract_business_config'],
-  ['已启用付款条件',count('forge_payment_condition',x=>x.status==='active')>0,count('forge_payment_condition',x=>x.status==='active')+' 项可选付款条件',forgeBase+'/forge_payment_condition'],
+  ['已启用付款条件',count('forge_payment_condition',x=>x.status==='active')>0,count('forge_payment_condition',x=>x.status==='active')+' 项可选付款条件','/_console/apps/com.inoforge.forge.finance/forge_payment_condition'],
   ['当前加工价目',count('forge_subcontract_processing_price',x=>x.status==='active'&&(!x.effective_from||x.effective_from<=new Date().toISOString().slice(0,10))&&(!x.effective_to||x.effective_to>=new Date().toISOString().slice(0,10)))>0,count('forge_subcontract_processing_price',x=>x.status==='active')+' 条生效价目','/_console/apps/com.inoforge.forge.production/page_subcontract_pricing'],
-  ['外协加工件与规格',count('forge_material',x=>x.status==='active'&&x.source_type==='subcontracted')>0&&count('forge_material_sku',x=>active(x)&&((d.forge_material||[]).find(m=>m.id===x.material_id)?.source_type==='subcontracted'))>0,count('forge_material_sku',x=>active(x)&&((d.forge_material||[]).find(m=>m.id===x.material_id)?.source_type==='subcontracted'))+' 个外协规格可选',forgeBase+'/forge_material'],
+  ['外协加工件与规格',count('forge_material',x=>x.status==='active'&&x.source_type==='subcontracted')>0&&count('forge_material_sku',x=>active(x)&&((d.forge_material||[]).find(m=>m.id===x.material_id)?.source_type==='subcontracted'))>0,count('forge_material_sku',x=>active(x)&&((d.forge_material||[]).find(m=>m.id===x.material_id)?.source_type==='subcontracted'))+' 个外协规格可选','/_console/apps/com.inoforge.forge.supply-chain/forge_material'],
   ['按 BOM 展开发料',count('forge_bom',x=>x.status==='active')>0&&count('forge_bom_node',x=>x.is_leaf&&x.sku_id)>0,count('forge_bom',x=>x.status==='active')+' 个生效 BOM 可检查','/_console/apps/com.inoforge.forge.supply-chain/page_bom_workspace'],
-  ['发料与回厂仓库',count('forge_warehouse')>0,count('forge_warehouse')+' 个仓库可选',forgeBase+'/forge_warehouse'],
-  ['甲供料可用库存',count('forge_inventory_balance',x=>Number(x.available_quantity||0)>0)>0,count('forge_inventory_balance',x=>Number(x.available_quantity||0)>0)+' 项物料有可用库存',forgeBase+'/forge_inventory_balance'],
+  ['发料与回厂仓库',count('forge_warehouse')>0,count('forge_warehouse')+' 个仓库可选','/_console/apps/com.inoforge.forge.supply-chain/forge_warehouse'],
+  ['甲供料可用库存',count('forge_inventory_balance',x=>Number(x.available_quantity||0)>0)>0,count('forge_inventory_balance',x=>Number(x.available_quantity||0)>0)+' 项物料有可用库存','/_console/apps/com.inoforge.forge.supply-chain/forge_inventory_balance'],
   ['退料原因',count('forge_subcontract_business_setting',x=>x.category==='return_reason'&&active(x))>0,count('forge_subcontract_business_setting',x=>x.category==='return_reason'&&active(x))+' 个可选原因','/_console/apps/com.inoforge.forge.production/page_subcontract_business_config'],
   ['委外控制规则',count('forge_subcontract_policy',x=>x.status==='active')>0,count('forge_subcontract_policy',x=>x.status==='active')+' 套规则已生效','/_console/apps/com.inoforge.forge.production/page_subcontract_policy'],
  ]};
