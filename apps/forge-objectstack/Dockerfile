@@ -34,6 +34,9 @@ ARG FORGE_SOURCE_REVISION=unknown
 LABEL org.opencontainers.image.title="inoForge" \
       org.opencontainers.image.revision="${FORGE_SOURCE_REVISION}"
 WORKDIR /srv/app
+USER root
+RUN install -d -m 0750 -o node -g node /srv/app/.objectstack/data/uploads
+USER node
 COPY --from=build --chown=node:node /app/package.json /app/pnpm-lock.yaml /app/pnpm-workspace.yaml ./
 COPY --from=build --chown=node:node /app/node_modules ./node_modules
 COPY --from=build --chown=node:node /app/objectstack.config.ts ./objectstack.config.ts
