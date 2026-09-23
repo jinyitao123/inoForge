@@ -29,7 +29,7 @@ test('same names across packages stay distinct and repeated sources are visible'
   assert.throws(() => auditPageArtifacts([artifact([]), artifact([])]), /Duplicate artifact package/);
 });
 
-test('counts embedded app bundles as well as the compatibility package', () => {
+test('counts embedded app bundles alongside a root package', () => {
   const root = artifact([{ name: 'contracts', source: 'legacy body' }], 'forge');
   root.plugins = [{ name: 'runtime-service' }, {
     name: 'sales-app',
@@ -43,6 +43,19 @@ test('counts embedded app bundles as well as the compatibility package', () => {
     root.pages[0], root.plugins[1].bundle.pages[0],
   ]), { level: 5 }).length);
   assert.throws(() => auditPageArtifacts([root, root.plugins[1].bundle]), /Duplicate artifact package/);
+});
+
+test('counts independent app bundles under a manifest-free host container', () => {
+  const sales = artifact([{ name: 'contracts', source: 'sales body' }], 'forge.sales');
+  const sharedCore = artifact([], 'forge');
+  const host = { apps: [], pages: [], objects: [], plugins: [{ bundle: sharedCore }, { bundle: sales }, { name: 'runtime-service' }] };
+  const report = auditPageArtifacts([host]);
+  assert.deepEqual(report.packages, ['forge', 'forge.sales']);
+  assert.equal(report.pageCount, 1);
+  assert.throws(() => auditPageArtifacts([{ plugins: [] }]), /manifest.id/);
+  assert.throws(() => auditPageArtifacts([{ pages: [{ name: 'unowned' }], plugins: [{ bundle: sales }] }]), /manifest.id/);
+  assert.throws(() => auditPageArtifacts([{ plugins: [{ bundle: { pages: [] } }] }]), /manifest.id/);
+  assert.throws(() => auditPageArtifacts([{ plugins: [{ bundle: sales }, { bundle: sales }] }]), /Duplicate artifact package/);
 });
 
 test('malformed or missing artifacts are errors rather than a zero-page success', () => {
