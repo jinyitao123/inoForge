@@ -8,13 +8,26 @@ import path from 'node:path';
 const bytes = value => Buffer.byteLength(value, 'utf8');
 const encode = value => JSON.stringify(value);
 
+function expandArtifacts(roots) {
+  const result = [];
+  for (const artifact of roots) {
+    result.push(artifact);
+    for (const plugin of artifact?.plugins ?? []) {
+      const bundle = plugin?.bundle;
+      if (bundle && typeof bundle === 'object' && bundle.manifest) result.push(...expandArtifacts([bundle]));
+    }
+  }
+  return result;
+}
+
 // Artifact estimates describe emitted metadata, not live HTTP timings or business acceptance.
 export function auditPageArtifacts(artifacts) {
   if (!Array.isArray(artifacts) || artifacts.length === 0) throw new Error('At least one artifact is required');
+  const packages = expandArtifacts(artifacts);
   const pages = [];
   const seen = new Set();
   const packageIds = new Set();
-  for (const artifact of artifacts) {
+  for (const artifact of packages) {
     const packageId = artifact?.manifest?.id;
     if (typeof packageId !== 'string' || !packageId.trim()) throw new Error('Artifact manifest.id is required');
     if (packageIds.has(packageId)) throw new Error(`Duplicate artifact package: ${packageId}`);
@@ -44,7 +57,7 @@ export function auditPageArtifacts(artifacts) {
     entries.push(`${page.packageId}/${page.name}`);
     sources.set(page.sourceHash, entries);
   }
-  const list = encode(artifacts.flatMap(artifact => artifact.pages));
+  const list = encode(packages.flatMap(artifact => artifact.pages));
   return {
     schemaVersion: 1,
     measurement: 'artifact-estimate',

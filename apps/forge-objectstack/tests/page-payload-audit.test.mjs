@@ -29,6 +29,22 @@ test('same names across packages stay distinct and repeated sources are visible'
   assert.throws(() => auditPageArtifacts([artifact([]), artifact([])]), /Duplicate artifact package/);
 });
 
+test('counts embedded app bundles as well as the compatibility package', () => {
+  const root = artifact([{ name: 'contracts', source: 'legacy body' }], 'forge');
+  root.plugins = [{ name: 'runtime-service' }, {
+    name: 'sales-app',
+    bundle: artifact([{ name: 'contracts', source: 'sales body' }], 'forge.sales'),
+  }];
+  const report = auditPageArtifacts([root]);
+  assert.deepEqual(report.packages, ['forge', 'forge.sales']);
+  assert.equal(report.pageCount, 2);
+  assert.equal(report.sourceBytes, Buffer.byteLength('legacy body') + Buffer.byteLength('sales body'));
+  assert.equal(report.fullListGzipBytes, gzipSync(JSON.stringify([
+    root.pages[0], root.plugins[1].bundle.pages[0],
+  ]), { level: 5 }).length);
+  assert.throws(() => auditPageArtifacts([root, root.plugins[1].bundle]), /Duplicate artifact package/);
+});
+
 test('malformed or missing artifacts are errors rather than a zero-page success', () => {
   assert.throws(() => auditPageArtifacts([]), /At least one/);
   assert.throws(() => auditPageArtifacts([{}]), /manifest.id/);
