@@ -93,6 +93,39 @@ export const SalesContractSubmission = ObjectSchema.create({
   enable: { apiEnabled: false, searchable: false, trackHistory: true, files: false, feeds: false, activities: false },
 });
 
+// One immutable material choice per returned native approval request. The
+// approval service still owns the resubmit action and the next review round.
+export const SalesContractRevisionMaterial = ObjectSchema.create({
+  name: 'forge_sales_contract_revision_material',
+  label: '合同修订材料版本',
+  pluralLabel: '合同修订材料版本',
+  icon: 'file-check',
+  sharingModel: 'private',
+  nameField: 'name',
+  fields: {
+    name: text('修订批次', true),
+    contract_id: reference('forge_sales_contract', '销售合同', true),
+    approval_request_id: Field.text({ label: '原退回事项', ...required, maxLength: 128 }),
+    return_version: Field.text({ label: '退回意见版本', ...required, maxLength: 128 }),
+    source_material_version: Field.text({ label: '原材料版本摘要', ...required, maxLength: 64 }),
+    new_version_digest: Field.text({ label: '新材料版本摘要', ...required, maxLength: 64 }),
+    idempotency_key: Field.text({ label: '修订请求键', ...required, maxLength: 64 }),
+    primary_file_id: Field.text({ label: '新主件引用', ...required, maxLength: 128 }),
+    primary_name: Field.text({ label: '新主件名称', ...required, maxLength: 255 }),
+    primary_sha256: Field.text({ label: '新主件摘要', ...required, maxLength: 64 }),
+    attachment_manifest: Field.textarea({ label: '新附件清单', ...required }),
+    submitted_by: Field.user({ label: '修订员工', ...required }),
+    submitted_at: Field.datetime({ label: '固定时间', ...required }),
+    consumed_at: Field.datetime({ label: '审批消费时间', readonly: true }),
+  },
+  listViews: { all: { label: '全部记录', type: 'grid', columns: ['name', 'contract_id', 'submitted_by', 'submitted_at'] } },
+  indexes: [
+    { fields: ['approval_request_id'], unique: 'organization' },
+    { fields: ['idempotency_key'], unique: 'organization' },
+  ],
+  enable: { apiEnabled: false, searchable: false, trackHistory: true, files: false, feeds: false, activities: false },
+});
+
 export const SalesContractLine = master('forge_sales_contract_line', '合同物料明细', 'list', {
   name: text('物料名称', true), contract_id: Field.masterDetail('forge_sales_contract', { label: '销售合同', deleteBehavior: 'cascade', inlineEdit: 'grid', ...required }),
   quotation_line_id: reference('forge_quotation_line', '来源报价明细'), sku_id: reference('forge_material_sku', '物料规格', true),
