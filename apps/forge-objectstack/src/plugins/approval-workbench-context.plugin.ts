@@ -11,6 +11,7 @@ const MAX_FILES = 11;
 const MAX_FIELDS = 64;
 const MAX_FIELD_VALUE = 4_000;
 const FILE_FIELD_TYPES = new Set(['file']);
+const TEXT_MEDIA_TYPES = new Set(['text/plain', 'text/plain; charset=utf-8']);
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const SYSTEM_CONTEXT: ExecutionContext = { isSystem: true, positions: [], permissions: [] };
 
@@ -257,7 +258,7 @@ async function readSnapshotFiles(
         !Number.isInteger(file.size) || (file.size as number) < 0) {
       throw new ContextFailure(422, 'APPROVAL_MATERIAL_UNAVAILABLE', 'An approval text material is unavailable.');
     }
-    if (file.mime_type !== 'text/plain') {
+    if (!TEXT_MEDIA_TYPES.has(String(file.mime_type))) {
       throw new ContextFailure(415, 'APPROVAL_MATERIAL_UNSUPPORTED_TYPE', 'Only text/plain approval materials can be previewed.');
     }
     if ((file.size as number) > MAX_FILE_BYTES) {
