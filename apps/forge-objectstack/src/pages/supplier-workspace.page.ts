@@ -2,7 +2,7 @@ import { forgeProductUiCss, forgeProductUiRuntime } from './product-ui.js';
 
 const css =
   forgeProductUiCss +
-  `.forge-suppliers .fp-shell{max-width:1600px}.forge-suppliers .fp-table{min-width:1120px}.forge-suppliers .fp-table th,.forge-suppliers .fp-table td{padding-left:10px;padding-right:10px}.forge-suppliers .fp-filterbar{grid-template-columns:minmax(260px,1fr) 160px 150px 150px 140px}`;
+  `.forge-suppliers .fp-shell{max-width:1600px}.forge-suppliers .fp-card{container-type:inline-size}.forge-suppliers .fp-table{min-width:1120px}.forge-suppliers .fp-table th,.forge-suppliers .fp-table td{padding-left:10px;padding-right:10px}.forge-suppliers .fp-filterbar{grid-template-columns:minmax(260px,1fr) 160px 150px 150px 140px}.forge-suppliers .fp-table-wrap{container-type:inline-size;scrollbar-width:thin}.forge-suppliers .fp-empty-cell>.fp-empty{position:sticky;left:0;width:100cqw;max-width:100%;margin:0}@container (max-width:1100px){.forge-suppliers .fp-filterbar{grid-template-columns:repeat(2,minmax(0,1fr))}.forge-suppliers .fp-filterbar .fp-search{grid-column:1/-1}.forge-suppliers .fp-filterbar .fp-picker{min-width:0;width:100%}.forge-suppliers .fp-filterbar .fp-picker-trigger{width:100%}.forge-suppliers .fp-table th:last-child,.forge-suppliers .fp-table td:last-child:not([colspan]){position:sticky;right:0;background:var(--fp-surface);box-shadow:-1px 0 var(--fp-line)}}@container (max-width:620px){.forge-suppliers .fp-filterbar{grid-template-columns:1fr}.forge-suppliers .fp-filterbar .fp-search{grid-column:auto}}`;
 
 const source = `
 ${forgeProductUiRuntime}
