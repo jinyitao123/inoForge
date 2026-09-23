@@ -183,6 +183,8 @@ test('pending approver receives only this request snapshot and verified text byt
   assert.equal(result.status, 200);
   assert.equal(result.body.viewer, 'current_approver');
   assert.equal(result.body.title, '设备验收合同 A');
+  assert.deepEqual(result.body.businessObject, { objectName: CONTRACT_OBJECT, recordId: CONTRACT_A, recordName: '设备验收合同 A' });
+  assert.match(result.body.sourceMaterialVersion, /^[0-9a-f]{64}$/);
   assert.deepEqual(result.body.fields, [
     { label: '合同名称', value: '设备验收合同' },
     { label: '合同编号', value: 'HT-2026-001' },
@@ -194,6 +196,7 @@ test('pending approver receives only this request snapshot and verified text byt
     { name: '合同正文.txt', content: '合同正文 A', sha256: sha256(harness.fixtureFiles.materialA.bytes), bytes: harness.fixtureFiles.materialA.bytes.length },
     { name: '技术说明.txt', content: '技术说明 A', sha256: sha256(harness.fixtureFiles.attachmentA.bytes), bytes: harness.fixtureFiles.attachmentA.bytes.length },
   ]);
+  assert.deepEqual(result.body.files.map(({ fileId }) => fileId), ['file-main-A', 'file-attachment-A']);
   assert.deepEqual(result.fileQueries[0].query.where.id.$in.sort(), ['file-attachment-A', 'file-main-A']);
   assert.equal(result.fileQueries[0].options.context.isSystem, true);
   assert.deepEqual(result.downloadedKeys.sort(), ['key-attachment-A', 'key-main-A']);
@@ -225,6 +228,9 @@ test('returned request is readable only by its original submitter', async () => 
   assert.equal(submitter.body.viewer, 'original_submitter');
   assert.equal(submitter.body.status, 'returned');
   assert.equal(submitter.body.returnReason, '请补充签字页');
+  assert.equal(submitter.body.returnVersion, 'action-revise');
+  assert.deepEqual(submitter.body.businessObject, { objectName: CONTRACT_OBJECT, recordId: 'contract-returned', recordName: '已退回合同' });
+  assert.match(submitter.body.sourceMaterialVersion, /^[0-9a-f]{64}$/);
   assert.equal(submitter.body.revisionReady, undefined);
 });
 
