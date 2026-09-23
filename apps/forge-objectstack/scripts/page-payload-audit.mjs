@@ -11,11 +11,20 @@ const encode = value => JSON.stringify(value);
 function expandArtifacts(roots) {
   const result = [];
   for (const artifact of roots) {
-    result.push(artifact);
+    if (artifact?.manifest) result.push(artifact);
+    else if (!Array.isArray(artifact?.plugins) ||
+      (artifact?.pages !== undefined && (!Array.isArray(artifact.pages) || artifact.pages.length !== 0))) {
+      throw new Error('Artifact manifest.id is required');
+    }
+    let nestedBundles = 0;
     for (const plugin of artifact?.plugins ?? []) {
       const bundle = plugin?.bundle;
-      if (bundle && typeof bundle === 'object' && bundle.manifest) result.push(...expandArtifacts([bundle]));
+      if (bundle && typeof bundle === 'object') {
+        nestedBundles++;
+        result.push(...expandArtifacts([bundle]));
+      }
     }
+    if (!artifact?.manifest && nestedBundles === 0) throw new Error('Artifact manifest.id is required');
   }
   return result;
 }
