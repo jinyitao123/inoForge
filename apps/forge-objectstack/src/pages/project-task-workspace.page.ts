@@ -1,12 +1,12 @@
 import { forgeProductUiCss, forgeProductUiRuntime } from './product-ui.js';
 
 const source = `
-function App(){
+function App(){const adapter=useAdapter();
   const [data,setData]=React.useState({loading:true,projects:[],plans:[],items:[],users:[],evidence:[],error:''});
   const [search,setSearch]=React.useState('');const [status,setStatus]=React.useState('');const [view,setView]=React.useState('list');
   const [projectFilter,setProjectFilter]=React.useState('');const [ownerFilter,setOwnerFilter]=React.useState('');const [priorityFilter,setPriorityFilter]=React.useState('');
   const [dialog,setDialog]=React.useState(null);const [busy,setBusy]=React.useState(false);const [toast,setToast]=React.useState('');
-  async function request(path,options){const r=await fetch('/api/v1'+path,{credentials:'include',...options,headers:{'Content-Type':'application/json',...(options?.headers||{})}}),p=await r.json().catch(()=>({}));if(!r.ok)throw new Error((typeof p.error==='string'?p.error:p.error?.message)||(Array.isArray(p.fields)&&p.fields.length?p.fields.map(f=>f.message||f.label).filter(Boolean).join('；'):'')||p.message||'请求失败');return p;}
+  async function request(path,options){const r=await ForgeApiResponse(adapter,path,{credentials:'include',...options,headers:{'Content-Type':'application/json',...(options?.headers||{})}}),p=await r.json().catch(()=>({}));if(!r.ok)throw new Error((typeof p.error==='string'?p.error:p.error?.message)||(Array.isArray(p.fields)&&p.fields.length?p.fields.map(f=>f.message||f.label).filter(Boolean).join('；'):'')||p.message||'请求失败');return p;}
   async function find(object){return (await request('/data/'+object+'?$top=500')).records||[];}
   async function load(){try{const [projects,plans,items,users,evidence]=await Promise.all([find('forge_project'),find('forge_project_plan'),find('forge_project_work_item'),find('sys_user'),find('forge_project_plan_evidence')]);setData({loading:false,projects,plans,items,users,evidence,error:''});}catch(e){setData(d=>({...d,loading:false,error:String(e.message||e)}));}}
   React.useEffect(()=>{load()},[]);
