@@ -97,4 +97,4 @@ assert.match(productUi, /\.forge-product \.btn,.forge-product \.icon-btn\{height
 assert.match(productUi, /\.forge-product\.bank-flow \.page-shell,.forge-product\.finance-page \.fp-shell,.forge-product \.body\{width:min\(1380px,100%\);max-width:1380px/, 'product-ui.ts 必须按工时管理页面统一财务内容宽度');
 assert.match(productUi, /\.forge-product \.card,.forge-product \.panel,.forge-product \.metric,.forge-product \.metric-card,.forge-product \.process\{[^}]*border-radius:10px/, 'product-ui.ts 必须统一财务卡片层级与圆角');
 assert.deepEqual(findings, [], findings.join('\n'));
-console.log(`PASS page-polish 清单覆盖 ${Object.values(manifest).flat().length} 个交付条目；${acceptedTargets} 个目标已验收，${reviewRequiredTargets} 个目标仍需逐项复核；${financePages.length} 个财务入口与 ${salesPages.length} 个销售入口均已纳入且导航无空白占位入口`);
+console.log(`PASS page-polish 清单覆盖 ${Object.values(manifest).flat().length} 个交付条目；${acceptedTargets} 个目标已验收，${reviewRequiredTargets} 个目标仍需逐项复核；${financePages.length} 个财务入口与 ${salesPages.length} 个销售入口已纳入清单。此检查仅排除指定财务空白页，不证明其他入口或业务动作可用`);
