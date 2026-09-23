@@ -15,6 +15,7 @@ async function harness() {
   const request = {
     id: requestId, object_name: 'forge_sales_contract', record_id: contractId,
     submitter_id: 'sales-A', status: 'returned', payload: oldPayload,
+    flow_run_id: 'run-A', created_at: '2026-09-23T10:00:00.000Z',
     viewer: { is_submitter: true },
   };
   const files = new Map([
@@ -23,13 +24,18 @@ async function harness() {
   ]);
   for (const file of files.values()) file.size = file.bytes.length;
   const ledger = new Map();
+  const actions = [{ id: 'return-action-A', action: 'revise', comment: '请修改验收条款' }];
+  const relatedRequests = [request];
+  const contract = { id: contractId, status: 'pending_approval', code: 'HT-A', submitted_material_id: 'old-file' };
   const engine = {
     async find(name, query) {
+      if (name === 'sys_approval_request') return relatedRequests.filter((row) =>
+        row.flow_run_id === query.where.flow_run_id && row.object_name === query.where.object_name && row.record_id === query.where.record_id);
       if (name !== 'sys_file') throw new Error(`unexpected collection ${name}`);
       return query.where.id.$in.map((id) => files.get(id)).filter(Boolean);
     },
     async findOne(name, query) {
-      if (name === 'forge_sales_contract') return query.where.id === contractId ? { id: contractId, status: 'pending_approval', code: 'HT-A' } : null;
+      if (name === 'forge_sales_contract') return query.where.id === contractId ? contract : null;
       if (name === 'sys_approval_request') return query.where.id === requestId ? request : null;
       if (name === 'forge_sales_contract_revision_material') {
         if (query.where.id) return [...ledger.values()].find((row) => row.id === query.where.id) ?? null;
@@ -48,10 +54,16 @@ async function harness() {
       ledger.set(row.approval_request_id, structuredClone(row));
       return row;
     },
+    async update(name, values) {
+      assert.equal(name, 'forge_sales_contract');
+      assert.equal(values.id, contractId);
+      Object.assign(contract, values);
+      return contract;
+    },
   };
   const approvals = {
     async getRequest(id) { return id === requestId ? request : null; },
-    async listActions() { return [{ id: 'return-action-A', action: 'revise', comment: '请修改验收条款' }]; },
+    async listActions() { return actions; },
   };
   const storage = {
     async download(key) { return Buffer.from([...files.values()].find((file) => file.key === key)?.bytes ?? []); },
@@ -63,17 +75,19 @@ async function harness() {
     primary: { fileId: mainId, name: files.get(mainId).name, sha256: sha256(files.get(mainId).bytes) },
     attachments: [{ fileId: attachmentId, name: files.get(attachmentId).name, sha256: sha256(files.get(attachmentId).bytes) }],
   };
-  return { service, request, files, ledger, input, context: { userId: 'sales-A', positions: [], permissions: [] } };
+  return { service, request, files, ledger, actions, relatedRequests, contract, input, context: { userId: 'sales-A', positions: [], permissions: [] } };
 }
 
 test('returned submitter prepares one exact material version and same request reuses it', async () => {
-  const { service, ledger, input, context } = await harness();
+  const { service, ledger, contract, input, context } = await harness();
   const first = await service.prepare(input, context);
   assert.equal(first.repeated, false);
   assert.equal(first.requestId, requestId);
   assert.match(first.bindingId, /^[0-9a-f-]{36}$/);
   assert.match(first.newVersionDigest, /^[0-9a-f]{64}$/);
   assert.equal(ledger.size, 1);
+  assert.equal(contract.submitted_material_id, mainId);
+  assert.deepEqual(contract.attachment_ids, [attachmentId]);
   const repeated = await service.prepare(input, context);
   assert.equal(repeated.repeated, true);
   assert.equal(repeated.bindingId, first.bindingId);
@@ -105,6 +119,22 @@ test('the native approval guard verifies the persisted binding and current file 
   files.get(attachmentId).bytes[0] = Buffer.from('技术附件 A', 'utf8')[0];
   ledger.get(requestId).new_version_digest = 'f'.repeat(64);
   assert.equal(await service.verifyBinding(verification), false);
+});
+
+test('lost response is reconciled from native action and next-round request without replaying resubmit', async () => {
+  const { service, actions, relatedRequests, input, context } = await harness();
+  const binding = await service.prepare(input, context);
+  assert.equal((await service.receipt(requestId, input.idempotencyKey, context))?.state, 'prepared');
+  assert.equal(await service.receipt(requestId, '44444444-4444-4444-8444-444444444444', context), null);
+  actions.push({ id: 'resubmit-action-A', action: 'resubmit' });
+  assert.equal((await service.receipt(requestId, input.idempotencyKey, context))?.state, 'resume_unknown');
+  relatedRequests.push({ id: 'approval-round-2', object_name: 'forge_sales_contract', record_id: contractId,
+    flow_run_id: 'run-A', created_at: '2026-09-23T10:01:00.000Z' });
+  const outcome = await service.receipt(requestId, input.idempotencyKey, context);
+  assert.deepEqual(outcome, {
+    requestId, bindingId: binding.bindingId, newVersionDigest: binding.newVersionDigest,
+    state: 'resumed', repeated: true,
+  });
 });
 
 test('foreign owner, changed bytes and stale return decision cannot create a binding', async () => {

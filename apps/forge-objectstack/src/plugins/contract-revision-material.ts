@@ -1,6 +1,7 @@
 import { isFileIdToken } from '@objectstack/spec/data';
 import type { Plugin, PluginContext } from '@objectstack/core';
-import type { IApprovalService, IObjectQLEngine, IStorageService } from '@objectstack/spec/contracts';
+import { makeExecutionContextResolver } from '@objectstack/plugin-hono-server';
+import type { IApprovalService, IHttpRequest, IHttpResponse, IHttpServer, IObjectQLEngine, IStorageService } from '@objectstack/spec/contracts';
 import type { ExecutionContext } from '@objectstack/spec/kernel';
 import type { ResubmitMaterialVerificationInput } from './approval-resubmit-guard.plugin.js';
 
@@ -12,6 +13,8 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-
 const SHA256 = /^[0-9a-f]{64}$/;
 const SYSTEM_CONTEXT: ExecutionContext = { isSystem: true, positions: [], permissions: [] };
 export const CONTRACT_REVISION_MATERIAL_SERVICE = 'forge.contract.revision.material';
+const REVISION_ROUTE = '/api/v1/approvals/requests/:requestId/workbench-revision';
+const RECEIPT_ROUTE = '/api/v1/approvals/requests/:requestId/workbench-revision/:idempotencyKey';
 
 export interface RevisionFileReference {
   fileId: string;
@@ -39,6 +42,14 @@ export interface ContractRevisionBinding {
   repeated: boolean;
 }
 
+export interface ContractRevisionReceipt {
+  requestId: string;
+  bindingId: string;
+  newVersionDigest: string;
+  state: 'prepared' | 'resumed' | 'resume_unknown';
+  repeated: true;
+}
+
 interface VerifiedFile extends RevisionFileReference { bytes: number }
 type JsonRecord = Record<string, unknown>;
 
@@ -50,6 +61,19 @@ function text(value: unknown, max: number): string | undefined {
   if (typeof value !== 'string') return undefined;
   const result = value.trim();
   return result && result.length <= max && !result.includes('\0') ? result : undefined;
+}
+
+function requestHeaders(headers: IHttpRequest['headers']): Headers {
+  const result = new Headers();
+  for (const [name, value] of Object.entries(headers ?? {})) {
+    if (Array.isArray(value)) for (const item of value) result.append(name, item);
+    else result.set(name, value);
+  }
+  return result;
+}
+
+async function respond(res: IHttpResponse, status: number, code: string, message: string): Promise<void> {
+  await res.status(status).json({ error: { code, message } });
 }
 
 function canonicalJson(value: unknown): string {
@@ -180,6 +204,36 @@ export class ContractRevisionMaterialService {
     }
   }
 
+  /** Reconcile after a lost response without triggering another approval action. */
+  async receipt(requestId: string, idempotencyKey: string, context: ExecutionContext): Promise<ContractRevisionReceipt | null> {
+    const actorId = text(context.userId, 128);
+    if (!actorId || !text(requestId, 128) || !UUID.test(idempotencyKey)) return null;
+    const request = await this.approvals.getRequest(requestId, context);
+    if (!request || request.object_name !== CONTRACT_OBJECT || request.submitter_id !== actorId ||
+        request.viewer?.is_submitter !== true) return null;
+    const row = await this.engine.findOne(LEDGER_OBJECT, { where: { approval_request_id: requestId } }, { context: SYSTEM_CONTEXT });
+    if (!row || row.idempotency_key !== idempotencyKey || row.submitted_by !== actorId ||
+        row.contract_id !== request.record_id) return null;
+    const actions = await this.approvals.listActions(requestId, context);
+    const hasResubmit = actions.some((action) => action.action === 'resubmit');
+    if (!hasResubmit) {
+      return { requestId, bindingId: String(row.id), newVersionDigest: String(row.new_version_digest), state: 'prepared', repeated: true };
+    }
+    if (!request.flow_run_id || !request.created_at) {
+      return { requestId, bindingId: String(row.id), newVersionDigest: String(row.new_version_digest), state: 'resume_unknown', repeated: true };
+    }
+    const related = await this.engine.find('sys_approval_request', {
+      where: { flow_run_id: request.flow_run_id, object_name: CONTRACT_OBJECT, record_id: request.record_id },
+      fields: ['id', 'created_at'], orderBy: [{ field: 'created_at', order: 'desc' }], limit: 20,
+    }, { context: SYSTEM_CONTEXT });
+    const resumed = related.some((candidate) => String(candidate.id) !== requestId &&
+      typeof candidate.created_at === 'string' && candidate.created_at > request.created_at!);
+    return {
+      requestId, bindingId: String(row.id), newVersionDigest: String(row.new_version_digest),
+      state: resumed ? 'resumed' : 'resume_unknown', repeated: true,
+    };
+  }
+
   async prepare(rawInput: unknown, context: ExecutionContext): Promise<ContractRevisionBinding> {
     const input = parseContractRevisionMaterialInput(rawInput);
     const actorId = text(context.userId, 128);
@@ -230,6 +284,10 @@ export class ContractRevisionMaterialService {
         if (existing) return fromExisting(existing);
         const reusedKey = await this.engine.findOne(LEDGER_OBJECT, { where: { idempotency_key: input.idempotencyKey } }, scoped);
         if (reusedKey) throw new Error('REVISION_CONFLICT: this request key was already used for another approval');
+        const liveContract = await this.engine.findOne(CONTRACT_OBJECT, { where: { id: request.record_id } }, scoped);
+        if (!liveContract || liveContract.status !== 'pending_approval') {
+          throw new Error('REVISION_STALE: contract state changed while material was prepared');
+        }
         const bindingId = globalThis.crypto.randomUUID();
         await this.engine.insert(LEDGER_OBJECT, {
           id: bindingId, name: String(current.code || current.name || '合同') + ' 修订材料',
@@ -238,6 +296,18 @@ export class ContractRevisionMaterialService {
           new_version_digest: newVersionDigest, idempotency_key: input.idempotencyKey,
           primary_file_id: primary.fileId, primary_name: primary.name, primary_sha256: primary.sha256,
           attachment_manifest: JSON.stringify(attachments), submitted_by: actorId, submitted_at: savedAt,
+        }, scoped);
+        await this.engine.update(CONTRACT_OBJECT, {
+          id: request.record_id,
+          submitted_material_id: primary.fileId,
+          submitted_material_name: primary.name,
+          submitted_material_sha256: primary.sha256,
+          attachment_ids: attachments.map((file) => file.fileId),
+          submitted_attachment_manifest: JSON.stringify(attachments.map((file) => ({
+            file_id: file.fileId, name: file.name, sha256: file.sha256,
+          }))),
+          submitted_attachment_revision_request_id: input.requestId,
+          submitted_at: savedAt,
         }, scoped);
         return {
           bindingId, returnVersion: input.returnVersion, sourceMaterialVersion: input.sourceMaterialVersion,
@@ -267,8 +337,82 @@ export class ContractRevisionMaterialPlugin implements Plugin {
       const approvals = ctx.getService<IApprovalService>('approvals');
       const engine = ctx.getService<IObjectQLEngine>('objectql');
       const storage = ctx.getService<IStorageService>('storage');
-      ctx.registerService(CONTRACT_REVISION_MATERIAL_SERVICE,
-        new ContractRevisionMaterialService(approvals, engine, storage));
+      const materials = new ContractRevisionMaterialService(approvals, engine, storage);
+      ctx.registerService(CONTRACT_REVISION_MATERIAL_SERVICE, materials);
+      let server: IHttpServer;
+      try { server = ctx.getService<IHttpServer>('http.server'); }
+      catch { return; }
+      const resolveContext = makeExecutionContextResolver(ctx);
+      const actorContext = (req: IHttpRequest) => resolveContext({ req: { raw: { headers: requestHeaders(req.headers) } } });
+
+      server.post(REVISION_ROUTE, async (req, res) => {
+        const context = await actorContext(req);
+        if (!context?.userId) return respond(res, 401, 'UNAUTHENTICATED', 'A Forge employee session is required.');
+        const requestId = text(req.params?.requestId, 128);
+        const body = record(req.body);
+        if (!requestId || !body) return respond(res, 400, 'REVISION_MATERIAL_INVALID', 'Revision request is incomplete.');
+        if (JSON.stringify(body).length > 16_384) {
+          return respond(res, 413, 'REVISION_MATERIAL_TOO_LARGE', 'Revision references exceed the request limit.');
+        }
+        let binding: ContractRevisionBinding;
+        try {
+          binding = await materials.prepare({ ...body, requestId }, context);
+        } catch (error) {
+          const message = error instanceof Error ? error.message : '';
+          if (message.startsWith('REVISION_CONFLICT')) return respond(res, 409, 'REVISION_CONFLICT', 'Another material version is bound to this return.');
+          if (message.startsWith('REVISION_STALE')) return respond(res, 409, 'REVISION_STALE', 'The returned approval has changed.');
+          if (message.startsWith('REVISION_NOT_AVAILABLE')) return respond(res, 404, 'REVISION_NOT_AVAILABLE', 'This return is not available.');
+          if (message.startsWith('REVISION_MATERIAL_')) return respond(res, 422, 'REVISION_MATERIAL_INVALID', 'The material could not be verified.');
+          ctx.logger.error('[contract-revision] material preparation failed');
+          return respond(res, 503, 'REVISION_UNAVAILABLE', 'Revision preparation is unavailable.');
+        }
+
+        // A prior invocation may already have written the native action. A
+        // repeated POST only reads its receipt; it never calls resubmit again.
+        if (binding.repeated) {
+          const receipt = await materials.receipt(requestId, binding.idempotencyKey, context);
+          if (!receipt) return respond(res, 503, 'REVISION_RECEIPT_UNAVAILABLE', 'Revision result could not be checked.');
+          await res.status(receipt.state === 'resumed' ? 200 : 202).json(receipt);
+          return;
+        }
+        try {
+          const result = await approvals.resubmit(requestId, {
+            actorId: context.userId,
+            idempotencyKey: binding.idempotencyKey,
+            materialBinding: {
+              bindingId: binding.bindingId, returnVersion: binding.returnVersion,
+              sourceMaterialVersion: binding.sourceMaterialVersion, newVersionDigest: binding.newVersionDigest,
+            },
+          } as Parameters<IApprovalService['resubmit']>[1], context);
+          const receipt = await materials.receipt(requestId, binding.idempotencyKey, context);
+          if (result.resumed === true && receipt?.state === 'resumed') {
+            await res.status(200).json(receipt);
+          } else {
+            await res.status(202).json({ ...(receipt ?? {
+              requestId, bindingId: binding.bindingId, newVersionDigest: binding.newVersionDigest, repeated: true,
+            }), state: 'resume_unknown' });
+          }
+        } catch {
+          // The native service can write its audit action before resume fails.
+          // Report a queryable uncertain outcome and never replay that action.
+          const receipt = await materials.receipt(requestId, binding.idempotencyKey, context).catch(() => null);
+          const state = receipt?.state === 'resumed' ? 'resumed' : receipt?.state === 'prepared' ? 'prepared' : 'resume_unknown';
+          await res.status(state === 'resumed' ? 200 : state === 'prepared' ? 503 : 202).json({ ...(receipt ?? {
+            requestId, bindingId: binding.bindingId, newVersionDigest: binding.newVersionDigest, repeated: true,
+          }), state });
+        }
+      });
+
+      server.get(RECEIPT_ROUTE, async (req, res) => {
+        const context = await actorContext(req);
+        if (!context?.userId) return respond(res, 401, 'UNAUTHENTICATED', 'A Forge employee session is required.');
+        const requestId = text(req.params?.requestId, 128);
+        const idempotencyKey = text(req.params?.idempotencyKey, 64);
+        if (!requestId || !idempotencyKey) return respond(res, 404, 'REVISION_RECEIPT_NOT_FOUND', 'Revision receipt not found.');
+        const receipt = await materials.receipt(requestId, idempotencyKey, context).catch(() => null);
+        if (!receipt) return respond(res, 404, 'REVISION_RECEIPT_NOT_FOUND', 'Revision receipt not found.');
+        await res.status(receipt.state === 'resumed' ? 200 : 202).json(receipt);
+      });
     });
   }
 }
