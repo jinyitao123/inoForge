@@ -48,6 +48,23 @@ export const supplyChainReferenceReaderPermission = definePermissionSet({
     forge_supplier_category: orgRead,
     forge_supplier_level: orgRead,
     forge_warehouse_type: orgRead,
+    forge_inventory_business_setting: orgRead,
+    forge_other_inbound_type: orgRead,
+  },
+});
+
+export const salesReferenceReaderPermission = definePermissionSet({
+  name: 'forge_sales_reference_reader',
+  label: '销售基础设置只读',
+  description: '销售录入读取组织内客户分类、报价类型、报价主体和销售引用字典；不授予维护权限。',
+  objects: {
+    forge_customer_category: orgRead,
+    forge_customer_level: orgRead,
+    forge_quotation_type: orgRead,
+    forge_quotation_issuer: orgRead,
+    forge_contract_type: orgRead,
+    forge_material_category: orgRead,
+    forge_unit: orgRead,
   },
 });
 
@@ -57,7 +74,24 @@ export const productionReferenceReaderPermission = definePermissionSet({
   description: '生产前置检查和委外办理只读供应链仓库类型及财务维护的付款条件。',
   objects: {
     forge_warehouse_type: orgRead,
+    forge_inventory_business_setting: orgRead,
+    forge_other_inbound_type: orgRead,
+    forge_unit: orgRead,
     forge_payment_condition: orgRead,
+    forge_production_disassembly_reason: orgRead,
+    forge_production_replacement_reason: orgRead,
+    forge_drawing_business_setting: orgRead,
+    forge_subcontract_business_setting: orgRead,
+    forge_subcontract_policy: orgRead,
+  },
+});
+
+export const projectReferenceReaderPermission = definePermissionSet({
+  name: 'forge_project_reference_reader',
+  label: '项目类型只读',
+  description: '项目立项和项目工作区只读组织内项目类型；类型维护权限单独授予项目设置管理员。',
+  objects: {
+    forge_project_type: orgRead,
   },
 });
 
@@ -179,6 +213,25 @@ export const financeSettingsManagerPermission = definePermissionSet({
     using: "scope == 'finance'",
     check: "scope == 'finance'",
   }],
+});
+
+export const reportsDefaultTemplateReaderPermission = definePermissionSet({
+  name: 'forge_reports_default_template_reader',
+  label: '报表默认口径只读',
+  description: '报表使用者只读本组织各报表的默认模板；不允许创建或修改模板。',
+  objects: {
+    forge_report_template: orgRead,
+  },
+});
+
+export const reportsSettingsManagerPermission = definePermissionSet({
+  name: 'forge_reports_settings_manager',
+  label: '报表模板与默认口径维护',
+  description: '为当前支持的报表维护组织级默认模板，不修改报表输出版本或业务原单。',
+  systemPermissions: ['forge_reports_settings_manage'],
+  objects: {
+    forge_report_template: orgManage,
+  },
 });
 
 /**

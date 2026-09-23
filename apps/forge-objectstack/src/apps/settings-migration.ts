@@ -24,6 +24,117 @@ export type SettingMigration = {
   };
 };
 
+export type SettingConsumerReadRequirement = {
+  objectName: string;
+  owningApplication: ForgeApplicationKey;
+  recordScope: 'org';
+  permissionSetNames: string[];
+  consumers: string[];
+};
+
+/**
+ * Evidence-backed read path for settings-backed values. These sets are
+ * declarations only; Setup must bind them to the relevant real business
+ * positions before ordinary employees receive access.
+ */
+export const settingConsumerReadRequirements: SettingConsumerReadRequirement[] = [
+  {
+    objectName: 'forge_material_category', owningApplication: 'supply_chain', recordScope: 'org',
+    permissionSetNames: ['forge_supply_chain_reference_reader', 'forge_supply_chain_settings_manager', 'forge_sales_reference_reader', 'sales_contract_operator'],
+    consumers: ['src/pages/material-workspace.page.ts', 'src/pages/inventory-overview.page.ts', 'src/pages/inventory-statistics.page.ts', 'src/pages/product-trace.page.ts', 'src/pages/sales-order-create.page.ts', 'src/pages/sales-management-pages.page.ts'],
+  },
+  {
+    objectName: 'forge_unit', owningApplication: 'supply_chain', recordScope: 'org',
+    permissionSetNames: ['forge_supply_chain_reference_reader', 'forge_supply_chain_settings_manager', 'forge_sales_reference_reader', 'sales_contract_operator', 'forge_production_reference_reader'],
+    consumers: ['src/pages/material-workspace.page.ts', 'src/pages/inventory-transfer.page.ts', 'src/pages/inventory-count.page.ts', 'src/pages/inventory-ledger.page.ts', 'src/pages/sales-contract-create.page.ts', 'src/pages/sales-order-create.page.ts', 'src/actions/production.action.ts', 'src/actions/shortage.action.ts'],
+  },
+  {
+    objectName: 'forge_supplier_category', owningApplication: 'supply_chain', recordScope: 'org',
+    permissionSetNames: ['forge_supply_chain_reference_reader', 'forge_supply_chain_settings_manager'],
+    consumers: ['src/pages/supplier-workspace.page.ts'],
+  },
+  {
+    objectName: 'forge_supplier_level', owningApplication: 'supply_chain', recordScope: 'org',
+    permissionSetNames: ['forge_supply_chain_reference_reader', 'forge_supply_chain_settings_manager'],
+    consumers: ['src/pages/supplier-workspace.page.ts'],
+  },
+  {
+    objectName: 'forge_customer_category', owningApplication: 'sales', recordScope: 'org',
+    permissionSetNames: ['forge_sales_reference_reader', 'forge_sales_settings_manager', 'sales_contract_operator'],
+    consumers: ['src/pages/sales-customers.page.ts', 'src/pages/sales-management-pages.page.ts', 'src/actions/sales.action.ts'],
+  },
+  {
+    objectName: 'forge_customer_level', owningApplication: 'sales', recordScope: 'org',
+    permissionSetNames: ['forge_sales_reference_reader', 'forge_sales_settings_manager', 'sales_contract_operator'],
+    consumers: ['src/pages/sales-customers.page.ts'],
+  },
+  {
+    objectName: 'forge_quotation_type', owningApplication: 'sales', recordScope: 'org',
+    permissionSetNames: ['forge_sales_reference_reader', 'forge_sales_settings_manager', 'sales_contract_operator'],
+    consumers: ['src/pages/sales-crm-service-pages.page.ts', 'src/objects/sales.object.ts'],
+  },
+  {
+    objectName: 'forge_quotation_issuer', owningApplication: 'sales', recordScope: 'org',
+    permissionSetNames: ['forge_sales_reference_reader', 'forge_sales_settings_manager', 'sales_contract_operator'],
+    consumers: ['src/pages/sales-crm-service-pages.page.ts', 'src/objects/sales.object.ts'],
+  },
+  {
+    objectName: 'forge_warehouse_type', owningApplication: 'supply_chain', recordScope: 'org',
+    permissionSetNames: ['forge_supply_chain_reference_reader', 'forge_supply_chain_settings_manager', 'forge_production_reference_reader'],
+    consumers: ['src/pages/warehouse-workspace.page.ts', 'src/pages/production-prerequisites.page.ts'],
+  },
+  {
+    objectName: 'forge_payment_condition', owningApplication: 'finance', recordScope: 'org',
+    permissionSetNames: ['forge_finance_settings_manager', 'forge_production_reference_reader'],
+    consumers: ['src/pages/subcontract-workspace.page.ts', 'src/pages/production-prerequisites.page.ts', 'src/actions/subcontract.action.ts'],
+  },
+  {
+    objectName: 'forge_inventory_business_setting', owningApplication: 'supply_chain', recordScope: 'org',
+    permissionSetNames: ['forge_supply_chain_settings_manager', 'forge_production_reference_reader'],
+    consumers: ['src/pages/business-prerequisite-config.page.ts', 'src/pages/production-prerequisites.page.ts'],
+  },
+  {
+    objectName: 'forge_other_inbound_type', owningApplication: 'supply_chain', recordScope: 'org',
+    permissionSetNames: ['forge_supply_chain_reference_reader', 'forge_supply_chain_settings_manager', 'forge_production_reference_reader'],
+    consumers: ['src/pages/other-inbound-workspace.page.ts', 'src/pages/all-inbounds.page.ts', 'src/pages/production-prerequisites.page.ts', 'src/actions/inventory.action.ts'],
+  },
+  {
+    objectName: 'forge_production_disassembly_reason', owningApplication: 'production', recordScope: 'org',
+    permissionSetNames: ['forge_production_settings_manager', 'forge_production_reference_reader'],
+    consumers: ['src/pages/production-transform-workspace.page.ts', 'src/pages/production-prerequisites.page.ts', 'src/actions/production-transform.action.ts'],
+  },
+  {
+    objectName: 'forge_production_replacement_reason', owningApplication: 'production', recordScope: 'org',
+    permissionSetNames: ['forge_production_settings_manager', 'forge_production_reference_reader'],
+    consumers: ['src/pages/production-transform-workspace.page.ts', 'src/pages/production-prerequisites.page.ts', 'src/actions/production-transform.action.ts'],
+  },
+  {
+    objectName: 'forge_drawing_business_setting', owningApplication: 'production', recordScope: 'org',
+    permissionSetNames: ['forge_production_settings_manager', 'forge_production_reference_reader'],
+    consumers: ['src/pages/production-prerequisites.page.ts'],
+  },
+  {
+    objectName: 'forge_subcontract_business_setting', owningApplication: 'production', recordScope: 'org',
+    permissionSetNames: ['forge_production_settings_manager', 'forge_production_reference_reader'],
+    consumers: ['src/pages/subcontract-pricing.page.ts', 'src/pages/subcontract-return.page.ts', 'src/pages/subcontract-workspace.page.ts', 'src/actions/subcontract-return.action.ts', 'src/actions/subcontract.action.ts'],
+  },
+  {
+    objectName: 'forge_subcontract_policy', owningApplication: 'production', recordScope: 'org',
+    permissionSetNames: ['forge_production_settings_manager', 'forge_production_reference_reader'],
+    consumers: ['src/pages/production-prerequisites.page.ts', 'src/pages/subcontract-policy.page.ts', 'src/actions/subcontract.action.ts'],
+  },
+  {
+    objectName: 'forge_project_type', owningApplication: 'project', recordScope: 'org',
+    permissionSetNames: ['forge_project_reference_reader', 'forge_project_settings_manager'],
+    consumers: ['src/pages/project-center.page.ts', 'src/actions/project.action.ts'],
+  },
+  {
+    objectName: 'forge_report_template', owningApplication: 'reports', recordScope: 'org',
+    permissionSetNames: ['forge_reports_default_template_reader', 'forge_reports_settings_manager'],
+    consumers: ['src/pages/management-profit-report.page.ts'],
+  },
+];
+
 const allBusinessApplications: ForgeBusinessApplicationKey[] = [
   'supply_chain',
   'sales',
@@ -58,16 +169,16 @@ export const workspaceNavigationMigrations: WorkspaceNavigationMigration[] = [
  */
 export const settingMigrations: SettingMigration[] = [
   { id: 'material_skus', label: '规格与价格', targetApplications: ['supply_chain'], resolution: 'moved', accessFinding: 'declared_in_application_sets', permissionSetNames: ['forge_supply_chain_settings_manager', 'sales_contract_operator'], assignmentState: 'requires_setup_assignment' },
-  { id: 'material_categories', label: '物料分类', targetApplications: ['supply_chain'], resolution: 'moved', accessFinding: 'declared_in_application_sets', permissionSetNames: ['forge_supply_chain_reference_reader', 'forge_supply_chain_settings_manager', 'sales_contract_operator'], assignmentState: 'requires_setup_assignment' },
-  { id: 'units', label: '计量单位', targetApplications: ['supply_chain'], resolution: 'moved', accessFinding: 'declared_in_application_sets', permissionSetNames: ['forge_supply_chain_reference_reader', 'forge_supply_chain_settings_manager', 'sales_contract_operator'], assignmentState: 'requires_setup_assignment' },
+  { id: 'material_categories', label: '物料分类', targetApplications: ['supply_chain'], resolution: 'moved', accessFinding: 'declared_in_application_sets', permissionSetNames: ['forge_supply_chain_reference_reader', 'forge_supply_chain_settings_manager', 'forge_sales_reference_reader', 'sales_contract_operator'], assignmentState: 'requires_setup_assignment' },
+  { id: 'units', label: '计量单位', targetApplications: ['supply_chain'], resolution: 'moved', accessFinding: 'declared_in_application_sets', permissionSetNames: ['forge_supply_chain_reference_reader', 'forge_supply_chain_settings_manager', 'forge_sales_reference_reader', 'sales_contract_operator', 'forge_production_reference_reader'], assignmentState: 'requires_setup_assignment' },
   { id: 'supplier_categories', label: '供应商分类', targetApplications: ['supply_chain'], resolution: 'moved', accessFinding: 'declared_in_application_sets', permissionSetNames: ['forge_supply_chain_reference_reader', 'forge_supply_chain_settings_manager'], assignmentState: 'requires_setup_assignment' },
   { id: 'supplier_levels', label: '供应商级别', targetApplications: ['supply_chain'], resolution: 'moved', accessFinding: 'declared_in_application_sets', permissionSetNames: ['forge_supply_chain_reference_reader', 'forge_supply_chain_settings_manager'], assignmentState: 'requires_setup_assignment' },
-  { id: 'customer_categories', label: '客户分类', targetApplications: ['sales'], resolution: 'moved', accessFinding: 'declared_in_application_sets', permissionSetNames: ['sales_contract_operator', 'forge_sales_settings_manager'], assignmentState: 'requires_setup_assignment' },
-  { id: 'customer_levels', label: '客户级别', targetApplications: ['sales'], resolution: 'moved', accessFinding: 'declared_in_application_sets', permissionSetNames: ['sales_contract_operator', 'forge_sales_settings_manager'], assignmentState: 'requires_setup_assignment' },
+  { id: 'customer_categories', label: '客户分类', targetApplications: ['sales'], resolution: 'moved', accessFinding: 'declared_in_application_sets', permissionSetNames: ['forge_sales_reference_reader', 'sales_contract_operator', 'forge_sales_settings_manager'], assignmentState: 'requires_setup_assignment' },
+  { id: 'customer_levels', label: '客户级别', targetApplications: ['sales'], resolution: 'moved', accessFinding: 'declared_in_application_sets', permissionSetNames: ['forge_sales_reference_reader', 'sales_contract_operator', 'forge_sales_settings_manager'], assignmentState: 'requires_setup_assignment' },
   { id: 'payment_conditions', label: '付款条件', targetApplications: ['finance'], resolution: 'moved', accessFinding: 'declared_in_application_sets', permissionSetNames: ['forge_finance_settings_manager', 'forge_production_reference_reader'], assignmentState: 'requires_setup_assignment' },
-  { id: 'quotation_types', label: '报价类型', targetApplications: ['sales'], resolution: 'moved', accessFinding: 'declared_in_application_sets', permissionSetNames: ['sales_contract_operator', 'forge_sales_settings_manager'], assignmentState: 'requires_setup_assignment' },
-  { id: 'quotation_issuers', label: '报价主体', targetApplications: ['sales'], resolution: 'moved', accessFinding: 'declared_in_application_sets', permissionSetNames: ['sales_contract_operator', 'forge_sales_settings_manager'], assignmentState: 'requires_setup_assignment' },
-  { id: 'contract_types', label: '合同类型', targetApplications: ['sales'], resolution: 'moved', accessFinding: 'declared_in_application_sets', permissionSetNames: ['sales_contract_operator', 'forge_sales_settings_manager'], assignmentState: 'requires_setup_assignment' },
+  { id: 'quotation_types', label: '报价类型', targetApplications: ['sales'], resolution: 'moved', accessFinding: 'declared_in_application_sets', permissionSetNames: ['forge_sales_reference_reader', 'sales_contract_operator', 'forge_sales_settings_manager'], assignmentState: 'requires_setup_assignment' },
+  { id: 'quotation_issuers', label: '报价主体', targetApplications: ['sales'], resolution: 'moved', accessFinding: 'declared_in_application_sets', permissionSetNames: ['forge_sales_reference_reader', 'sales_contract_operator', 'forge_sales_settings_manager'], assignmentState: 'requires_setup_assignment' },
+  { id: 'contract_types', label: '合同类型', targetApplications: ['sales'], resolution: 'moved', accessFinding: 'declared_in_application_sets', permissionSetNames: ['forge_sales_reference_reader', 'sales_contract_operator', 'forge_sales_settings_manager'], assignmentState: 'requires_setup_assignment' },
   { id: 'warehouse_types', label: '仓库类型', targetApplications: ['supply_chain'], resolution: 'moved', accessFinding: 'declared_in_application_sets', permissionSetNames: ['forge_supply_chain_reference_reader', 'forge_supply_chain_settings_manager', 'forge_production_reference_reader'], assignmentState: 'requires_setup_assignment' },
   { id: 'inventory_business_config', label: '库存管理配置', targetApplications: ['supply_chain'], resolution: 'moved' },
   { id: 'project_business_config', label: '项目管理配置', targetApplications: ['project'], resolution: 'moved' },
@@ -101,5 +212,18 @@ export const settingMigrations: SettingMigration[] = [
     targetApplications: [],
     resolution: 'native_setup',
     nativeTarget: { appName: 'setup', capability: 'field_definitions', route: null },
+  },
+];
+
+/** New report-app-owned capability, beyond the 27 migrated shared settings. */
+export const applicationSettingAdditions: SettingMigration[] = [
+  {
+    id: 'report_templates',
+    label: '报表模板与默认口径',
+    targetApplications: ['reports'],
+    resolution: 'moved',
+    accessFinding: 'declared_in_application_sets',
+    permissionSetNames: ['forge_reports_default_template_reader', 'forge_reports_settings_manager'],
+    assignmentState: 'requires_setup_assignment',
   },
 ];

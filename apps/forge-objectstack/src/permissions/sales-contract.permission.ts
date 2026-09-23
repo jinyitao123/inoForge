@@ -46,7 +46,7 @@ export const salesContractOperatorPermission = definePermissionSet({
     forge_material_sku: readReferenceData,
     forge_material: readReferenceData,
     forge_material_category: readOrganizationReferenceData,
-    forge_unit: readReferenceData,
+    forge_unit: readOrganizationReferenceData,
     forge_fund_account: readReferenceData,
     forge_product_bundle: readReferenceData,
     forge_product_bundle_line: readReferenceData,
