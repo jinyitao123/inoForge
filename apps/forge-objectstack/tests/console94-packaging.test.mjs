@@ -61,14 +61,23 @@ test('artifact verifier accepts only the locked Console tree and rejects byte dr
 });
 
 test('runtime and build inputs stay pinned to the verified 17.3 Console host', async () => {
-  const [dockerfile, compose, deploy, nginx] = await Promise.all([
+  const [dockerfile, compose, deploy, nginx, resolver, runtimeCheck] = await Promise.all([
     readFile(path.join(APP_DIR, 'Dockerfile'), 'utf8'),
     readFile(path.join(APP_DIR, 'docker-compose.yml'), 'utf8'),
     readFile(path.join(APP_DIR, 'scripts/deploy.sh'), 'utf8'),
     readFile(path.join(APP_DIR, 'transport/nginx.conf'), 'utf8'),
+    readFile(path.join(APP_DIR, 'scripts/console94-runtime.mjs'), 'utf8'),
+    readFile(path.join(APP_DIR, 'scripts/verify-console94-runtime.mjs'), 'utf8'),
   ]);
   assert.match(dockerfile, new RegExp(lock.forge.runtimeImageReference.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
-  assert.match(dockerfile, /verify-console94\.mjs/);
+  assert.match(dockerfile, /scripts\/inject-console94\.mjs/);
+  assert.match(dockerfile, /verify-console94-runtime\.mjs/);
+  assert.doesNotMatch(dockerfile, /node_modules\/@objectstack\/console\/dist/, 'Dockerfile must not assume Console is hoisted to app node_modules');
+  const runtimeNodeModulesCopy = dockerfile.indexOf('/app/node_modules ./node_modules');
+  const runtimeConsoleVerify = dockerfile.indexOf('verify-console94-runtime.mjs /srv/app');
+  assert.ok(runtimeNodeModulesCopy >= 0 && runtimeConsoleVerify > runtimeNodeModulesCopy, 'final image must re-resolve and verify Console after copying node_modules');
+  assert.match(resolver, /resolveConsolePath\(/);
+  assert.match(runtimeCheck, /consoleRelativePath/);
   assert.match(dockerfile, /org\.opencontainers\.image\.console\.source-revision/);
   assert.match(dockerfile, /org\.opencontainers\.image\.console\.tree-sha256/);
   assert.match(compose, /additional_contexts:[\s\S]*console94:/);
