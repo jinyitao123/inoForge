@@ -7,28 +7,44 @@ const pagesDir = new URL('../src/pages/', import.meta.url);
 const config = await readFile(new URL('../objectstack.config.ts', import.meta.url), 'utf8');
 const productUi = await readFile(new URL('../src/pages/product-ui.ts', import.meta.url), 'utf8');
 const findings = [];
+const allowedSurfaces = new Set(['object', 'dashboard', 'report', 'component', 'action', 'page']);
 const allowedArchetypes = new Set(['workbench', 'task_workspace', 'timesheet_composite', 'analysis', 'configuration']);
 const allowedDesignStatuses = new Set(['review_required', 'accepted']);
 const allowedReferences = new Set(['workbench.page.ts', 'project-task-workspace.page.ts', 'project-timesheet-cost.page.ts']);
-let acceptedPages = 0;
-let reviewRequiredPages = 0;
+let acceptedTargets = 0;
+let reviewRequiredTargets = 0;
 
 for (const [area, entries] of Object.entries(manifest)) {
   for (const entry of entries) {
-    if (area === 'sales' && entry.pages.length !== 1) findings.push(`${area}/${entry.file}: 销售页面必须逐页登记，不能合并验收状态`);
-    if (area === 'sales' && (typeof entry.acceptance !== 'string' || !entry.acceptance.trim())) findings.push(`${area}/${entry.file}: 销售页面缺少逐页结构化验收记录`);
-    if (!allowedArchetypes.has(entry.archetype)) findings.push(`${area}/${entry.file}: 缺少有效页面主原型`);
-    if (!allowedDesignStatuses.has(entry.designStatus)) findings.push(`${area}/${entry.file}: 缺少有效设计验收状态`);
-    if (!allowedReferences.has(entry.reference)) findings.push(`${area}/${entry.file}: 缺少有效参考页面`);
-    for (const issue of await checkPageDelivery(entry)) findings.push(`${area}/${entry.file}: ${issue}`);
-    if (entry.designStatus === 'accepted') {
-      acceptedPages += entry.pages.length;
-      if (entry.pages.length !== 1) findings.push(`${area}/${entry.file}: accepted 必须逐页登记，不能批量验收`);
-      if (typeof entry.evidence !== 'string' || !entry.evidence.trim()) findings.push(`${area}/${entry.file}: accepted 页面缺少浏览器对照证据路径`);
-    } else {
-      reviewRequiredPages += entry.pages.length;
-      if (entry.evidence) findings.push(`${area}/${entry.file}: review_required 页面不得记录为已验收证据`);
+    const isV3Entry = entry.surfaceType !== undefined;
+    const label = `${area}/${entry.target || entry.file || 'target'}`;
+    if (!isV3Entry && area === 'sales' && entry.pages.length !== 1) findings.push(`${label}: 销售页面必须逐页登记，不能合并验收状态`);
+    if (!isV3Entry && area === 'sales' && (typeof entry.acceptance !== 'string' || !entry.acceptance.trim())) findings.push(`${label}: 销售页面缺少逐页结构化验收记录`);
+    if (!isV3Entry && !allowedArchetypes.has(entry.archetype)) findings.push(`${label}: 缺少有效页面主原型`);
+    if (!allowedDesignStatuses.has(entry.designStatus)) findings.push(`${label}: 缺少有效设计验收状态`);
+    if (!isV3Entry && !allowedReferences.has(entry.reference)) findings.push(`${label}: 缺少有效参考页面`);
+    if (isV3Entry) {
+      if (!allowedSurfaces.has(entry.surfaceType)) findings.push(`${label}: 缺少有效 ObjectStack surfaceType`);
+      for (const field of ['featureId', 'app', 'target']) {
+        if (typeof entry[field] !== 'string' || !entry[field].trim()) findings.push(`${label}: 缺少 v3 ${field}`);
+      }
+      if (!Array.isArray(entry.subjectFiles) || !entry.subjectFiles.length) findings.push(`${label}: 缺少实际受验 subjectFiles 范围`);
+      if (!Array.isArray(entry.requirementIds) || !entry.requirementIds.length
+        || entry.requirementIds.some(id => typeof id !== 'string' || !id.trim())
+        || new Set(entry.requirementIds).size !== entry.requirementIds.length) {
+        findings.push(`${label}: 缺少唯一且完整的 v3 requirementIds`);
+      }
     }
+    for (const issue of await checkPageDelivery(entry)) findings.push(`${label}: ${issue}`);
+    if (entry.designStatus === 'accepted') {
+      acceptedTargets += isV3Entry ? 1 : entry.pages.length;
+      if (!isV3Entry && entry.pages.length !== 1) findings.push(`${label}: accepted 必须逐页登记，不能批量验收`);
+      if (!isV3Entry && (typeof entry.evidence !== 'string' || !entry.evidence.trim())) findings.push(`${label}: accepted 页面缺少浏览器对照证据路径`);
+    } else {
+      reviewRequiredTargets += isV3Entry ? 1 : entry.pages.length;
+      if (entry.evidence) findings.push(`${label}: review_required 不得附带总体成功报告或已验收证据`);
+    }
+    if (isV3Entry || typeof entry.file !== 'string' || !entry.file.trim()) continue;
     const source = await readFile(new URL(entry.file, pagesDir), 'utf8');
     const structuralPatterns = entry.archetype === 'workbench'
       ? [
@@ -57,17 +73,22 @@ for (const [area, entries] of Object.entries(manifest)) {
   }
 }
 
+// Integration seam: the app extraction will make src/apps/navigation.ts the only runtime source.
+// Keep this existing check until integration switches it to forgeApplicationDefinitions; do not add another nav manifest.
 const financeStart = config.indexOf("id: 'finance'");
 const financeEnd = config.indexOf("id: 'reports'", financeStart);
 const financeBlock = config.slice(financeStart, financeEnd);
 const financePages = [...financeBlock.matchAll(/page\([^,]+,[^,]+,\s*'([^']+)'/g)].map(match => match[1]);
-const polishedFinancePages = new Set(manifest.finance.flatMap(entry => entry.pages));
+const pageTargets = entries => entries.flatMap(entry => entry.surfaceType === undefined
+  ? (Array.isArray(entry.pages) ? entry.pages : [])
+  : (entry.surfaceType === 'page' ? [entry.target] : []));
+const polishedFinancePages = new Set(pageTargets(manifest.finance));
 for (const page of financePages) if (!polishedFinancePages.has(page)) findings.push(`finance: ${page} 未加入 page-polish 清单`);
 const salesStart = config.indexOf("id: 'sales'");
 const salesEnd = config.indexOf("id: 'production'", salesStart);
 const salesBlock = config.slice(salesStart, salesEnd);
 const salesPages = [...salesBlock.matchAll(/page\([^,]+,[^,]+,\s*'([^']+)'/g)].map(match => match[1]);
-const polishedSalesPages = new Set((manifest.sales || []).flatMap(entry => entry.pages));
+const polishedSalesPages = new Set(pageTargets(manifest.sales || []));
 for (const page of salesPages) if (!polishedSalesPages.has(page)) findings.push(`sales: ${page} 未加入 page-polish 清单`);
 for (const page of polishedSalesPages) if (!salesPages.includes(page)) findings.push(`sales: ${page} 不在当前销售导航中`);
 assert.equal(financeBlock.includes("'page_finance_gap'"), false, '财务导航仍指向空白占位页');
@@ -76,4 +97,4 @@ assert.match(productUi, /\.forge-product \.btn,.forge-product \.icon-btn\{height
 assert.match(productUi, /\.forge-product\.bank-flow \.page-shell,.forge-product\.finance-page \.fp-shell,.forge-product \.body\{width:min\(1380px,100%\);max-width:1380px/, 'product-ui.ts 必须按工时管理页面统一财务内容宽度');
 assert.match(productUi, /\.forge-product \.card,.forge-product \.panel,.forge-product \.metric,.forge-product \.metric-card,.forge-product \.process\{[^}]*border-radius:10px/, 'product-ui.ts 必须统一财务卡片层级与圆角');
 assert.deepEqual(findings, [], findings.join('\n'));
-console.log(`PASS page-polish 清单覆盖 ${Object.values(manifest).flat().length} 个页面条目；${acceptedPages} 个页面设计已验收，${reviewRequiredPages} 个页面仍需逐页精修；${financePages.length} 个财务入口与 ${salesPages.length} 个销售入口均已纳入且导航无空白占位入口`);
+console.log(`PASS page-polish 清单覆盖 ${Object.values(manifest).flat().length} 个交付条目；${acceptedTargets} 个目标已验收，${reviewRequiredTargets} 个目标仍需逐项复核；${financePages.length} 个财务入口与 ${salesPages.length} 个销售入口均已纳入且导航无空白占位入口`);
