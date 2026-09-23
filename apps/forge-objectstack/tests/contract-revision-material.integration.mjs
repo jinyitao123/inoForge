@@ -32,6 +32,7 @@ async function harness() {
       if (name === 'forge_sales_contract') return query.where.id === contractId ? { id: contractId, status: 'pending_approval', code: 'HT-A' } : null;
       if (name === 'sys_approval_request') return query.where.id === requestId ? request : null;
       if (name === 'forge_sales_contract_revision_material') {
+        if (query.where.id) return [...ledger.values()].find((row) => row.id === query.where.id) ?? null;
         if (query.where.approval_request_id) return ledger.get(query.where.approval_request_id) ?? null;
         if (query.where.idempotency_key) return [...ledger.values()].find((row) => row.idempotency_key === query.where.idempotency_key) ?? null;
       }
@@ -85,6 +86,25 @@ test('same returned request cannot bind a different material or a different requ
   await assert.rejects(service.prepare({ ...input, idempotencyKey: '44444444-4444-4444-8444-444444444444' }, context), /REVISION_CONFLICT/);
   await assert.rejects(service.prepare({ ...input, attachments: [] }, context), /REVISION_CONFLICT/);
   assert.equal(ledger.size, 1);
+});
+
+test('the native approval guard verifies the persisted binding and current file bytes', async () => {
+  const { service, request, files, ledger, input, context } = await harness();
+  const binding = await service.prepare(input, context);
+  const verification = {
+    request, actorId: 'sales-A', context, idempotencyKey: input.idempotencyKey,
+    materialBinding: {
+      bindingId: binding.bindingId, returnVersion: binding.returnVersion,
+      sourceMaterialVersion: binding.sourceMaterialVersion, newVersionDigest: binding.newVersionDigest,
+    },
+  };
+  assert.equal(await service.verifyBinding(verification), true);
+  assert.equal(await service.verifyBinding({ ...verification, actorId: 'other-employee' }), false);
+  files.get(attachmentId).bytes[0] = 0x58;
+  assert.equal(await service.verifyBinding(verification), false);
+  files.get(attachmentId).bytes[0] = Buffer.from('技术附件 A', 'utf8')[0];
+  ledger.get(requestId).new_version_digest = 'f'.repeat(64);
+  assert.equal(await service.verifyBinding(verification), false);
 });
 
 test('foreign owner, changed bytes and stale return decision cannot create a binding', async () => {

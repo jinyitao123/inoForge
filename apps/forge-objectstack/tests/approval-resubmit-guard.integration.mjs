@@ -26,7 +26,7 @@ function sha256(value) {
   return createHash('sha256').update(canonicalJson(value)).digest('hex');
 }
 
-async function boot(request, { verifyMaterialBinding } = {}) {
+async function boot(request, { verifyMaterialBinding, verifierServiceName, verifier } = {}) {
   const writes = [];
   const native = {
     async getRequest(id) { return id === request.id ? request : null; },
@@ -49,7 +49,13 @@ async function boot(request, { verifyMaterialBinding } = {}) {
   kernel.use(new ApprovalResubmitGuardPlugin({
     requiredMaterialObjects: ['forge_sales_contract'],
     verifyMaterialBinding,
+    verifierServiceName,
   }));
+  if (verifierServiceName) kernel.use({
+    name: 'test.material-verifier', version: '1.0.0', type: 'standard',
+    init() {},
+    start(ctx) { ctx.registerService(verifierServiceName, { verifyBinding: verifier }); },
+  });
   await kernel.bootstrap();
 
   const fakeServer = { get() {}, post() {}, put() {}, delete() {}, patch() {}, use() {} };
@@ -162,6 +168,30 @@ test('the internal binding seam verifies with the authenticated session actor be
     assert.equal(result.request.id, contractRequest.id);
     assert.equal(verified.length, 1);
     assert.equal(verified[0].actorId, 'user-1');
+    assert.deepEqual(state.writes, [{ kind: 'approval_action', requestId: contractRequest.id, actorId: 'user-1' }]);
+  } finally {
+    await state.kernel.shutdown();
+  }
+});
+
+test('the guard resolves a Forge material service registered after its startup', async () => {
+  const verified = [];
+  const state = await boot(contractRequest, {
+    verifierServiceName: 'forge.contract.revision.material',
+    verifier: async (input) => { verified.push(input); return true; },
+  });
+  try {
+    const approvals = state.kernel.getService('approvals');
+    await approvals.resubmit(contractRequest.id, {
+      idempotencyKey: '41111111-1111-4111-8111-111111111111',
+      materialBinding: {
+        bindingId: '42222222-2222-4222-8222-222222222222',
+        returnVersion: 'return-action-1',
+        sourceMaterialVersion: sha256(contractRequest.payload),
+        newVersionDigest: 'b'.repeat(64),
+      },
+    }, { isSystem: false, userId: 'user-1', positions: [], permissions: [] });
+    assert.equal(verified.length, 1);
     assert.deepEqual(state.writes, [{ kind: 'approval_action', requestId: contractRequest.id, actorId: 'user-1' }]);
   } finally {
     await state.kernel.shutdown();

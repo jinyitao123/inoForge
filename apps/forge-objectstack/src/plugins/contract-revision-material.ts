@@ -2,6 +2,7 @@ import { isFileIdToken } from '@objectstack/spec/data';
 import type { Plugin, PluginContext } from '@objectstack/core';
 import type { IApprovalService, IObjectQLEngine, IStorageService } from '@objectstack/spec/contracts';
 import type { ExecutionContext } from '@objectstack/spec/kernel';
+import type { ResubmitMaterialVerificationInput } from './approval-resubmit-guard.plugin.js';
 
 const CONTRACT_OBJECT = 'forge_sales_contract';
 const LEDGER_OBJECT = 'forge_sales_contract_revision_material';
@@ -147,6 +148,36 @@ export class ContractRevisionMaterialService {
     this.approvals = approvals;
     this.engine = engine;
     this.storage = storage;
+  }
+
+  /** Read-only guard called immediately before the native approval service. */
+  async verifyBinding(input: ResubmitMaterialVerificationInput): Promise<boolean> {
+    try {
+      const { request, actorId, materialBinding, idempotencyKey, context } = input;
+      if (request.object_name !== CONTRACT_OBJECT || request.status !== 'returned' || request.submitter_id !== actorId ||
+          !UUID.test(materialBinding.bindingId) || !UUID.test(idempotencyKey)) return false;
+      const current = await this.approvals.getRequest(request.id, context);
+      if (!current || current.status !== 'returned' || current.viewer?.is_submitter !== true ||
+          current.submitter_id !== actorId || current.record_id !== request.record_id ||
+          await approvalPayloadVersion(current.payload) !== materialBinding.sourceMaterialVersion) return false;
+      const actions = await this.approvals.listActions(request.id, context);
+      if ([...actions].reverse().find((action) => action.action === 'revise')?.id !== materialBinding.returnVersion) return false;
+
+      const row = await this.engine.findOne(LEDGER_OBJECT, { where: { id: materialBinding.bindingId } }, { context: SYSTEM_CONTEXT });
+      if (!row || row.approval_request_id !== request.id || row.contract_id !== request.record_id ||
+          row.submitted_by !== actorId || row.return_version !== materialBinding.returnVersion ||
+          row.source_material_version !== materialBinding.sourceMaterialVersion ||
+          row.new_version_digest !== materialBinding.newVersionDigest || row.idempotency_key !== idempotencyKey) return false;
+      const primary = parseFile({ fileId: row.primary_file_id, name: row.primary_name, sha256: row.primary_sha256 });
+      const rawAttachments: unknown = JSON.parse(String(row.attachment_manifest ?? ''));
+      if (!Array.isArray(rawAttachments) || rawAttachments.length > 10) return false;
+      const attachments = rawAttachments.map(parseFile);
+      const verified = await verifyFiles(this.engine, this.storage, actorId, request.record_id, [primary, ...attachments]);
+      const [verifiedPrimary, ...verifiedAttachments] = verified;
+      return await digest(canonicalJson({ primary: verifiedPrimary, attachments: verifiedAttachments })) === materialBinding.newVersionDigest;
+    } catch {
+      return false;
+    }
   }
 
   async prepare(rawInput: unknown, context: ExecutionContext): Promise<ContractRevisionBinding> {

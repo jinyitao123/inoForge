@@ -22,7 +22,10 @@ export default defineStack({
     new AutomationServicePlugin(),
     new MessagingServicePlugin(),
     new ApprovalsServicePlugin({ recordReaderVisibleObjects: ['forge_sales_contract'] }),
-    new ApprovalResubmitGuardPlugin({ requiredMaterialObjects: ['forge_sales_contract'] }),
+    new ApprovalResubmitGuardPlugin({
+      requiredMaterialObjects: ['forge_sales_contract'],
+      verifierServiceName: 'forge.contract.revision.material',
+    }),
     new RecordChangeTriggerPlugin(),
     new MCPServerPlugin(),
     new WeaveRunEventPlugin(),
