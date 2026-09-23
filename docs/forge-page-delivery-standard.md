@@ -44,15 +44,17 @@
 
 独立复核者可为用户或真实参与的审查者，不要求自动启动子 Agent。没有独立复核时明确未发生；不能由实施者换名字签字。
 
-## 证据与机器门禁的迁移
+## 证据与机器门禁
 
-当前 `tests/page-delivery-gate.mjs` 及其测试实现仍按 schemaVersion 2 检查双侧像素证据；此为历史自动门禁，尚未实现本次新准则。134 个现有 manifest 条目仍为 review_required，不能批量转通过。
+`tests/page-delivery-gate.mjs` 的 schemaVersion 3 是新 accepted 校验准则；schemaVersion 1/2 保留原有验证规则，用于解释历史记录。旧版 PASS 不自动变成新版通过，既有 manifest 状态不得批量改写。
 
-下一实施工作先把门禁演进为新的 schemaVersion 3：requirements 替代 replication 必需维度，referenceEvidence 为可选；记录上述七维、Forge 基线、真实材料、角色、持久数据库与独立复核，保留被验收提交、subjectFiles 摘要及逐要求证据。旧 schemaVersion 2 记录原样保留用于解释当时结论，不补造 RISEMAP 图，也不将旧门禁 PASS 当新标准通过。
+schemaVersion 3 的 manifest 条目明确声明 `featureId`、`app`、`surfaceType`、`target`、完整 `requirementIds` 和受验 `subjectFiles` 路径。surfaceType 可为 object、dashboard、report、component、action 或 page；只有 page 记录 `pageId`，且其值与 target 一致。结构化记录逐文件绑定 SHA-256，文件路径和要求编号集合必须与 manifest 完全一致；门禁同时读取当前文件和 `reviewedRevision` 中的文件，任一变化都会使旧验收失效。原生 ObjectStack 表面不需要虚构 React 页面或 pageId。
 
-模板中的新 JSON 是拟实施契约，当前脚本尚不能作为新版本的 accepted 校验器。门禁迁移完成前可形成 Markdown 人工审查与部分证据，manifest 保持 review_required 并注明“新门禁待接入”，不能降低证据标准绕过。
+每份证据记录路径、类型、主张、采集方式、实际操作者与角色、材料、采集时间、被验版本、featureId 和 target。accepted 必须让七个维度分别通过，并提供 Forge 设计基线、桌面和窄屏截图、真实界面操作、Forge 独立业务结果回读、权限角色观察、持久化范围和性能指标。外部 `referenceEvidence` 可为空；RISEMAP 截图、像素差异和同材料对照均非强制。
 
-受验页面/组件/对象/动作/导航/设置消费者的实际文件摘要与版本须固定。相关文件变化后重验受影响维度；未受影响证据说明复用依据。机器只验证结构、版本和可核对条件，不能替代页面美观、真实办理或业务正确性。
+逐项要求要记录来源、目标、实现文件、步骤、预期/实际结果、状态与证据。权限至少覆盖两个不同账号，证明允许和拒绝的预期行为。任何写入业务状态、设置或个人状态的要求都必须绑定同一持久数据库的完整停服、重启和读回；纯只读目标可以声明不适用，但需要理由和独立复核者的范围证据。`changes_configuration` 要求还须通过 `settingsConsumers` 证明配置在实际业务消费者中生效，不能只证明保存和重启。性能必须测量冷打开、刷新、切页、请求数及传输量，并记录预算来源与对应实测证据。
+
+独立复核者必须与实施者不同；复核记录锁定 reviewedRevision、时间、结论及复核证据。review_required 条目不得带总体成功报告或已验收证据。门禁可检查文件、版本、证据形状与记录间的一致性，但不能代替真正的浏览器办理、业务判断或人工复核。详细字段和样例见[逐页合同模板](templates/forge-page-delivery.md)。
 
 ## 检查与持续执行
 
