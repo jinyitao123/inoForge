@@ -4,7 +4,6 @@ import { checkPageDelivery } from './page-delivery-gate.mjs';
 
 const manifest = JSON.parse(await readFile(new URL('./page-polish.manifest.json', import.meta.url), 'utf8'));
 const pagesDir = new URL('../src/pages/', import.meta.url);
-const config = await readFile(new URL('../objectstack.config.ts', import.meta.url), 'utf8');
 const productUi = await readFile(new URL('../src/pages/product-ui.ts', import.meta.url), 'utf8');
 const findings = [];
 const allowedSurfaces = new Set(['object', 'dashboard', 'report', 'component', 'action', 'page']);
@@ -73,28 +72,11 @@ for (const [area, entries] of Object.entries(manifest)) {
   }
 }
 
-// Integration seam: the app extraction will make src/apps/navigation.ts the only runtime source.
-// Keep this existing check until integration switches it to forgeApplicationDefinitions; do not add another nav manifest.
-const financeStart = config.indexOf("id: 'finance'");
-const financeEnd = config.indexOf("id: 'reports'", financeStart);
-const financeBlock = config.slice(financeStart, financeEnd);
-const financePages = [...financeBlock.matchAll(/page\([^,]+,[^,]+,\s*'([^']+)'/g)].map(match => match[1]);
-const pageTargets = entries => entries.flatMap(entry => entry.surfaceType === undefined
-  ? (Array.isArray(entry.pages) ? entry.pages : [])
-  : (entry.surfaceType === 'page' ? [entry.target] : []));
-const polishedFinancePages = new Set(pageTargets(manifest.finance));
-for (const page of financePages) if (!polishedFinancePages.has(page)) findings.push(`finance: ${page} 未加入 page-polish 清单`);
-const salesStart = config.indexOf("id: 'sales'");
-const salesEnd = config.indexOf("id: 'production'", salesStart);
-const salesBlock = config.slice(salesStart, salesEnd);
-const salesPages = [...salesBlock.matchAll(/page\([^,]+,[^,]+,\s*'([^']+)'/g)].map(match => match[1]);
-const polishedSalesPages = new Set(pageTargets(manifest.sales || []));
-for (const page of salesPages) if (!polishedSalesPages.has(page)) findings.push(`sales: ${page} 未加入 page-polish 清单`);
-for (const page of polishedSalesPages) if (!salesPages.includes(page)) findings.push(`sales: ${page} 不在当前销售导航中`);
-assert.equal(financeBlock.includes("'page_finance_gap'"), false, '财务导航仍指向空白占位页');
+// Built navigation is checked against this manifest after compilation by
+// navigation-linkage.static.mjs. This prebuild gate checks source contracts.
 assert.match(productUi, /div:has\(>\.forge-product\)>div\.space-y-2\{display:none!important\}/, 'product-ui.ts 必须隐藏 Console 自动标题，避免产品页出现重复标题区');
 assert.match(productUi, /\.forge-product \.btn,.forge-product \.icon-btn\{height:34px;[^}]*border-radius:8px/, 'product-ui.ts 必须统一财务页主次按钮尺寸与圆角');
 assert.match(productUi, /\.forge-product\.bank-flow \.page-shell,.forge-product\.finance-page \.fp-shell,.forge-product \.body\{width:min\(1380px,100%\);max-width:1380px/, 'product-ui.ts 必须按工时管理页面统一财务内容宽度');
 assert.match(productUi, /\.forge-product \.card,.forge-product \.panel,.forge-product \.metric,.forge-product \.metric-card,.forge-product \.process\{[^}]*border-radius:10px/, 'product-ui.ts 必须统一财务卡片层级与圆角');
 assert.deepEqual(findings, [], findings.join('\n'));
-console.log(`PASS page-polish 清单覆盖 ${Object.values(manifest).flat().length} 个交付条目；${acceptedTargets} 个目标已验收，${reviewRequiredTargets} 个目标仍需逐项复核；${financePages.length} 个财务入口与 ${salesPages.length} 个销售入口已纳入清单。此检查仅排除指定财务空白页，不证明其他入口或业务动作可用`);
+console.log(`PASS page-polish 清单覆盖 ${Object.values(manifest).flat().length} 个交付条目；${acceptedTargets} 个目标已验收，${reviewRequiredTargets} 个目标仍需逐项复核。导航目标需在编译后检查；此检查不证明入口或业务动作可用`);
