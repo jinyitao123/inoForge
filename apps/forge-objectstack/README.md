@@ -1,6 +1,6 @@
 # Forge ObjectStack
 
-这是 Forge 的 ObjectStack 应用，包含业务对象、动作、运行时 hooks 和 Console 页面。入口为 [objectstack.config.ts](objectstack.config.ts)，依赖版本和可执行命令以 [package.json](package.json) 为准；不在说明中手工维护容易过时的对象、字段或页面总数。
+当前这里仍集中注册一个 Forge 应用，七应用及各自设置的拆分尚待实施；包含业务对象、动作、运行时 hooks 和 Console 页面。入口为 [objectstack.config.ts](objectstack.config.ts)，依赖版本和可执行命令以 [package.json](package.json) 为准；不在说明中手工维护容易过时的对象、字段或页面总数。
 
 业务范围、质量要求与当前资料入口见[项目首页](../../README.md)、[项目规则](../../AGENTS.md)和[文档索引](../../docs/README.md)。
 
@@ -39,7 +39,7 @@ pnpm validate
 pnpm build
 ```
 
-再执行对应业务链的验收脚本。涉及持久状态时，使用同一 SQLite 完整停服重启回读；页面与业务验收还必须满足主仓的双侧浏览器和同材料对照要求。不要把脚本存在或工程检查通过写成业务验收通过。
+再执行对应业务链的验收脚本。涉及持久状态时，使用同一持久数据库完整停服重启回读；页面与业务验收遵循 Forge 合同、实际角色操作和独立读回，外部参考对照可选。不要把脚本存在或工程检查通过写成业务验收通过。
 
 页面交付另见[默认标准](../../docs/forge-page-delivery-standard.md)和[精修基线](../../docs/forge-page-polish-baseline.md)。纯文档整理按链接、引用及内容一致性验证，不启动业务服务。
 
