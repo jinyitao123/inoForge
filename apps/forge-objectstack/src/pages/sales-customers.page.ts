@@ -32,6 +32,7 @@ const css = forgeProductUiCss + `
 
 const source = `
 const css=${JSON.stringify(css)};
+const Section=({title,hint,children})=><section className="form-section"><div className="form-section-head"><div><div className="form-section-title">{title}</div>{hint&&<div className="form-section-hint">{hint}</div>}</div></div>{children}</section>;
 function App(){
  const adapter=useAdapter();
  const [state,setState]=React.useState({loading:true,currentUserId:'',customers:[],teamMembers:[],contacts:[],channels:[],users:[],categories:[],levels:[],followups:[],orders:[],error:''});
@@ -84,7 +85,6 @@ function App(){
  function openFollow(row){const today=new Date().toISOString().slice(0,10);setFollowDialog({row,follow_type:'phone',followed_at:today,next_follow_on:'',content:'',remarks:'',error:''})}
  async function saveFollow(){if(!followDialog.content.trim()||!followDialog.followed_at)return setFollowDialog(d=>({...d,error:'请填写跟进日期和跟进内容'}));setBusy(true);try{await create('forge_sales_follow_up',{name:followDialog.row.name+' '+followDialog.followed_at+' 跟进',customer_id:followDialog.row.id,opportunity_id:null,follow_type:followDialog.follow_type,content:followDialog.content.trim(),followed_at:followDialog.followed_at,next_follow_on:followDialog.next_follow_on||null,status:'completed',responsible_id:followDialog.row.responsible_id||current.id||null,remarks:followDialog.remarks||''});setFollowDialog(null);setToast('客户跟进已记录');await load()}catch(e){setFollowDialog(d=>({...d,error:String(e.message||e)}))}finally{setBusy(false)}}
  function exportCsv(selectedOnly=false){const exportRows=selectedOnly?filtered.filter(r=>selected.includes(r.id)):filtered,headers=['客户名称','主负责人','主要联系人电话','协同销售','信用额度','账期天数','最近跟进时间','拜访计划日期','最近交易时间'],quote=String.fromCharCode(34),newline=String.fromCharCode(10),csv=[headers,...exportRows.map(r=>[r.name,user(r.responsible_id),phone(r.id),teamNames(r.id).join('、'),Number(r.credit_limit||0),Number(r.payment_days||0),lastFollow(r.id),nextVisit(r.id),lastTrade(r.id)])].map(line=>line.map(value=>quote+String(value??'').split(quote).join(quote+quote)+quote).join(',')).join(newline),url=URL.createObjectURL(new Blob([String.fromCharCode(65279)+csv],{type:'text/csv;charset=utf-8'})),anchor=document.createElement('a');anchor.href=url;anchor.download='客户管理-'+new Date().toISOString().slice(0,10)+'.csv';anchor.click();URL.revokeObjectURL(url);setToast('已导出 '+exportRows.length+' 条客户记录')}
- const Section=({title,hint,children})=><section className="form-section"><div className="form-section-head"><div><div className="form-section-title">{title}</div>{hint&&<div className="form-section-hint">{hint}</div>}</div></div>{children}</section>;
  if(state.loading)return <div className="forge-product sales-customers"><style>{css}</style><div className="fp-shell"><ForgeLoading label="正在加载客户管理"/></div></div>;
  return <div className="forge-product sales-customers"><style>{css}</style><div className="fp-shell">
   <div className="fp-page-header customer-page-head"><div className="fp-eyebrow">CRM客户管理 / 客户管理</div><h1>客户管理</h1></div>
