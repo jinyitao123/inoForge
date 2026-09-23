@@ -1,4 +1,4 @@
-import { forgeProductUiCss, forgeProductUiRuntime, forgeBase } from './product-ui.js';
+import { forgeProductUiCss, forgeProductUiRuntime } from './product-ui.js';
 
 const roles = [
   {id:'operator',name:'委外业务员',note:'订单、进度、异常与对账协同',stages:[1,2,3,4,5,6]},

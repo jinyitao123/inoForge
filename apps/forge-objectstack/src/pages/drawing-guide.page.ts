@@ -1,4 +1,4 @@
-import { forgeProductUiCss, forgeProductUiRuntime, forgeBase } from './product-ui.js';
+import { forgeProductUiCss, forgeProductUiRuntime } from './product-ui.js';
 
 const roles = [
   { id: 'design', name: '设计 / 工艺', note: '图号建档、版本提交与变更发起', stages: [1, 2, 3, 5] },
