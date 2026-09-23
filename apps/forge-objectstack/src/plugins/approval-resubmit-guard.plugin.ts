@@ -33,6 +33,8 @@ export interface ApprovalResubmitGuardOptions {
   requiredMaterialObjects: readonly string[];
   /** Read-only check against the current request and the Forge binding ledger. */
   verifyMaterialBinding?: (input: ResubmitMaterialVerificationInput) => Promise<boolean>;
+  /** Forge service slot that supplies the same read-only verifier at call time. */
+  verifierServiceName?: string;
 }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -81,10 +83,12 @@ export class ApprovalResubmitGuardPlugin implements Plugin {
 
   private readonly requiredMaterialObjects: Set<string>;
   private readonly verifyMaterialBinding?: ApprovalResubmitGuardOptions['verifyMaterialBinding'];
+  private readonly verifierServiceName?: string;
 
   constructor(options: ApprovalResubmitGuardOptions) {
     this.requiredMaterialObjects = new Set(options.requiredMaterialObjects);
     this.verifyMaterialBinding = options.verifyMaterialBinding;
+    this.verifierServiceName = options.verifierServiceName;
   }
 
   init(): void {}
@@ -132,10 +136,19 @@ export class ApprovalResubmitGuardPlugin implements Plugin {
       if (binding.sourceMaterialVersion !== await sha256(request.payload)) {
         throw validationFailure('the material binding does not match the returned source version');
       }
-      if (!this.verifyMaterialBinding) {
+      let verify = this.verifyMaterialBinding;
+      if (!verify && this.verifierServiceName) {
+        try {
+          const service = ctx.getService<{ verifyBinding: (input: ResubmitMaterialVerificationInput) => Promise<boolean> }>(this.verifierServiceName);
+          verify = (verification) => service.verifyBinding(verification);
+        } catch {
+          // The guard must stay closed until the domain verifier is available.
+        }
+      }
+      if (!verify) {
         throw validationFailure('Forge material validation is not configured for this approval');
       }
-      if (!await this.verifyMaterialBinding({ request, actorId, materialBinding: binding, idempotencyKey, context })) {
+      if (!await verify({ request, actorId, materialBinding: binding, idempotencyKey, context })) {
         throw validationFailure('Forge rejected the submitted material version');
       }
 
