@@ -18,7 +18,7 @@ export const Project = ObjectSchema.create({
     name: text('项目名称', true),
     code: Field.autonumber({ label: '项目编号', autonumberFormat: 'PRJ-{YYYY}-{000}' }),
     type_id: reference('forge_project_type', '项目类型', true),
-    customer_id: { ...reference('forge_customer', '客户', true), relatedList: true, relatedListTitle: '客户项目', relatedListColumns: ["code", "name", "planned_start_on", "planned_end_on", "progress", "status"] }, manager_id: owner(true),
+    customer_id: { ...reference('forge_customer', '客户', true), relatedList: true, relatedListTitle: '项目', relatedListColumns: ["code", "name", "planned_start_on", "planned_end_on", "progress", "status"] }, manager_id: owner(true),
     priority: select('优先级', [['high', '高'], ['medium', '中'], ['low', '低']], 'medium'),
     planned_start_on: Field.date({ label: '计划开始日期', ...required }),
     planned_end_on: Field.date({ label: '计划结束日期', ...required }),

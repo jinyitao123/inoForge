@@ -5,6 +5,25 @@ const fixture = JSON.parse(await readFile(new URL('./fixtures/customer-related-l
 assert.equal(fixture.sourceObject, 'forge_customer');
 assert.equal(fixture.entries.length, 41, 'all reviewed customer reverse lookups must have a disposition');
 assert.equal(new Set(fixture.entries.map((entry) => entry.objectName)).size, 41, 'each reverse lookup object appears once');
+assert.equal(fixture.sourceCommit, '394d060835f18d3d02a37930c94a17a254af4dc9');
+const expectedVisibleGroups = new Map([
+  ['forge_contact', '联系人'],
+  ['forge_sales_follow_up', '跟进'],
+  ['forge_sales_opportunity', '商机'],
+  ['forge_quotation', '报价'],
+  ['forge_sales_contract', '合同'],
+  ['forge_sales_order', '订单'],
+  ['forge_project', '项目'],
+  ['forge_service_order', '售后工单'],
+]);
+const visibleEntries = fixture.entries.filter((entry) => entry.disposition === 'keep');
+assert.equal(visibleEntries.length, 8, 'customer detail must show only the eight approved business groups');
+assert.deepEqual(
+  Object.fromEntries(visibleEntries.map((entry) => [entry.objectName, entry.relatedListTitle])),
+  Object.fromEntries(expectedVisibleGroups),
+  'the visible customer groups and titles must match the product decision exactly',
+);
+assert.equal(fixture.entries.filter((entry) => entry.disposition === 'hide').length, 33);
 
 const objectDir = new URL('../src/objects/', import.meta.url);
 const sources = new Map();
@@ -30,15 +49,29 @@ for (const [file, source] of sources) {
   }
 }
 assert.equal(sourceEntries.length, 41, 'the object metadata must still contain all 41 source fields');
+const owningApplicationByFile = {
+  'administration.object.ts': 'administration',
+  'bom.object.ts': 'supply_chain',
+  'customer.object.ts': 'sales',
+  'drawing.object.ts': 'production',
+  'finance.object.ts': 'finance',
+  'inventory.object.ts': 'supply_chain',
+  'opening-balance.object.ts': 'finance',
+  'procurement.object.ts': 'supply_chain',
+  'project.object.ts': 'project',
+  'sales.object.ts': 'sales',
+};
 
 for (const entry of fixture.entries) {
   const source = sourceEntries.find((candidate) => candidate.objectName === entry.objectName && candidate.referenceField === entry.referenceField);
   assert.ok(source, `${entry.objectName}.${entry.referenceField} must remain registered`);
+  assert.equal(entry.owningApplication, owningApplicationByFile[source.file], `${entry.objectName} must stay discoverable in its owning application`);
   const start = source.text.indexOf(`${entry.referenceField}:`);
   const fieldText = source.text.slice(start, start + 1000);
   if (entry.disposition === 'hide') {
     assert.match(fieldText, /relatedList:\s*false/, `${entry.objectName} must suppress this non-customer list`);
     assert.ok(!fieldText.includes('relatedListTitle') && !fieldText.includes('relatedListColumns'));
+    assert.match(entry.reason, /应用/);
     continue;
   }
 
