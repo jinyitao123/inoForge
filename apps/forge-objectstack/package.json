@@ -12,7 +12,7 @@
     "start": "objectstack start",
     "prebuild": "node tests/page-polish.static.mjs",
     "build": "objectstack build",
-    "postbuild": "node tests/navigation-linkage.static.mjs",
+    "postbuild": "node tests/navigation-linkage.static.mjs && node tests/authenticated-page-fetch.static.mjs",
     "validate": "objectstack validate",
     "typecheck": "tsc --noEmit",
     "acceptance:console-controls": "node tests/console-controls.static.mjs",
