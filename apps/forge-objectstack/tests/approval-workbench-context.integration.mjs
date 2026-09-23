@@ -291,3 +291,12 @@ test('unsupported MIME type has a distinct response and no storage read', async 
   assert.equal(result.body.error.code, 'APPROVAL_MATERIAL_UNSUPPORTED_TYPE');
   assert.deepEqual(result.downloadedKeys, []);
 });
+
+test('UTF-8 text upload MIME is accepted while the returned contract stays normalized', async () => {
+  const harness = createHarness();
+  await harness.start();
+  harness.fixtureFiles.materialA.mime_type = 'text/plain; charset=utf-8';
+  const result = await harness.call('approval-A', 'reviewer-token');
+  assert.equal(result.status, 200);
+  assert.equal(result.body.files[0].mediaType, 'text/plain; charset=utf-8');
+});

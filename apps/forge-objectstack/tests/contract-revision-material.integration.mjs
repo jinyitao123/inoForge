@@ -79,7 +79,8 @@ async function harness() {
 }
 
 test('returned submitter prepares one exact material version and same request reuses it', async () => {
-  const { service, ledger, contract, input, context } = await harness();
+  const { service, files, ledger, contract, input, context } = await harness();
+  files.get(mainId).mime_type = 'text/plain; charset=utf-8';
   const first = await service.prepare(input, context);
   assert.equal(first.repeated, false);
   assert.equal(first.requestId, requestId);

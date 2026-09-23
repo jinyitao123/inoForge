@@ -11,6 +11,7 @@ const MAX_FILE_BYTES = 2 * 1024 * 1024;
 const MAX_TOTAL_BYTES = 8 * 1024 * 1024;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const SHA256 = /^[0-9a-f]{64}$/;
+const TEXT_MEDIA_TYPES = new Set(['text/plain', 'text/plain; charset=utf-8']);
 const SYSTEM_CONTEXT: ExecutionContext = { isSystem: true, positions: [], permissions: [] };
 export const CONTRACT_REVISION_MATERIAL_SERVICE = 'forge.contract.revision.material';
 const REVISION_ROUTE = '/api/v1/approvals/requests/:requestId/workbench-revision';
@@ -141,7 +142,7 @@ async function verifyFiles(
     const file = byId.get(expected.fileId);
     const hasReference = file && (file.ref_object != null || file.ref_id != null);
     if (!file || file.status !== 'committed' || file.owner_id !== actorId ||
-      file.name !== expected.name || file.mime_type !== 'text/plain' ||
+      file.name !== expected.name || !TEXT_MEDIA_TYPES.has(String(file.mime_type)) ||
       typeof file.key !== 'string' || !Number.isInteger(file.size) || file.size < 0 || file.size > MAX_FILE_BYTES ||
       hasReference && (file.ref_object !== CONTRACT_OBJECT || String(file.ref_id ?? '') !== contractId)) {
       throw new Error('REVISION_MATERIAL_UNAVAILABLE: a file is unavailable to this employee and contract');
