@@ -42,7 +42,7 @@ async function cleanupPreviousTestUsers() {
   await postgres.connect();
   let users;
   try {
-    users = await postgres.query("SELECT id FROM sys_user WHERE email = 'admin@objectos.ai' OR email = 'lead-conversion-admin@example.test' OR email LIKE 'lead-conversion-admin-%@example.test' OR email LIKE 'lead-conversion-reader-%@example.test'");
+    users = await postgres.query("SELECT id FROM sys_user WHERE email = 'admin@objectos.ai' OR email = 'lead-conversion-admin@example.test' OR email LIKE 'lead-conversion-admin-%@example.test' OR email LIKE 'lead-conversion-reader-%@example.test' OR email LIKE 'lead-conversion-peer-%@example.test' OR email LIKE 'lead-conversion-auditor-%@example.test'");
   } catch (error) {
     if (error?.code === '42P01') return;
     throw error;
@@ -266,6 +266,12 @@ async function read(api, objectName, id) {
   return response.value?.record || response.value?.data?.record;
 }
 
+async function canRead(api, objectName, id) {
+  const response = await api.request(`/data/${objectName}/${id}`);
+  const record = response.value?.record || response.value?.data?.record;
+  return response.status < 400 && Boolean(record?.id);
+}
+
 async function invoke(api, leadId, params) {
   return api.request(`/actions/forge_sales_lead/sales_lead_convert_to_opportunity/${leadId}`, 'POST', { params });
 }
@@ -310,13 +316,13 @@ async function assignPermission(api, userId, user, permissionSets, name) {
 async function loadPermissionSets() {
   if (isPostgres) {
     const result = await postgres.query('SELECT id, name FROM sys_permission_set WHERE name = ANY($1::text[])', [[
-      'admin_full_access', 'sales_lead_owner', 'sales_lead_conversion_operator',
+      'admin_full_access', 'sales_lead_owner', 'sales_lead_conversion_operator', 'mvp1_scene_organization_auditor',
     ]]);
     return result.rows;
   }
   const { DatabaseSync } = await import('node:sqlite');
   sqlite = new DatabaseSync(dbPath);
-  const rows = sqlite.prepare('SELECT id, name FROM sys_permission_set WHERE name IN (?, ?, ?)').all('admin_full_access', 'sales_lead_owner', 'sales_lead_conversion_operator');
+  const rows = sqlite.prepare('SELECT id, name FROM sys_permission_set WHERE name IN (?, ?, ?, ?)').all('admin_full_access', 'sales_lead_owner', 'sales_lead_conversion_operator', 'mvp1_scene_organization_auditor');
   sqlite.close();
   sqlite = null;
   return rows;
@@ -431,6 +437,11 @@ try {
   assert.ok(reader.userId, 'Registered employee must be present in ObjectStack identity data');
   await assignPermission(admin, reader.userId, reader.user, permissionSets, 'sales_lead_owner');
 
+  const peer = await signup(admin, `lead-conversion-peer-${runId}@example.test`);
+  await assignPermission(admin, peer.userId, peer.user, permissionSets, 'sales_lead_owner');
+  const auditor = await signup(admin, `lead-conversion-auditor-${runId}@example.test`);
+  await assignPermission(admin, auditor.userId, auditor.user, permissionSets, 'mvp1_scene_organization_auditor');
+
   const blockedLead = await createLead(reader, reader.userId, '无转化权限');
   const readerRecord = await read(reader, 'forge_sales_lead', blockedLead.id);
   assert.equal(readerRecord.status, 'new', 'owner permission must allow the assigned employee to read their own lead');
@@ -507,6 +518,20 @@ try {
   assert.equal((await findAll(admin, 'forge_sales_opportunity', { lead_id: normalLead.id })).length, 1);
   const convertedLead = await read(reader, 'forge_sales_lead', normalLead.id);
   assert.ok(convertedLead.conversion_request_signature, 'the conversion capability can read the persisted replay signature');
+  const convertedCustomer = await read(reader, 'forge_customer', firstResult.customer_id);
+  const convertedOpportunity = await read(reader, 'forge_sales_opportunity', firstResult.opportunity_id);
+  assert.equal(convertedCustomer.owner_id, reader.userId, 'A newly created customer must inherit the authorized lead owner in native system context');
+  assert.equal(convertedCustomer.responsible_id, reader.userId);
+  assert.equal(convertedOpportunity.owner_id, reader.userId, 'A newly created opportunity must inherit the authorized lead owner in native system context');
+  assert.equal(convertedOpportunity.responsible_id, reader.userId);
+  assert.equal(await canRead(peer, 'forge_sales_lead', normalLead.id), false, 'another sales employee must not read this employee\'s lead');
+  assert.equal(await canRead(peer, 'forge_customer', firstResult.customer_id), false, 'an unrelated employee without the conversion capability must not read its customer');
+  assert.equal(await canRead(peer, 'forge_sales_opportunity', firstResult.opportunity_id), false, 'an unrelated employee must not read its opportunity');
+  assert.equal((await read(auditor, 'forge_sales_lead', normalLead.id)).id, normalLead.id, 'the scoped scene auditor must read organization leads');
+  assert.equal((await read(auditor, 'forge_customer', firstResult.customer_id)).id, firstResult.customer_id, 'the scoped scene auditor must read organization customers');
+  assert.equal((await read(auditor, 'forge_sales_opportunity', firstResult.opportunity_id)).id, firstResult.opportunity_id, 'the scoped scene auditor must read organization opportunities');
+  const auditWrite = await auditor.request(`/data/forge_sales_opportunity/${firstResult.opportunity_id}`, 'PATCH', { amount: 1 });
+  assert.ok(auditWrite.status >= 400, 'the scene auditor must not edit verified business records');
 
   const concurrentLead = await createLead(reader, reader.userId, '并发同参');
   const concurrentSame = await Promise.all(Array.from({ length: 4 }, () => invoke(reader, concurrentLead.id, params)));

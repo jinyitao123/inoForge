@@ -1,4 +1,5 @@
 import { forgeProductUiCss, forgeProductUiRuntime } from './product-ui.js';
+import { materialPropertyOptions, materialSourceTypeOptions } from '../model.js';
 
 const css =
   forgeProductUiCss +
@@ -9,11 +10,11 @@ ${forgeProductUiRuntime}
 const css=${JSON.stringify(css)};
 function App(){const adapter=useAdapter();
   const [state,setState]=React.useState({loading:true,materials:[],categories:[],units:[],skus:[],error:''}),[tab,setTab]=React.useState('list'),[query,setQuery]=React.useState(''),[category,setCategory]=React.useState(''),[property,setProperty]=React.useState(''),[status,setStatus]=React.useState(''),[brand,setBrand]=React.useState(''),[selected,setSelected]=React.useState([]),[page,setPage]=React.useState(1),[dialog,setDialog]=React.useState(null),[busy,setBusy]=React.useState(false),[toast,setToast]=React.useState('');
-  async function request(path,options={}){const r=await ForgeApiResponse(adapter,path,{credentials:'include',headers:{'Content-Type':'application/json'},...options}),p=await r.json().catch(()=>({}));if(!r.ok)throw new Error(p.error&&p.error.message||p.message||('HTTP '+r.status));return p;}
+  async function request(path,options={}){return ForgeApiRequest(adapter,path,{credentials:'include',...options})}
   async function load(){setState(s=>({...s,loading:true,error:''}));try{const [materials,categories,units,skus]=await Promise.all(['forge_material','forge_material_category','forge_unit','forge_material_sku'].map(n=>request('/data/'+n+'?$top=500').then(p=>p.records||[])));setState({loading:false,materials,categories,units,skus,error:''});}catch(e){setState(s=>({...s,loading:false,error:String(e.message||e)}));}}
   React.useEffect(()=>{load()},[]);
   const byId=(rows,id)=>rows.find(x=>x.id===id),catName=id=>byId(state.categories,id)?.name||'—',unitName=id=>byId(state.units,id)?.name||'—',skuCount=id=>state.skus.filter(s=>s.material_id===id).length;
-  const propertyOptions=[['raw_material','原材料'],['semi_finished','半成品'],['finished','成品'],['trade_goods','贸易商品'],['consumable','消耗品'],['service','服务'],['spare_part','备件'],['packaging','包装材料']],sourceOptions=[['purchased','采购'],['manufactured','自制'],['outsourced','外协'],['subcontracted','外协'],['virtual','虚拟']],propertyLabels=Object.fromEntries(propertyOptions),sourceLabels=Object.fromEntries(sourceOptions);
+  const propertyOptions=${JSON.stringify(materialPropertyOptions)},sourceOptions=${JSON.stringify(materialSourceTypeOptions)},propertyLabels=Object.fromEntries(propertyOptions.map(x=>[x.value,x.label])),sourceLabels=Object.fromEntries(sourceOptions.map(x=>[x.value,x.label]));
   const propertyText=m=>propertyLabels[m.property]||m.property||'—',sourceText=m=>sourceLabels[m.source_type]||m.source_type||'—',statusText=m=>m.status==='inactive'?'停用':'正式';
   const filtered=state.materials.filter(r=>!brand||r.brand===brand).filter(m=>(!query||[m.code,m.name,m.model,m.barcode].some(v=>String(v||'').toLowerCase().includes(query.toLowerCase())))&&(!category||m.category_id===category)&&(!property||m.property===property)&&(!status||(status==='active'?m.status!=='inactive':m.status==='inactive')));
   const pageSize=20,total=filtered.length,pages=Math.max(1,Math.ceil(total/pageSize)),safePage=Math.min(page,pages),rows=filtered.slice((safePage-1)*pageSize,safePage*pageSize),allSelected=rows.length>0&&rows.every(r=>selected.includes(r.id));
