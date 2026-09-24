@@ -906,7 +906,7 @@ try {
       if (!categoryId) throw new Error('销售业务设置缺少项目客户分类；请先由管理员维护分类后再转化线索');
       const createdCustomer = await ctx.api.object('forge_customer').insert({
         name: lead.company_name, customer_type: 'company', category_id: categoryId,
-        responsible_id: lead.responsible_id, remarks: '由销售线索转入客户档案',
+        owner_id: lead.responsible_id, responsible_id: lead.responsible_id, remarks: '由销售线索转入客户档案',
       });
       customerId = typeof createdCustomer === 'string' ? createdCustomer : createdCustomer && (createdCustomer.id || (createdCustomer.record && createdCustomer.record.id));
       if (!customerId) throw new Error('客户创建后未返回记录标识');
@@ -917,7 +917,7 @@ try {
       contact_name: lead.contact_name || null, phone: lead.phone || null,
       stage: 'needs_confirmed', source: lead.source || '线索转化', description: lead.remarks || null,
       priority: 'medium', amount, win_rate: 30, expected_close_on: expectedCloseOn,
-      responsible_id: lead.responsible_id,
+      owner_id: lead.responsible_id, responsible_id: lead.responsible_id,
     });
     const opportunityId = typeof createdOpportunity === 'string'
       ? createdOpportunity
