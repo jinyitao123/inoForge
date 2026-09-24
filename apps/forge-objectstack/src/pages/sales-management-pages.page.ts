@@ -26,7 +26,7 @@ const performanceSource = `
 const css=${performanceCss};
 function App(){const adapter=useAdapter();
   const [state,setState]=React.useState({loading:true,orders:[],customers:[],users:[],error:''}),[scope,setScope]=React.useState('all'),[tab,setTab]=React.useState('bank'),[period,setPeriod]=React.useState('year'),[personId,setPersonId]=React.useState('');
-  async function request(path,options){const r=await ForgeApiResponse(adapter,path,{credentials:'include',headers:{'Content-Type':'application/json',,...(options?.headers||{})},...options}),p=await r.json().catch(()=>({}));if(!r.ok)throw new Error((typeof p.error==='string'?p.error:p.error?.message)||(Array.isArray(p.fields)&&p.fields.length?p.fields.map(f=>f.message||f.label).filter(Boolean).join('；'):'')||p.message||'请求失败');return p}
+  async function request(path,options){const r=await ForgeApiResponse(adapter,path,{credentials:'include',headers:{'Content-Type':'application/json',...(options?.headers||{})},...options}),p=await r.json().catch(()=>({}));if(!r.ok)throw new Error((typeof p.error==='string'?p.error:p.error?.message)||(Array.isArray(p.fields)&&p.fields.length?p.fields.map(f=>f.message||f.label).filter(Boolean).join('；'):'')||p.message||'请求失败');return p}
   async function find(object){return (await request('/data/'+object+'?$top=500')).records||[]}
   async function load(){try{const [orders,customers,users]=await Promise.all(['forge_sales_order','forge_customer','sys_user'].map(find));setState({loading:false,orders,customers,users,error:''});setPersonId(x=>x||users.find(u=>String(u.name||u.display_name||'').includes('Dev'))?.id||users[0]?.id||'')}catch(e){setState(s=>({...s,loading:false,error:String(e.message||e)}))}}
   React.useEffect(()=>{load()},[]);
@@ -44,7 +44,7 @@ const pricingSource = `
 const css=${pricingCss};
 function App(){const adapter=useAdapter();
   const [state,setState]=React.useState({loading:true,skus:[],materials:[],categories:[],units:[],error:'',toast:''}),[tab,setTab]=React.useState('materials'),[group,setGroup]=React.useState('all'),[q,setQ]=React.useState(''),[department,setDepartment]=React.useState('all'),[selected,setSelected]=React.useState([]),[dialog,setDialog]=React.useState(null),[busy,setBusy]=React.useState(false);
-  async function request(path,options){const r=await ForgeApiResponse(adapter,path,{credentials:'include',headers:{'Content-Type':'application/json',,...(options?.headers||{})},...options}),p=await r.json().catch(()=>({}));if(!r.ok)throw new Error((typeof p.error==='string'?p.error:p.error?.message)||(Array.isArray(p.fields)&&p.fields.length?p.fields.map(f=>f.message||f.label).filter(Boolean).join('；'):'')||p.message||'请求失败');return p}
+  async function request(path,options){const r=await ForgeApiResponse(adapter,path,{credentials:'include',headers:{'Content-Type':'application/json',...(options?.headers||{})},...options}),p=await r.json().catch(()=>({}));if(!r.ok)throw new Error((typeof p.error==='string'?p.error:p.error?.message)||(Array.isArray(p.fields)&&p.fields.length?p.fields.map(f=>f.message||f.label).filter(Boolean).join('；'):'')||p.message||'请求失败');return p}
   async function find(object){return (await request('/data/'+object+'?$top=500')).records||[]}
   async function load(){try{const [skus,materials,categories,units]=await Promise.all(['forge_material_sku','forge_material','forge_material_category','forge_unit'].map(find));setState(s=>({...s,loading:false,skus,materials,categories,units,error:''}))}catch(e){setState(s=>({...s,loading:false,error:String(e.message||e)}))}}
   React.useEffect(()=>{load()},[]);React.useEffect(()=>{if(!state.toast)return;const timer=setTimeout(()=>setState(s=>({...s,toast:''})),2600);return()=>clearTimeout(timer)},[state.toast]);
@@ -65,7 +65,7 @@ ${forgeProductUiRuntime}`;
 const salesSharedRuntime = `
 const css=${css};
 function unpack(payload){let v=payload;for(let i=0;i<5&&v&&typeof v==='object';i++){if(v.result!==undefined){v=v.result;continue}if(v.data!==undefined){v=v.data;continue}break}return v||payload}
-async function request(path,options){const r=await ForgeApiResponse(adapter,path,{credentials:'include',headers:{'Content-Type':'application/json',,...(options?.headers||{})},...options}),p=await r.json().catch(()=>({}));if(!r.ok)throw new Error((typeof p.error==='string'?p.error:p.error?.message)||(Array.isArray(p.fields)&&p.fields.length?p.fields.map(f=>f.message||f.label).filter(Boolean).join('；'):'')||p.message||'请求失败');return p}
+async function request(path,options){const r=await ForgeApiResponse(adapter,path,{credentials:'include',headers:{'Content-Type':'application/json',...(options?.headers||{})},...options}),p=await r.json().catch(()=>({}));if(!r.ok)throw new Error((typeof p.error==='string'?p.error:p.error?.message)||(Array.isArray(p.fields)&&p.fields.length?p.fields.map(f=>f.message||f.label).filter(Boolean).join('；'):'')||p.message||'请求失败');return p}
 async function find(object){return (await request('/data/'+object+'?$top=500')).records||[]}
 function byId(rows,id){return (rows||[]).find(x=>x.id===id)||null}
 function labelUser(users,id){const u=byId(users,id);return u?.name||u?.display_name||u?.email||'Dev Admin'}
