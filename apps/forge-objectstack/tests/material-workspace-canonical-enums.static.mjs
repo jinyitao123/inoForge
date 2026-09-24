@@ -16,6 +16,7 @@ assert.match(object, /choice\('物料属性', materialPropertyLabels/);
 assert.match(object, /choice\('来源类型', materialSourceTypeLabels/);
 assert.match(page, /materialPropertyOptions, materialSourceTypeOptions/);
 assert.match(page, /ForgeApiRequest\(adapter,path/);
+assert.match(page, /form:\{\.\.\.d\.form,error:String\(e\.message\|\|e\)\}/, 'Model validation errors must remain visible in the material dialog');
 assert.equal((page.match(/propertyOptions\.map\(p=><option key=\{p\.value\} value=\{p\.value\}>\{p\.label\}<\/option>\)/g) || []).length, 2, 'Both material-property selectors must render each canonical option value and label');
 assert.match(page, /sourceOptions\.map\(p=><option key=\{p\.value\} value=\{p\.value\}>\{p\.label\}<\/option>\)/, 'The source selector must render each canonical option value and label');
 assert.doesNotMatch(page, /\b(?:propertyOptions|sourceOptions)\.map\(p=><option key=\{p\[0\]\}/, 'The select components must not treat canonical object options as tuples');
