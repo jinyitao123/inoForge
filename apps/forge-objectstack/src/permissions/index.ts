@@ -2,7 +2,6 @@ export { weaveTeamDeveloperPermission } from './team-development.permission.js';
 export { salesContractOperatorPermission, salesContractReviewerPermission } from './sales-contract.permission.js';
 export { salesLeadConversionPermission, salesLeadOwnerPermission } from './sales-lead-conversion.permission.js';
 export { salesQuotationAdjustmentPermission } from './sales-quotation.permission.js';
-export { salesBusinessAuditorPermission } from './sales-business-auditor.permission.js';
 export {
   administrationSettingsManagerPermission,
   documentPrintingSettingsManagerPermission,
