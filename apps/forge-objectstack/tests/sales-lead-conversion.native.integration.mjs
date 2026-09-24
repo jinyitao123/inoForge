@@ -316,13 +316,13 @@ async function assignPermission(api, userId, user, permissionSets, name) {
 async function loadPermissionSets() {
   if (isPostgres) {
     const result = await postgres.query('SELECT id, name FROM sys_permission_set WHERE name = ANY($1::text[])', [[
-      'admin_full_access', 'sales_lead_owner', 'sales_lead_conversion_operator', 'mvp1_scene_organization_auditor',
+      'admin_full_access', 'sales_lead_owner', 'sales_lead_conversion_operator', 'sales_business_auditor',
     ]]);
     return result.rows;
   }
   const { DatabaseSync } = await import('node:sqlite');
   sqlite = new DatabaseSync(dbPath);
-  const rows = sqlite.prepare('SELECT id, name FROM sys_permission_set WHERE name IN (?, ?, ?, ?)').all('admin_full_access', 'sales_lead_owner', 'sales_lead_conversion_operator', 'mvp1_scene_organization_auditor');
+  const rows = sqlite.prepare('SELECT id, name FROM sys_permission_set WHERE name IN (?, ?, ?, ?)').all('admin_full_access', 'sales_lead_owner', 'sales_lead_conversion_operator', 'sales_business_auditor');
   sqlite.close();
   sqlite = null;
   return rows;
@@ -440,7 +440,7 @@ try {
   const peer = await signup(admin, `lead-conversion-peer-${runId}@example.test`);
   await assignPermission(admin, peer.userId, peer.user, permissionSets, 'sales_lead_owner');
   const auditor = await signup(admin, `lead-conversion-auditor-${runId}@example.test`);
-  await assignPermission(admin, auditor.userId, auditor.user, permissionSets, 'mvp1_scene_organization_auditor');
+  await assignPermission(admin, auditor.userId, auditor.user, permissionSets, 'sales_business_auditor');
 
   const blockedLead = await createLead(reader, reader.userId, '无转化权限');
   const readerRecord = await read(reader, 'forge_sales_lead', blockedLead.id);
