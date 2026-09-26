@@ -36,6 +36,7 @@ interface SnapshotFile {
   fields: Set<string>;
   sha256?: string;
   name?: string;
+  primary?: boolean;
 }
 
 interface ContextField {
@@ -187,7 +188,7 @@ function snapshotFiles(payload: unknown, fields: Set<string>): Map<string, Snaps
       }
       throw new ContextFailure(422, 'APPROVAL_MATERIAL_HASH_UNAVAILABLE', 'An approval material has no frozen SHA-256 value.');
     }
-    snapshot.set(id, { fields: names, ...digest });
+    snapshot.set(id, { fields: names, ...digest, primary: primaryIds.includes(id) });
   }
   return snapshot;
 }
@@ -247,7 +248,8 @@ async function readSnapshotFiles(
   allowedFiles: Map<string, SnapshotFile>,
 ): Promise<Array<{ fileId: string; name: string; mediaType: 'text/plain; charset=utf-8'; bytes: number; sha256: string; content: string }>> {
   if (allowedFiles.size === 0) return [];
-  const ids = [...allowedFiles.keys()];
+  const orderedFiles = [...allowedFiles.entries()].sort((left, right) => Number(right[1].primary === true) - Number(left[1].primary === true));
+  const ids = orderedFiles.map(([id]) => id);
   const rows = await engine.find('sys_file', {
     where: { id: { $in: ids } },
     fields: ['id', 'key', 'name', 'mime_type', 'size', 'status', 'ref_object', 'ref_id', 'ref_field'],
@@ -259,7 +261,8 @@ async function readSnapshotFiles(
   }
 
   const files = [];
-  for (const [id, snapshotFile] of allowedFiles) {
+  const seenContent = new Set<string>();
+  for (const [id, snapshotFile] of orderedFiles) {
     const file = byId.get(id);
     const fieldMatches = file && typeof file.ref_field === 'string' && snapshotFile.fields.has(file.ref_field);
     const hasOwner = file && (file.ref_object != null || file.ref_id != null || file.ref_field != null);
@@ -284,6 +287,9 @@ async function readSnapshotFiles(
     if (snapshotFile.sha256 && digest !== snapshotFile.sha256 || snapshotFile.name && snapshotFile.name !== file.name) {
       throw new ContextFailure(422, 'APPROVAL_MATERIAL_HASH_MISMATCH', 'An approval text material does not match its frozen SHA-256 value.');
     }
+    const contentIdentity = `${file.name.trim()}\0${digest}`;
+    if (seenContent.has(contentIdentity)) continue;
+    seenContent.add(contentIdentity);
     let content: string;
     try {
       content = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(bytes);
