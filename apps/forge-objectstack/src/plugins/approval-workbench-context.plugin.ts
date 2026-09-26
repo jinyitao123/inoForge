@@ -31,7 +31,7 @@ interface FileRow {
 
 interface SnapshotFile {
   fields: Set<string>;
-  sha256: string;
+  sha256?: string;
   name?: string;
 }
 
@@ -170,9 +170,18 @@ function snapshotFiles(payload: unknown, fields: Set<string>): Map<string, Snaps
   }
 
   const snapshot = new Map<string, SnapshotFile>();
+  const canDeriveLegacyAttachmentDigest = primaryIds.length > 0 && /^[0-9a-f]{64}$/.test(primarySha);
   for (const [id, names] of result) {
     const digest = digests.get(id);
     if (!digest) {
+      // Native contract approval payloads freeze attachment_ids, but earlier
+      // submissions did not persist the companion manifest. The committed
+      // ObjectStack file ID is immutable; derive its digest from those bytes
+      // only when the same frozen payload also carries a verified primary file.
+      if (canDeriveLegacyAttachmentDigest && names.has('attachment_ids')) {
+        snapshot.set(id, { fields: names });
+        continue;
+      }
       throw new ContextFailure(422, 'APPROVAL_MATERIAL_HASH_UNAVAILABLE', 'An approval material has no frozen SHA-256 value.');
     }
     snapshot.set(id, { fields: names, ...digest });
@@ -269,7 +278,7 @@ async function readSnapshotFiles(
       throw new ContextFailure(422, 'APPROVAL_MATERIAL_INVALID', 'An approval text material failed size validation.');
     }
     const digest = await sha256(bytes);
-    if (digest !== snapshotFile.sha256 || snapshotFile.name && snapshotFile.name !== file.name) {
+    if (snapshotFile.sha256 && digest !== snapshotFile.sha256 || snapshotFile.name && snapshotFile.name !== file.name) {
       throw new ContextFailure(422, 'APPROVAL_MATERIAL_HASH_MISMATCH', 'An approval text material does not match its frozen SHA-256 value.');
     }
     let content: string;

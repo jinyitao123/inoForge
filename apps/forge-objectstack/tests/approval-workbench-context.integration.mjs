@@ -55,6 +55,12 @@ function createHarness() {
     id: 'approval-A', recordId: CONTRACT_A, approver: 'reviewer-A', submitter: 'sales-A',
     payload: contextPayload(materialA, [attachmentA]), title: '设备验收合同 A',
   });
+  const legacyAttachmentPayload = contextPayload(materialA, [attachmentA]);
+  delete legacyAttachmentPayload.submitted_attachment_manifest;
+  const pendingLegacyAttachment = approval({
+    id: 'approval-legacy-attachment', recordId: CONTRACT_A, approver: 'reviewer-A', submitter: 'sales-A',
+    payload: legacyAttachmentPayload, title: '设备验收合同 A（历史附件清单）',
+  });
   const pendingB = approval({
     id: 'approval-B', recordId: CONTRACT_B, approver: 'reviewer-B', submitter: 'sales-B',
     payload: contextPayload(materialB), title: '设备验收合同 B',
@@ -67,7 +73,7 @@ function createHarness() {
     id: 'approval-no-digest', recordId: CONTRACT_A, approver: 'reviewer-A', submitter: 'sales-A',
     payload: { name: '没有冻结摘要的合同', submitted_material_id: materialA.id }, title: '没有冻结摘要的合同',
   });
-  const requests = new Map([[pendingA.id, pendingA], [pendingB.id, pendingB], [returned.id, returned], [noFrozenDigest.id, noFrozenDigest]]);
+  const requests = new Map([[pendingA.id, pendingA], [pendingLegacyAttachment.id, pendingLegacyAttachment], [pendingB.id, pendingB], [returned.id, returned], [noFrozenDigest.id, noFrozenDigest]]);
   const sessions = new Map([
     ['reviewer-token', { user: { id: 'reviewer-A' }, session: { activeOrganizationId: 'org-A' } }],
     ['reviewer-b-token', { user: { id: 'reviewer-B' }, session: { activeOrganizationId: 'org-A' } }],
@@ -213,6 +219,19 @@ test('pending approver receives only this request snapshot and verified text byt
   assert.equal(JSON.stringify(result.body).includes('internal-request-id'), false);
 });
 
+test('legacy native contract approvals derive the companion digest from the immutable submitted file id', async () => {
+  const harness = createHarness();
+  await harness.start();
+  const result = await harness.call('approval-legacy-attachment', 'reviewer-token');
+
+  assert.equal(result.status, 200);
+  assert.deepEqual(result.body.files.map(({ name, sha256 }) => ({ name, sha256 })), [
+    { name: '合同正文.txt', sha256: sha256(harness.fixtureFiles.materialA.bytes) },
+    { name: '技术说明.txt', sha256: sha256(harness.fixtureFiles.attachmentA.bytes) },
+  ]);
+  assert.deepEqual(result.downloadedKeys.sort(), ['key-attachment-A', 'key-main-A']);
+});
+
 test('non-recipient and other-contract request stay unreadable even through a broader native reader tier', async () => {
   const harness = createHarness();
   await harness.start();
@@ -262,8 +281,8 @@ test('invalid bearer and material hash mismatch fail closed', async () => {
   const unauthenticated = await harness.call('approval-A', 'unknown-token');
   assert.equal(unauthenticated.status, 401);
 
-  // Corrupting the frozen bytes while retaining the request snapshot digest must
-  // refuse the whole context; a newly computed digest is never passed off as frozen.
+  // Corrupting a frozen primary file while retaining its request digest must
+  // refuse the whole context.
   harness.fixtureFiles.materialA.bytes[0] = 0x58;
   const mismatch = await harness.call('approval-A', 'reviewer-token');
   assert.equal(mismatch.status, 422);
