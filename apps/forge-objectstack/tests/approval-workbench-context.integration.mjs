@@ -84,6 +84,9 @@ function createHarness() {
   const fileQueries = [];
   const downloadedKeys = [];
   let requestReads = 0;
+  const actionLists = new Map([[returned.id, [{
+    id: 'action-revise', request_id: returned.id, action: 'revise', comment: '请补充签字页',
+  }]]]);
 
   const engine = {
     async find(objectName, query, options) {
@@ -126,11 +129,7 @@ function createHarness() {
         },
       };
     },
-    async listActions(requestId) {
-      return requestId === returned.id ? [{
-        id: 'action-revise', request_id: requestId, action: 'revise', comment: '请补充签字页',
-      }] : [];
-    },
+    async listActions(requestId) { return actionLists.get(requestId) ?? []; },
   };
   const storage = {
     async download(key) {
@@ -169,6 +168,7 @@ function createHarness() {
       assert.ok(request, 'fixture request exists');
       request.payload = payload;
     },
+    setActions(requestId, actions) { actionLists.set(requestId, actions); },
     async call(requestId, token, extraHeaders = {}) {
       const handler = routes.get('/api/v1/approvals/requests/:requestId/workbench-context');
       assert.ok(handler, 'approval context route mounted');
@@ -276,6 +276,22 @@ test('returned request is readable only by its original submitter', async () => 
   assert.deepEqual(submitter.body.businessObject, { objectName: CONTRACT_OBJECT, recordId: 'contract-returned', recordName: '已退回合同' });
   assert.match(submitter.body.sourceMaterialVersion, /^[0-9a-f]{64}$/);
   assert.equal(submitter.body.revisionReady, undefined);
+});
+
+test('returned request context expires after native resubmission without reading old files', async () => {
+  const harness = createHarness();
+  await harness.start();
+  harness.setActions('approval-returned', [
+    { id: 'action-submit', request_id: 'approval-returned', action: 'submit', comment: '提交' },
+    { id: 'action-revise', request_id: 'approval-returned', action: 'revise', comment: '请补充签字页' },
+    { id: 'action-resubmit', request_id: 'approval-returned', action: 'resubmit', comment: '已补充' },
+  ]);
+
+  const result = await harness.call('approval-returned', 'sales-token');
+  assert.equal(result.status, 409);
+  assert.equal(result.body.error.code, 'APPROVAL_CONTEXT_STALE');
+  assert.equal(result.fileQueries.length, 0);
+  assert.deepEqual(result.downloadedKeys, []);
 });
 
 test('source material version is stable across key order and changes with the frozen payload', async () => {

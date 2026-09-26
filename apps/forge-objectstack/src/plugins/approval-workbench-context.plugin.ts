@@ -318,6 +318,16 @@ function latestReturn(actions: ApprovalActionRow[]): { returnVersion: string; re
   return undefined;
 }
 
+function returnedApprovalSupersededByResubmit(actions: ApprovalActionRow[]): boolean {
+  let latestReturnIndex = -1;
+  let latestResubmitIndex = -1;
+  actions.forEach((action, index) => {
+    if (action.action === 'revise') latestReturnIndex = index;
+    if (action.action === 'resubmit') latestResubmitIndex = index;
+  });
+  return latestResubmitIndex > latestReturnIndex;
+}
+
 async function sendError(res: IHttpResponse, status: number, code: string, message: string): Promise<void> {
   await res.status(status).json({ error: { code, message } });
 }
@@ -374,12 +384,14 @@ export class ApprovalWorkbenchContextPlugin implements Plugin {
             return;
           }
 
+          const actions = request.status === 'returned' ? await approvals.listActions(request.id, executionContext) : [];
+          if (request.status === 'returned' && returnedApprovalSupersededByResubmit(actions)) {
+            await sendError(res, 409, 'APPROVAL_CONTEXT_STALE', 'This returned approval has already been resubmitted.');
+            return;
+          }
           const materialFields = fileFieldNames(engine, request.object_name);
           const allowedFiles = snapshotFiles(request.payload, materialFields);
-          const [files, actions] = await Promise.all([
-            readSnapshotFiles(request, engine, storage, allowedFiles),
-            request.status === 'returned' ? approvals.listActions(request.id, executionContext) : Promise.resolve([]),
-          ]);
+          const files = await readSnapshotFiles(request, engine, storage, allowedFiles);
           const title = boundedText(request.record_title, 300) ?? boundedText(request.object_label, 300) ?? '审批事项';
           const step = boundedText(request.step_label, 160);
           if (!step) throw new ContextFailure(422, 'APPROVAL_CONTEXT_INVALID', 'The approval step is unavailable.');
