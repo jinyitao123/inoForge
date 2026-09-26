@@ -49,8 +49,9 @@ function contextPayload(material, extraFiles = []) {
 function createHarness() {
   const materialA = textFile('file-main-A', 'key-main-A', '合同正文.txt', CONTRACT_A, 'submitted_material_id', '合同正文 A');
   const attachmentA = textFile('file-attachment-A', 'key-attachment-A', '技术说明.txt', CONTRACT_A, 'attachment_ids', '技术说明 A');
+  const duplicateMainAttachment = textFile('file-main-attachment-A', 'key-main-attachment-A', '合同正文.txt', CONTRACT_A, 'attachment_ids', '合同正文 A');
   const materialB = textFile('file-main-B', 'key-main-B', '合同正文 B.txt', CONTRACT_B, 'submitted_material_id', '合同正文 B');
-  const files = new Map([materialA, attachmentA, materialB].map((file) => [file.id, file]));
+  const files = new Map([materialA, attachmentA, duplicateMainAttachment, materialB].map((file) => [file.id, file]));
   const pendingA = approval({
     id: 'approval-A', recordId: CONTRACT_A, approver: 'reviewer-A', submitter: 'sales-A',
     payload: contextPayload(materialA, [attachmentA]), title: '设备验收合同 A',
@@ -183,7 +184,7 @@ function createHarness() {
       }, response);
       return { status, body, fileQueries: [...fileQueries], downloadedKeys: [...downloadedKeys], requestReads };
     },
-    get fixtureFiles() { return { materialA, attachmentA, materialB }; },
+    get fixtureFiles() { return { materialA, attachmentA, duplicateMainAttachment, materialB }; },
   };
 }
 
@@ -230,6 +231,22 @@ test('legacy native contract approvals derive the companion digest from the immu
     { name: '技术说明.txt', sha256: sha256(harness.fixtureFiles.attachmentA.bytes) },
   ]);
   assert.deepEqual(result.downloadedKeys.sort(), ['key-attachment-A', 'key-main-A']);
+});
+
+test('the same main document attached twice is returned once, ahead of companion files', async () => {
+  const harness = createHarness();
+  await harness.start();
+  harness.changePayload('approval-A', contextPayload(harness.fixtureFiles.materialA, [
+    harness.fixtureFiles.duplicateMainAttachment, harness.fixtureFiles.attachmentA,
+  ]));
+  const result = await harness.call('approval-A', 'reviewer-token');
+
+  assert.equal(result.status, 200);
+  assert.deepEqual(result.body.files.map(({ name, content }) => ({ name, content })), [
+    { name: '合同正文.txt', content: '合同正文 A' },
+    { name: '技术说明.txt', content: '技术说明 A' },
+  ]);
+  assert.equal(result.body.files.length, 2);
 });
 
 test('non-recipient and other-contract request stay unreadable even through a broader native reader tier', async () => {
