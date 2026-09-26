@@ -11,7 +11,10 @@ const MAX_FILES = 11;
 const MAX_FIELDS = 64;
 const MAX_FIELD_VALUE = 4_000;
 const FILE_FIELD_TYPES = new Set(['file']);
-const TEXT_MEDIA_TYPES = new Set(['text/plain', 'text/plain; charset=utf-8']);
+const TEXT_MEDIA_TYPES = new Set([
+  'text/plain', 'text/plain; charset=utf-8',
+  'text/markdown', 'text/markdown; charset=utf-8', 'text/x-markdown',
+]);
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const SYSTEM_CONTEXT: ExecutionContext = { isSystem: true, positions: [], permissions: [] };
 

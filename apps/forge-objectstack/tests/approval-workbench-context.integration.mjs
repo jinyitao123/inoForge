@@ -319,3 +319,16 @@ test('UTF-8 text upload MIME is accepted while the returned contract stays norma
   assert.equal(result.status, 200);
   assert.equal(result.body.files[0].mediaType, 'text/plain; charset=utf-8');
 });
+
+test('committed Markdown contract materials are readable as plain text', async () => {
+  const harness = createHarness();
+  await harness.start();
+  harness.fixtureFiles.materialA.mime_type = 'text/markdown';
+  harness.fixtureFiles.attachmentA.mime_type = 'text/markdown; charset=utf-8';
+  const result = await harness.call('approval-A', 'reviewer-token');
+  assert.equal(result.status, 200);
+  assert.deepEqual(result.body.files.map((file) => file.mediaType), [
+    'text/plain; charset=utf-8', 'text/plain; charset=utf-8',
+  ]);
+  assert.deepEqual(result.body.files.map((file) => file.content), ['合同正文 A', '技术说明 A']);
+});
