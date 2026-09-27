@@ -75,6 +75,8 @@ assert.match(salesActions, /来源报价明细的名称、规格、数量和价�
 assert.match(projectCenter, /request\('\/auth\/me\/permissions'\)/);
 assert.match(projectCenter, /项目数据或当前权限读取失败/);
 assert.match(projectCenter, /planned_start_on:'',planned_end_on:''/);
+assert.match(projectCenter, /addEventListener\('popstate'/);
+assert.match(projectCenter, /removeEventListener\('popstate'/);
 assert.match(projectCenter, /customer_name_snapshot/);
 assert.match(projectCenter, /request\('\/auth\/get-session'\)/);
 assert.match(projectCenter, /project_refresh_customer_snapshot/);
