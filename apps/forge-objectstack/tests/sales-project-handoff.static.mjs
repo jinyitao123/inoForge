@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
 const read = path => readFile(new URL(path, import.meta.url), 'utf8');
-const [salesObject, projectObject, salesActions, projectActions, orderCreate, orderWorkspace, contractCreate, projectCenter, orderPermission, projectPermission, navigation, quotationFlow, quotationPage, contractFlow] = await Promise.all([
+const [salesObject, projectObject, salesActions, projectActions, orderCreate, orderWorkspace, contractCreate, projectCenter, orderPermission, projectPermission, navigation, quotationFlow, quotationPage, contractFlow, productUi] = await Promise.all([
   read('../src/objects/sales.object.ts'), read('../src/objects/project.object.ts'),
   read('../src/actions/sales.action.ts'), read('../src/actions/project.action.ts'),
   read('../src/pages/sales-order-create.page.ts'), read('../src/pages/sales-order-workspace.page.ts'),
@@ -10,14 +10,16 @@ const [salesObject, projectObject, salesActions, projectActions, orderCreate, or
   read('../src/permissions/sales-order.permission.ts'), read('../src/permissions/project-operator.permission.ts'),
   read('../src/apps/application-navigation.json'), read('../src/flows/sales-quotation-approval.flow.ts'),
   read('../src/pages/sales-crm-service-pages.page.ts'), read('../src/flows/sales-contract-approval.flow.ts'),
+  read('../src/pages/product-ui.ts'),
 ]);
 
 assert.match(salesObject, /export const SalesContractLine[\s\S]*?line_type: choice\('明细类型', \['物料', '服务项目'\][\s\S]*?sku_id: reference\('forge_material_sku', '物料规格'\),/);
 assert.match(salesObject, /export const SalesOrderLine[\s\S]*?line_type: choice\('明细类型', \['物料', '服务项目'\][\s\S]*?sku_id: reference\('forge_material_sku', '物料规格'\),[\s\S]*?controlled_by_parent/);
 
 const contractOrderSource = orderCreate.split('const contractOrderCreateSource = String.raw')[1] ?? '';
-assert.match(contractOrderSource, /const listUrl='\/_console\/apps\/com\.inoforge\.forge\.sales\/page\/page_sales_order_workspace'/);
-assert.doesNotMatch(contractOrderSource, /const listUrl='\/_console\/apps\/com\.inoforge\.forge\.sales\/page_sales_order_workspace'/);
+assert.match(contractOrderSource, /const listUrl=forgePageHref\('page_sales_order_workspace'\)/);
+assert.doesNotMatch(contractOrderSource, /const listUrl='\/_console/);
+assert.match(contractOrderSource, /if\(listUrl\)window\.location\.href=listUrl/);
 assert.match(contractOrderSource, /fp-page-header contract-create-title/);
 assert.match(contractOrderSource, /fp-card contract-section"><ForgeEmpty title="暂无可用于下单的合同"/);
 assert.match(contractOrderSource, /\$\{forgeProductUiRuntime\}/);
@@ -54,7 +56,8 @@ assert.match(orderCreate, /status==='active'&&Boolean\(item\.signed_on\)/);
 assert.match(orderCreate, /Boolean\(item\.signed_evidence_attachment\)/);
 assert.match(orderCreate, /payment_method:''/);
 assert.match(orderCreate, /不进入库存与发货/);
-assert.match(orderWorkspace, /window\.location\.href='\/_console\/apps\/com\.inoforge\.forge\.sales\/page\/page_sales_order_create'/);
+assert.match(orderWorkspace, /const href=forgePageHref\('page_sales_order_create'\);if\(href\)window\.location\.href=href/);
+assert.match(productUi, /"page_sales_order_create": "com\.inoforge\.forge\.sales"/);
 assert.doesNotMatch(orderWorkspace, /forge_sales_order\/new/);
 assert.match(orderWorkspace, /shipmentAllowed\(order\)/);
 assert.match(orderWorkspace, /order_line_id:current\.order_line_id/);

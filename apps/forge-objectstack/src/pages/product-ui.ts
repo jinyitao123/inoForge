@@ -77,6 +77,7 @@ const forgePageRoutePackageByName: Record<string, string> = {
   "page_sales_invoice_request": "com.inoforge.forge.sales",
   "page_sales_leads": "com.inoforge.forge.sales",
   "page_sales_opportunities": "com.inoforge.forge.sales",
+  "page_sales_order_create": "com.inoforge.forge.sales",
   "page_sales_order_workspace": "com.inoforge.forge.sales",
   "page_sales_performance_bank": "com.inoforge.forge.sales",
   "page_sales_quotations": "com.inoforge.forge.sales",
