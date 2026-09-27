@@ -42,6 +42,7 @@ assert.match(projectObject, /contract_code_snapshot[\s\S]*?order_status_snapshot
 assert.match(projectObject, /forge_project_member'[\s\S]*?controlled_by_parent/);
 
 assert.match(orderCreate, /当前账号没有销售订单经办权限/);
+assert.match(orderCreate, /contractOrderCreateSource = String\.raw`[\s\S]*?export default App;/);
 assert.match(orderCreate, /status==='active'&&Boolean\(item\.signed_on\)/);
 assert.match(orderCreate, /Boolean\(item\.signed_evidence_attachment\)/);
 assert.match(orderCreate, /payment_method:''/);
