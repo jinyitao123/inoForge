@@ -95,6 +95,23 @@ test('returns a genuine empty result when no project contract/order link exists'
   assert.deepEqual(result, { sources: [], lines: [], warnings: [] });
 });
 
+test('keeps a valid direct-contract order usable without inventing a quote source', async () => {
+  const directContract = { ...contract, quotation_id: null };
+  const directOrder = { ...order, quotation_id: null };
+  const directContractLines = contractLines.map(line => { const { quotation_line_id, ...rest } = line; return { ...rest, contract_id: directContract.id }; });
+  const directOrderLines = orderLines.map(line => { const { quotation_line_id, ...rest } = line; return { ...rest, order_id: directOrder.id }; });
+  const h = harness({
+    forge_sales_contract: [directContract], forge_sales_order: [directOrder],
+    forge_sales_contract_line: directContractLines, forge_sales_order_line: directOrderLines,
+    forge_quotation: [], forge_quotation_line: [],
+  });
+  const result = await h.run(h.ctx);
+  assert.equal(result.sources[0].source_version_valid, null);
+  assert.equal(result.lines.length, 2);
+  assert.ok(result.lines.every(line => line.trace_consistent));
+  assert.deepEqual(result.warnings, []);
+});
+
 test('denies access when the platform did not load the project through the caller permission', async () => {
   const h = harness();
   h.ctx.recordLoadDenied = true;

@@ -77,6 +77,7 @@ export const ProjectReadDeliveryScope = defineAction({
   locations: [...locations], order: 6,
   requiredPermissions: ['forge_project_operator'],
   description: '仅从当前可读项目已关联的有效合同和订单读取物料/服务明细，不读取同客户的其他单据。',
+  successMessage: '项目物料与服务范围已读取',
   body: { language: 'js', capabilities: ['api.read'], source: `
 const projectId = ctx.recordId || (ctx.record && ctx.record.id); const project = ctx.record;
 if (ctx.recordLoadDenied === true || !projectId || !project) throw new Error('当前项目不存在或不可访问');
