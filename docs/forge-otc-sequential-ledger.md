@@ -31,7 +31,7 @@
 | 混合订单发货 | 发货动作和对话框按 `order_line_id` 选择物料行，只扣该物料行可发数量；服务行保留在订单，不会写入发货单或库存，混合订单仍可发设备。 | `sales-project-handoff` 静态不变量覆盖行选择与服务排除；未创建正式订单或发货单 | 需要有权的仓储账号通过正常发货表单选择设备明细并读回；服务交付另在项目交付链验收。 |
 | 售前项目访问与来源关系 | `forge_project` 仍是 `private`，RLS 仅允许创建者或指定项目经理读写；团队成员和合同订单关系从父项目继承。当前 `sharedForgeCoreBundle.requires` 不含分享插件，仓库应用包也未依赖 `@objectstack/plugin-sharing`，因此本候选用有界 RLS 与 `controlled_by_parent`，没有假设 `sys_record_share` 已运行。项目中心显式读取项目与权限错误，以客户/经理快照展示业务名称；立项日期不再带固定演示默认值。来源关联只接受同客户、已审批/执行的订单，并在事务中保存来源快照和滚动金额。 | 局部源码静态门禁通过；远端没有授予 `forge_project_operator`/`forge_project_manager`，也未在独立账号下复测 `PRJ-2026-001` | 授权后由销售小王本人重开项目，由交付负责人小李本人重开同一项目；无关员工应不可见。有效订单出现后，从该项目“关联订单&合同”页签办理并按有权角色独立读回来源及金额。 |
 
-**命令门禁：** 本候选执行 `pnpm typecheck`、`pnpm validate`、`pnpm build` 和 `pnpm acceptance:sales-project-handoff` 均退出成功。ObjectStack `validate/build` 仍报告 `0 Apps / 0 Objects / 0 Flows`，所以不能作为上述 Apps、对象或 Flow 已被运行时载入的证据。页面截图目前仍没有保存为仓库文件；候选部署及真实角色截图待做。
+**命令门禁：** 本候选执行 `pnpm typecheck`、`pnpm validate`、`pnpm build`、`node tests/sales-project-handoff.static.mjs` 和 `pnpm acceptance:sales-contract-access` 均退出成功。ObjectStack `validate/build` 仍报告 `0 Apps / 0 Objects / 0 Flows`，所以不能作为上述 Apps、对象或 Flow 已被运行时载入的证据。页面截图目前仍没有保存为仓库文件；候选部署及真实角色截图待做。
 
 
 **截图留存说明：** 本轮每个已办理页面均通过 CUA 实际截屏并在本走查会话中呈现；当前截图尚未导出为仓库文件，因此表中“本线程 CUA 截图”是会话证据，不冒充仓库中的持久图片附件。仓库既有 `docs/references/risemap-capture/live/20260913-sales-full/` 图片仅作为旧页面参考，不能代替本次测试记录截图。
