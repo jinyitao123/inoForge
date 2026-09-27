@@ -15,6 +15,9 @@ const [salesObject, projectObject, salesActions, projectActions, orderCreate, or
 assert.match(salesObject, /export const SalesContractLine[\s\S]*?line_type: choice\('明细类型', \['物料', '服务项目'\][\s\S]*?sku_id: reference\('forge_material_sku', '物料规格'\),/);
 assert.match(salesObject, /export const SalesOrderLine[\s\S]*?line_type: choice\('明细类型', \['物料', '服务项目'\][\s\S]*?sku_id: reference\('forge_material_sku', '物料规格'\),[\s\S]*?controlled_by_parent/);
 
+const contractOrderSource = orderCreate.split('const contractOrderCreateSource = String.raw')[1] ?? '';
+assert.match(contractOrderSource, /\$\{forgeProductUiRuntime\}/);
+
 assert.match(salesActions, /name: 'sales_contract_draft_create'[\s\S]*?requiredPermissions: \['sales_contract_operator'\][\s\S]*?api\.transaction/);
 assert.match(salesActions, /const lineType = source \? source\.line_type/);
 assert.match(salesActions, /if \(record\.quotation_id\)[\s\S]*?quote\.status !== 'accepted'[\s\S]*?提交合同前必须明确付款条件/);
