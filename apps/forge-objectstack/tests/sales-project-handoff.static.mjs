@@ -68,6 +68,7 @@ assert.match(quotationPage, /登记已发送/);
 assert.match(quotationPage, /记录客户接受/);
 assert.match(quotationPage, /此处只登记员工已实际完成的发送，不会替你发送邮件或消息/);
 assert.match(quotationPage, /凭证必须对应当前已发送的核价版本/);
+assert.match(quotationPage, /（待核实）/);
 assert.match(contractFlow, /取得客户签署版后，请登记签署日期和凭证/);
 assert.match(navigation, /"id": "sales_orders"[\s\S]*?"requiredPermissions": \[[\s\S]*?"sales_order_operator"/);
 assert.match(navigation, /"id": "projects"[\s\S]*?"requiredPermissions": \[[\s\S]*?"forge_project_operator"/);

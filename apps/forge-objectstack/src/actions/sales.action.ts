@@ -232,7 +232,7 @@ return await ctx.api.transaction(async () => {
     code, name, customer_id: customerId, contact_id: contactId,
     quotation_type_id: quotationTypeId, issuer_id: issuerId,
     quotation_date: quotationDate, valid_until: validUntil,
-    payment_method: null, payment_term: getText('payment_term', '付款条件', false, 255),
+    payment_method: null, payment_method_confirmed: false, payment_term: getText('payment_term', '付款条件', false, 255),
     business_terms: getText('business_terms', '商务条款', false, 4000),
     quotation_terms: getText('quotation_terms', '报价条款', false, 4000),
     remarks: getText('remarks', '备注', false, 4000),
