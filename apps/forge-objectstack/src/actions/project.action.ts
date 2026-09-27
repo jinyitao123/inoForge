@@ -18,6 +18,8 @@ export const CustomerCreateProject = defineAction({
   body: { language: 'js', capabilities: ['api.read', 'api.write', 'api.transaction'], source: `
 const customerId = ctx.recordId || (ctx.record && ctx.record.id); const customer = ctx.record;
 if (ctx.recordLoadDenied === true || !customerId || !customer) throw new Error('当前客户不存在或不可访问');
+const actor = ctx.session && ctx.session.userId;
+if (!actor) throw new Error('无法识别当前立项人');
 if (!ctx.input.name || !ctx.input.type_id || !ctx.input.manager_id || !ctx.input.planned_start_on || !ctx.input.planned_end_on) throw new Error('项目名称、类型、负责人和计划日期均为必填');
 if (ctx.input.planned_end_on < ctx.input.planned_start_on) throw new Error('计划结束日期不得早于计划开始日期');
 const type = await ctx.api.object('forge_project_type').findOne({ where: { id: ctx.input.type_id } });
@@ -27,6 +29,7 @@ if (!manager) throw new Error('项目负责人不存在或不可访问');
 return await ctx.api.transaction(async () => {
   const created = await ctx.api.object('forge_project').insert({
     name: ctx.input.name, type_id: ctx.input.type_id, customer_id: customerId,
+    owner_id: actor,
     customer_name_snapshot: customer.name, manager_id: ctx.input.manager_id,
     manager_name_snapshot: manager.display_name || manager.name || manager.username || null,
     priority: ctx.input.priority || 'medium', planned_start_on: ctx.input.planned_start_on, planned_end_on: ctx.input.planned_end_on,
@@ -41,6 +44,31 @@ return await ctx.api.transaction(async () => {
     remarks: '立项时自动加入' });
   return { id: projectId, status: 'pending', member_count: 1 };
 });
+` },
+});
+
+export const ProjectRefreshCustomerSnapshot = defineAction({
+  name: 'project_refresh_customer_snapshot', label: '补齐客户名称快照', objectName: 'forge_project', icon: 'building-2',
+  locations: [...locations], order: 5, refreshAfter: true,
+  requiredPermissions: ['forge_project_operator', 'sales_contract_operator'],
+  visible: `record.customer_name_snapshot == null && record.created_by == current_user.id`,
+  description: '仅由项目创建人同步其本人有权读取的关联客户名称到项目快照，不改变客户档案或读取权限。',
+  confirmText: '将关联客户的名称写入本项目快照，让项目团队在项目页查看客户名称？客户档案和客户权限不会改变。',
+  successMessage: '项目客户名称已补齐',
+  body: { language: 'js', capabilities: ['api.read', 'api.write'], source: `
+const id = ctx.recordId || (ctx.record && ctx.record.id); const project = ctx.record;
+const actor = ctx.session && ctx.session.userId;
+if (ctx.recordLoadDenied === true || !id || !project) throw new Error('当前项目不存在或不可访问');
+if (!actor || project.created_by !== actor) throw new Error('仅项目创建人可以补齐客户名称快照');
+if (String(project.customer_name_snapshot || '').trim()) throw new Error('项目客户名称快照已存在，请刷新后核对');
+const customer = await ctx.api.object('forge_customer').findOne({
+  where: { id: project.customer_id }, fields: ['id', 'name', 'owner_id'],
+});
+if (!customer || String(customer.owner_id || '') !== String(actor)) throw new Error('当前账号无法读取此项目关联客户');
+const customerName = String(customer.name || '').trim();
+if (!customerName) throw new Error('关联客户没有可用于项目快照的名称');
+await ctx.api.object('forge_project').update({ id, customer_name_snapshot: customerName });
+return { id, status: 'updated' };
 ` },
 });
 
