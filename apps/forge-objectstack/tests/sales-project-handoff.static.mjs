@@ -16,6 +16,10 @@ assert.match(salesObject, /export const SalesContractLine[\s\S]*?line_type: choi
 assert.match(salesObject, /export const SalesOrderLine[\s\S]*?line_type: choice\('明细类型', \['物料', '服务项目'\][\s\S]*?sku_id: reference\('forge_material_sku', '物料规格'\),[\s\S]*?controlled_by_parent/);
 
 const contractOrderSource = orderCreate.split('const contractOrderCreateSource = String.raw')[1] ?? '';
+assert.match(contractOrderSource, /const listUrl='\/_console\/apps\/com\.inoforge\.forge\.sales\/page\/page_sales_order_workspace'/);
+assert.doesNotMatch(contractOrderSource, /const listUrl='\/_console\/apps\/com\.inoforge\.forge\.sales\/page_sales_order_workspace'/);
+assert.match(contractOrderSource, /fp-page-header contract-create-title/);
+assert.match(contractOrderSource, /fp-card contract-section"><ForgeEmpty title="暂无可用于下单的合同"/);
 assert.match(contractOrderSource, /\$\{forgeProductUiRuntime\}/);
 
 assert.match(salesActions, /name: 'sales_contract_draft_create'[\s\S]*?requiredPermissions: \['sales_contract_operator'\][\s\S]*?api\.transaction/);
@@ -50,7 +54,8 @@ assert.match(orderCreate, /status==='active'&&Boolean\(item\.signed_on\)/);
 assert.match(orderCreate, /Boolean\(item\.signed_evidence_attachment\)/);
 assert.match(orderCreate, /payment_method:''/);
 assert.match(orderCreate, /不进入库存与发货/);
-assert.match(orderWorkspace, /page_sales_order_create/);
+assert.match(orderWorkspace, /window\.location\.href='\/_console\/apps\/com\.inoforge\.forge\.sales\/page\/page_sales_order_create'/);
+assert.doesNotMatch(orderWorkspace, /forge_sales_order\/new/);
 assert.match(orderWorkspace, /shipmentAllowed\(order\)/);
 assert.match(orderWorkspace, /order_line_id:current\.order_line_id/);
 assert.match(orderWorkspace, /dialog\.orderLines\.map/);
