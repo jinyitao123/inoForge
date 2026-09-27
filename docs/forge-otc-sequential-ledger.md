@@ -42,6 +42,8 @@
 
 **本轮立项归属与内容读取候选（2026-09-28，源码提交 `4cb13fc`）：** 小李授权会话只读核验确认 `PRJ-2026-001` 的 `created_by` 与小王匹配、`owner_id` 为 null、`manager_id` 已填、`customer_name_snapshot` 为 null。`customer_create_project` 现显式要求会话用户并写入 `owner_id`；项目 RLS 现候选只有在 `owner_id == null` 时才以 `created_by == current_user.id` 补历史创建人读取，保留正常 owner 和经理范围。新 `project_refresh_customer_snapshot` Action 限制在项目创建人且关联客户 owner 均为当前用户、具备项目及销售权限时，只将客户名称写入项目快照；项目中心正常页面提供确认入口，并增加项目类型、预计营收（销售预测）展示，不增加客户对象读取权限。已用安装的 Security `RLSCompiler` 编译候选 RLS；静态 handoff 断言、`pnpm typecheck`、`pnpm validate`、`pnpm build` 均通过，Page JSX 解析检查通过。CLI 仍报告 `0 Apps / 0 Objects / 0 Flows`。候选尚未部署，没有修写 `PRJ-2026-001` 或执行快照同步；须由小王本人走页面操作，小李再独立读回，不由管理员代读写。
 
+**2026-09-28 部署预检：** 124 的健康端点当前 HTTP 200，返回 ObjectStack `17.3.0`；小李现有会话从正常项目中心仍看到 1 个项目，但客户名不可读，候选的类型/预计营收/快照按钮尚未出现。上次已记录的 Forge 候选基线为 `50a0313`；本次健康端点未提供 Forge 源码 SHA。工作树与主 checkout 均缺部署脚本要求的 `.env` 和锁定 Console 94 构建上下文，本机无 Docker CLI；只读 SSH 连接 `ubuntu@124.223.189.112` 被拒绝。未运行 `deploy.sh`，未改变 124。恢复经授权的部署通道并准备固定 Console 94 上下文后，才能更新目标环境和继续小王/小李/小周同记录复测。
+
 
 **截图留存说明：** 2026-09-28 的报价详情、陈在 124 最终 Console 94 创建页空态、固定 Console 94 本地隔离候选空态，以及小李重开项目后的概览已保存到本仓证据目录。陈远端与小李截图是员工本人页面读回；小李截图来自 124 当前部署版本，不含尚未部署的项目类型/预计营收显示和快照补齐入口；本地截图只证明路由候选，不代表员工业务验收。小王空列表与小周拒绝访问仍只有会话结果，没有仓库图片附件。其他之前办理的页面截图也仅有会话截图，不能冒充持久图片附件。仓库既有 `docs/references/risemap-capture/live/20260913-sales-full/` 图片仅作为旧页面参考，不能代替本次测试记录截图。
 
