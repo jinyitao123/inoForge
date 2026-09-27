@@ -55,7 +55,7 @@ export const SalesContractApprovalFlow = defineFlow({
       config: {
         recipients: ['{record.created_by}'],
         title: '合同 {record.code} 已复核通过',
-        message: '合同已进入执行中，可以继续创建销售订单。',
+        message: '内部审批已通过。取得客户签署版后，请登记签署日期和凭证，再创建销售订单。',
         topic: 'sales.contract.approved',
         severity: 'info',
         sourceObject: 'forge_sales_contract',
