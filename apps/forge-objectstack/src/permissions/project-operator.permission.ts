@@ -1,13 +1,13 @@
 import { definePermissionSet } from '@objectstack/spec';
 
 const orgRead = { allowRead: true, readScope: 'org' as const };
-const projectScope = 'owner_id == current_user.id || manager_id == current_user.id';
+const projectScope = 'owner_id == current_user.id || (owner_id == null && created_by == current_user.id) || manager_id == current_user.id';
 
-/** Project access is limited to the employee who created a project or its named manager. */
+/** Project access is limited to the record owner or named manager; legacy ownerless rows fall back to their creator. */
 export const projectOperatorPermission = definePermissionSet({
   name: 'forge_project_operator',
   label: '项目创建与交接办理',
-  description: '仅查看和维护本人创建或本人负责的项目，并通过项目父记录访问其成员和订单合同关联。',
+  description: '仅查看和维护本人拥有或本人负责的项目；历史记录未写入所有者时，创建人可按系统创建人字段继续办理。',
   systemPermissions: ['forge_project_operator'],
   objects: {
     forge_project: { allowCreate: true, allowRead: true, allowEdit: true, readScope: 'org', writeScope: 'org' },
