@@ -52,7 +52,7 @@ test('purchase request page saves drafts through its bounded action', () => {
   const save = procurementActions.PurchaseRequestSaveDraft;
   assert.deepEqual(save.requiredPermissions, ['forge_procurement_operator']);
   assert.match(PurchaseRequestPage.source, /purchase_request_save_draft/);
-  assert.match(PurchaseRequestPage.source, /p\.result\?\.id/);
+  assert.match(PurchaseRequestPage.source, /p\?\.data\?\.result/);
   assert.doesNotMatch(PurchaseRequestPage.source, /method:'DELETE'/);
   assert.doesNotMatch(PurchaseRequestPage.source, /request\('\/data\/forge_purchase_request/);
 });
@@ -74,6 +74,21 @@ test('purchase request draft action rejects editing another operator\'s request'
     } },
   };
   await assert.rejects(invoked(ctx), /仅采购申请经办人可修改本人草稿/);
+});
+
+test('trusted creations retain the acting employee as record owner for own-scope readback', () => {
+  for (const action of [
+    procurementActions.PurchaseRequestSaveDraft,
+    procurementActions.PurchaseOrderCreate,
+    procurementActions.PurchaseOrderCreateInbound,
+    procurementActions.PendingInspectionCreateOrder,
+    productionActions.BomCreateAssembly,
+    financeActions.ReceivableRegisterCollection,
+    allActions.ServiceOrderCreate,
+  ]) {
+    assert.ok(action, 'creation action is registered');
+    assert.match(action.body.source, /owner_id\s*:\s*actor/, action.name);
+  }
 });
 
 test('quality inspection page writes results through the assigned inspector action', async () => {
