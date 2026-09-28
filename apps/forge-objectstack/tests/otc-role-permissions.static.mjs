@@ -128,6 +128,8 @@ test('supplier draft can be created by procurement without generic supplier writ
   assert.match(save.body.source, /owner_id:actor/);
   assert.match(SupplierWorkspacePage.source, /supplier_save_draft/);
   assert.doesNotMatch(SupplierWorkspacePage.source, /method:f\.id\?'PATCH':'POST'/);
+  assert.match(supplierActions.SupplierSubmitApproval.body.source, /supplier\.owner_id!==actor/);
+  assert.match(supplierActions.SupplierReview.body.source, /supplier\.owner_id===actor/);
 });
 
 test('BOM drafting creates a root and confines component edits to its author', async () => {

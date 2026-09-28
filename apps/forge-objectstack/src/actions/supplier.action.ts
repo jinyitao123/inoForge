@@ -42,6 +42,7 @@ export const SupplierSubmitApproval = defineAction({
 const id=ctx.recordId||(ctx.record&&ctx.record.id), supplier=ctx.record, actor=ctx.session&&ctx.session.userId;
 if(ctx.recordLoadDenied===true||!id||!supplier) throw new Error('当前供应商不存在或不可访问');
 if(!actor) throw new Error('无法识别当前操作人');
+if(supplier.owner_id!==actor&&supplier.responsible_id!==actor)throw new Error('仅供应商经办人可提交本人草稿');
 if(!['draft','rejected'].includes(supplier.approval_status)) throw new Error('供应商审批状态已变化，请刷新后重试');
 if(!supplier.name||!supplier.category_id||!supplier.level_id||!supplier.contact_name||!supplier.phone) throw new Error('供应商名称、分类、级别、联系人和联系电话必须完整');
 const now=new Date().toISOString();
@@ -65,7 +66,7 @@ const id=ctx.recordId||(ctx.record&&ctx.record.id), supplier=ctx.record, actor=c
 if(ctx.recordLoadDenied===true||!id||!supplier) throw new Error('当前供应商不存在或不可访问');
 if(!actor) throw new Error('无法识别当前操作人');
 if(supplier.approval_status!=='pending_approval') throw new Error('供应商审批状态已变化，请刷新后重试');
-if(supplier.responsible_id===actor||supplier.created_by===actor) throw new Error('供应商经办人不能审核本人提交的供应商');
+if(supplier.owner_id===actor||supplier.responsible_id===actor||supplier.created_by===actor) throw new Error('供应商经办人不能审核本人提交的供应商');
 const decision=ctx.input.decision, comment=String(ctx.input.comment||'').trim();
 if(!['approve','reject'].includes(decision)||!comment) throw new Error('审批结论和审批意见不能为空');
 const next=decision==='approve'?'approved':'rejected', action=decision==='approve'?'approved':'rejected', now=new Date().toISOString();
