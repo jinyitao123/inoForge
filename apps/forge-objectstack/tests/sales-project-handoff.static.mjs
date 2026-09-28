@@ -17,6 +17,7 @@ assert.match(salesObject, /export const SalesContractLine[\s\S]*?line_type: choi
 assert.match(salesObject, /export const SalesOrderLine[\s\S]*?line_type: choice\('明细类型', \['物料', '服务项目'\][\s\S]*?sku_id: reference\('forge_material_sku', '物料规格'\),[\s\S]*?controlled_by_parent/);
 
 const contractOrderSource = orderCreate.split('const contractOrderCreateSource = String.raw')[1] ?? '';
+const projectCenterDetailSource = projectCenter.split('const projectDetailV2Runtime = String.raw')[1] ?? '';
 assert.match(contractOrderSource, /const listUrl=forgePageHref\('page_sales_order_workspace'\)/);
 assert.doesNotMatch(contractOrderSource, /const listUrl='\/_console/);
 assert.match(contractOrderSource, /if\(listUrl\)window\.location\.href=listUrl/);
@@ -90,6 +91,7 @@ assert.match(projectCenter, /预计营收（销售预测）/);
 assert.match(projectCenter, /errorStatus===401/);
 assert.match(projectCenter, /errorStatus===403/);
 assert.match(projectCenter, /tabReadFailures/);
+assert.match(projectCenterDetailSource, /tabReadFailures=/);
 assert.match(projectCenter, /关联订单读取失败，当前无法确认关联状态/);
 assert.match(projectActions, /requiredPermissions: \['forge_project_operator', 'sales_contract_operator'\]/);
 assert.match(projectActions, /order_status_snapshot: order\.status/);
