@@ -1316,6 +1316,69 @@ return { id, status: '${to}' };
 `,
 });
 
+const serviceOrderDispatchActorSource = `
+const actor = String(ctx.session && ctx.session.userId || '').trim();
+const organizationId = String((ctx.session && ctx.session.organizationId) || (ctx.user && ctx.user.organizationId) || '').trim();
+const id = String(ctx.recordId || (ctx.record && ctx.record.id) || '').trim();
+const record = ctx.record;
+if (!actor || !organizationId) throw new Error('无法确认当前服务员工及组织');
+if (ctx.recordLoadDenied === true || !id || !record) throw new Error('当前服务工单不存在或不可访问');
+if (String(record.organization_id || '') !== organizationId) throw new Error('服务工单不属于当前组织');
+if (record.status !== 'pending_dispatch') throw new Error('工单状态已变化，请刷新后重试');
+if (String(record.owner_id || '') !== actor && String(record.responsible_id || '') !== actor) throw new Error('只有当前工单负责人可以派工');
+`;
+
+const serviceOrderDispatchEngineerSource = `
+const positionRows = await ctx.api.object('sys_position').find({
+  where: { organization_id: organizationId },
+  fields: ['id', 'name', 'active', 'organization_id'],
+});
+const servicePositions = positionRows.filter(position => position.name === 'after_sales_operator' && position.active !== false);
+const servicePositionKeys = new Set(servicePositions.flatMap(position => [String(position.id || ''), String(position.name || '')]));
+const nowMs = Date.now();
+const effectiveAt = assignment => {
+  const from = assignment.valid_from ? Date.parse(String(assignment.valid_from)) : Number.NEGATIVE_INFINITY;
+  const until = assignment.valid_until ? Date.parse(String(assignment.valid_until)) : Number.POSITIVE_INFINITY;
+  return !Number.isNaN(from) && !Number.isNaN(until) && from <= nowMs && nowMs < until;
+};
+const [assignments, members, users] = await Promise.all([
+  ctx.api.object('sys_user_position').find({
+    where: { organization_id: organizationId },
+    fields: ['user_id', 'position', 'organization_id', 'valid_from', 'valid_until'],
+  }),
+  ctx.api.object('sys_member').find({
+    where: { organization_id: organizationId },
+    fields: ['user_id', 'organization_id', 'role'],
+  }),
+  ctx.api.object('sys_user').find({ where: {}, fields: ['id', 'name', 'banned'] }),
+]);
+const assignedUserIds = new Set(assignments
+  .filter(assignment => String(assignment.organization_id || '') === organizationId &&
+    servicePositionKeys.has(String(assignment.position || '')) && effectiveAt(assignment))
+  .map(assignment => String(assignment.user_id || '').trim())
+  .filter(Boolean));
+const memberUserIds = new Set(members
+  .filter(member => String(member.organization_id || '') === organizationId && member.role === 'member')
+  .map(member => String(member.user_id || '').trim())
+  .filter(Boolean));
+const engineers = users
+  .filter(user => user.id && assignedUserIds.has(String(user.id)) && memberUserIds.has(String(user.id)) && user.banned !== true)
+  .map(user => ({ id: String(user.id), name: String(user.name || '').trim() }))
+  .filter(user => user.name)
+  .sort((left, right) => left.name.localeCompare(right.name));
+`;
+
+export const ServiceOrderDispatchEngineers = defineAction({
+  name: 'service_order_dispatch_engineers', label: '查询可派服务工程师', objectName: 'forge_service_order', icon: 'users',
+  locations: [], requiredPermissions: ['forge_service_operator'],
+  body: {
+    language: 'js', capabilities: ['api.read'],
+    source: serviceOrderDispatchActorSource + serviceOrderDispatchEngineerSource + `
+return { engineers };
+`,
+  },
+});
+
 export const ServiceOrderCreate = defineAction({
   name: 'service_order_create', label: '创建服务工单', objectName: 'forge_service_order', icon: 'file-plus-2',
   locations: [], refreshAfter: true, requiredPermissions: ['forge_service_operator'],
@@ -1357,21 +1420,35 @@ export const ServiceOrderDispatch = defineAction({
   visible: `record.status == 'pending_dispatch'`, refreshAfter: true,
   successMessage: '服务工单已派工，等待工程师接单',
   params: [
-    { field: 'engineer_name', objectOverride: 'forge_service_order', required: true },
+    { field: 'engineer_id', objectOverride: 'forge_service_order', required: true },
     { field: 'scheduled_at', objectOverride: 'forge_service_order' },
     { field: 'dispatch_note', objectOverride: 'forge_service_order', required: true },
   ],
-  body: serviceOrderTransitionBody('pending_dispatch', 'pending_receive', `
-const engineerName = String(ctx.input.engineer_name || '').trim();
-const note = String(ctx.input.dispatch_note || '').trim();
-if (!engineerName) throw new Error('请选择或填写服务工程师');
+  body: {
+    language: 'js', capabilities: ['api.read', 'api.write'],
+    source: serviceOrderDispatchActorSource + serviceOrderDispatchEngineerSource + `
+const engineerId = String((ctx.input && ctx.input.engineer_id) || '').trim();
+const engineer = engineers.find(user => user.id === engineerId);
+const note = String((ctx.input && ctx.input.dispatch_note) || '').trim();
+if (!engineer) throw new Error('请选择当前组织中有效任职的售后工程师');
 if (!note) throw new Error('派工说明不能为空');
-patch.engineer_name = engineerName;
-patch.scheduled_at = ctx.input.scheduled_at || null;
-patch.dispatch_note = note;
-patch.dispatched_at = now;
-patch.next_step = '工程师接单';
-`),
+const now = new Date().toISOString();
+const patch = {
+  id,
+  status: 'pending_receive',
+  owner_id: engineer.id,
+  responsible_id: engineer.id,
+  engineer_id: engineer.id,
+  engineer_name: engineer.name,
+  scheduled_at: (ctx.input && ctx.input.scheduled_at) || null,
+  dispatch_note: note,
+  dispatched_at: now,
+  next_step: '工程师接单',
+};
+await ctx.api.object('forge_service_order').update(patch);
+return { id, status: patch.status, engineer_id: engineer.id, engineer_name: engineer.name };
+`,
+  },
 });
 
 export const ServiceOrderEngineerAccept = defineAction({
@@ -1379,7 +1456,26 @@ export const ServiceOrderEngineerAccept = defineAction({
   requiredPermissions: ['forge_service_operator'],
   visible: `record.status == 'pending_receive'`, confirmText: '确认工程师已接单并开始服务？', refreshAfter: true,
   successMessage: '工程师已接单，工单进入服务中',
-  body: serviceOrderTransitionBody('pending_receive', 'in_progress', `patch.received_at = now; patch.next_step = '处理记录 / 到场签到 / 提交服务结果';`),
+  body: {
+    language: 'js', capabilities: ['api.write'],
+    source: `
+const actor = String(ctx.session && ctx.session.userId || '').trim();
+const organizationId = String((ctx.session && ctx.session.organizationId) || (ctx.user && ctx.user.organizationId) || '').trim();
+const id = String(ctx.recordId || (ctx.record && ctx.record.id) || '').trim();
+const record = ctx.record;
+if (!actor || !organizationId) throw new Error('无法确认当前服务员工及组织');
+if (ctx.recordLoadDenied === true || !id || !record) throw new Error('当前服务工单不存在或不可访问');
+if (String(record.organization_id || '') !== organizationId) throw new Error('服务工单不属于当前组织');
+if (record.status !== 'pending_receive') throw new Error('工单状态已变化，请刷新后重试');
+if (String(record.engineer_id || '') !== actor || String(record.owner_id || '') !== actor || String(record.responsible_id || '') !== actor) {
+  throw new Error('只有当前指派的服务工程师可以接单');
+}
+const now = new Date().toISOString();
+const patch = { id, status: 'in_progress', received_at: now, next_step: '处理记录 / 到场签到 / 提交服务结果' };
+await ctx.api.object('forge_service_order').update(patch);
+return { id, status: patch.status };
+`,
+  },
 });
 
 
