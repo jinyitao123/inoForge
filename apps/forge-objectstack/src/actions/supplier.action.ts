@@ -4,6 +4,7 @@ const locations = ['record_header', 'record_more'] as const;
 
 export const SupplierSubmitApproval = defineAction({
   name: 'supplier_submit_approval', label: '提交审批', objectName: 'forge_supplier', icon: 'send',
+  requiredPermissions: ['forge_procurement_operator'],
   locations: [...locations], order: 10, visible: `record.approval_status == 'draft' || record.approval_status == 'rejected'`, refreshAfter: true,
   successMessage: '供应商已提交审批',
   body: { language: 'js', capabilities: ['api.write'], source: `
@@ -21,6 +22,7 @@ return {id,status:'pending_approval'};
 
 export const SupplierReview = defineAction({
   name: 'supplier_review', label: '审批供应商', objectName: 'forge_supplier', icon: 'circle-check',
+  requiredPermissions: ['forge_procurement_reviewer'],
   locations: [...locations], order: 20, visible: `record.approval_status == 'pending_approval'`, refreshAfter: true,
   params: [
     { name: 'decision', label: '审批结论', type: 'select', required: true, options: [{ value: 'approve', label: '同意' }, { value: 'reject', label: '驳回' }] },
@@ -32,6 +34,7 @@ const id=ctx.recordId||(ctx.record&&ctx.record.id), supplier=ctx.record, actor=c
 if(ctx.recordLoadDenied===true||!id||!supplier) throw new Error('当前供应商不存在或不可访问');
 if(!actor) throw new Error('无法识别当前操作人');
 if(supplier.approval_status!=='pending_approval') throw new Error('供应商审批状态已变化，请刷新后重试');
+if(supplier.responsible_id===actor||supplier.created_by===actor) throw new Error('供应商经办人不能审核本人提交的供应商');
 const decision=ctx.input.decision, comment=String(ctx.input.comment||'').trim();
 if(!['approve','reject'].includes(decision)||!comment) throw new Error('审批结论和审批意见不能为空');
 const next=decision==='approve'?'approved':'rejected', action=decision==='approve'?'approved':'rejected', now=new Date().toISOString();

@@ -4,6 +4,7 @@ const locations = ['record_header', 'record_more'] as const;
 
 export const BomSubmitReview = defineAction({
   name: 'bom_submit_review', label: '提交评审', objectName: 'forge_bom', icon: 'send',
+  requiredPermissions: ['forge_production_operator'],
   locations: [...locations], order: 10, visible: `record.status == 'draft'`, refreshAfter: true,
   description: '校验成品、根节点和物料明细，冻结成本快照后进入待评审。', successMessage: 'BOM已提交评审',
   body: { language: 'js', capabilities: ['api.read', 'api.write'], source: `
@@ -36,6 +37,7 @@ return {id,status:'pending_review',node_count:components.length,total_cost:cost}
 
 export const BomReview = defineAction({
   name: 'bom_review', label: '评审BOM', objectName: 'forge_bom', icon: 'badge-check',
+  requiredPermissions: ['forge_production_reviewer'],
   locations: [...locations], order: 10, visible: `record.status == 'pending_review'`, refreshAfter: true,
   params: [
     { name: 'decision', label: '评审结论', type: 'select', required: true, options: [{ label: '同意', value: 'approve' }, { label: '退回', value: 'reject' }] },
@@ -48,7 +50,7 @@ if(ctx.recordLoadDenied===true||!id||!bom||bom.status!=='pending_review') throw 
 if(!['approve','reject'].includes(ctx.input.decision)) throw new Error('评审结论不合法');
 if(!ctx.input.comment||!String(ctx.input.comment).trim()) throw new Error('评审意见为必填');
 const now=new Date().toISOString(); const actor=ctx.session&&ctx.session.userId;
-if(!actor) throw new Error('无法识别当前操作人');
+if(!actor) throw new Error('无法识别当前操作人'); if(bom.responsible_id===actor||bom.created_by===actor) throw new Error('BOM编制人不能复核本人版本');
 const approved=ctx.input.decision==='approve'; const status=approved?'active':'draft';
 const nodes=await ctx.api.object('forge_bom_node').find({where:{bom_id:id}});
 await ctx.api.object('forge_bom').update({id,status,effective_at:approved?now:null,approved_by:approved?actor:null});
@@ -60,6 +62,7 @@ return {id,status,effective_at:approved?now:null};
 
 export const BomCopyNewVersion = defineAction({
   name: 'bom_copy_new_version', label: '复制到新版本', objectName: 'forge_bom', icon: 'git-branch-plus',
+  requiredPermissions: ['forge_production_operator'],
   locations: [...locations], order: 20, visible: `record.status == 'active'`, refreshAfter: true,
   params: [{ field: 'change_note', objectOverride: 'forge_bom', required: true }],
   onSuccess: { navigate: '/_console/apps/com.inoforge.forge.supply-chain/forge_bom/record/${result.id}' }, successMessage: '新版本草稿已创建',
@@ -82,6 +85,7 @@ return {id:newId,source_bom_id:id,version,status:'draft',node_count:nodes.filter
 
 export const BomCreateProjectVariant = defineAction({
   name: 'bom_create_project_variant', label: '从标准BOM创建项目BOM', objectName: 'forge_bom', icon: 'folder-git-2',
+  requiredPermissions: ['forge_production_operator'],
   locations: [...locations], order: 30, visible: `record.status == 'active' && record.bom_type == 'standard'`, refreshAfter: true,
   params: [{ field: 'project_id', objectOverride: 'forge_bom', required: true }, { field: 'change_note', objectOverride: 'forge_bom' }],
   onSuccess: { navigate: '/_console/apps/com.inoforge.forge.supply-chain/forge_bom/record/${result.id}' }, successMessage: '项目BOM草稿已创建',
@@ -101,6 +105,7 @@ return {id:newId,source_bom_id:id,project_id:project.id,customer_id:project.cust
 
 export const BomInvalidate = defineAction({
   name: 'bom_invalidate', label: '失效', objectName: 'forge_bom', icon: 'ban',
+  requiredPermissions: ['forge_production_reviewer'],
   locations: [...locations], order: 90, visible: `record.status == 'active'`, refreshAfter: true,
   params: [{ name: 'reason', label: '失效原因', type: 'textarea', required: true }], successMessage: 'BOM已失效',
   body: { language: 'js', capabilities: ['api.read', 'api.write'], source: `

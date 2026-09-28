@@ -4,10 +4,11 @@ const locations = ['record_header', 'record_more'] as const;
 
 export const BomCreateAssembly = defineAction({
   name: 'bom_create_assembly', label: '新建组装单', objectName: 'forge_bom', icon: 'factory',
+  requiredPermissions: ['forge_production_operator'],
   locations: [...locations], order: 60, visible: `record.status == 'active'`, refreshAfter: true,
   description: '按生效 BOM 展开生产物料需求，保存草稿或下达为待领料。', successMessage: '组装单已创建',
   params: [
-    { name: 'mode', label: '办理方式', type: 'select', required: true, options: [{ value: 'draft', label: '保存草稿' }, { value: 'release', label: '保存并下达' }] },
+    { name: 'mode', label: '办理方式', type: 'select', required: true, options: [{ value: 'draft', label: '保存草稿' }] },
     { name: 'planned_quantity', label: '组装数量', type: 'number', required: true, defaultValue: 1 },
     { field: 'warehouse_id', objectOverride: 'forge_assembly_order' }, { field: 'sales_order_id', objectOverride: 'forge_assembly_order' },
     { field: 'planned_completion_on', objectOverride: 'forge_assembly_order' }, { field: 'remarks', objectOverride: 'forge_assembly_order' },
@@ -16,8 +17,8 @@ export const BomCreateAssembly = defineAction({
   body: { language: 'js', capabilities: ['api.read', 'api.write'], source: `
 const id=ctx.recordId||(ctx.record&&ctx.record.id),bom=ctx.record,actor=ctx.session&&ctx.session.userId;
 if(ctx.recordLoadDenied===true||!id||!bom)throw new Error('当前BOM不存在或不可访问');if(!actor)throw new Error('无法识别当前操作人');
-if(bom.status!=='active')throw new Error('仅已生效BOM可以创建组装单');const mode=ctx.input.mode;if(!['draft','release'].includes(mode))throw new Error('办理方式必须为保存草稿或保存并下达');
-const planned=Number(ctx.input.planned_quantity);if(!(planned>0))throw new Error('组装数量必须大于0');if(mode==='release'&&!ctx.input.warehouse_id)throw new Error('下达组装单前必须选择出入库仓库');
+if(bom.status!=='active')throw new Error('仅已生效BOM可以创建组装单');const mode=ctx.input.mode;if(mode!=='draft')throw new Error('生产经办只能保存草稿，下达由独立复核岗位办理');
+const planned=Number(ctx.input.planned_quantity);if(!(planned>0))throw new Error('组装数量必须大于0');
 if(!bom.material_id)throw new Error('BOM未关联成品物料');const productSkus=await ctx.api.object('forge_material_sku').find({where:{material_id:bom.material_id}}),productSku=productSkus.find(x=>x.enabled!==false);if(!productSku)throw new Error('成品没有启用的物料规格');
 const nodes=(await ctx.api.object('forge_bom_node').find({where:{bom_id:id}})).filter(x=>x.parent_id&&x.sku_id);if(!nodes.length)throw new Error('BOM没有可展开的末级物料');
 const all=await ctx.api.object('forge_assembly_order').find({where:{}}),year=String(ctx.input.planned_completion_on||new Date(Date.now()+8*60*60*1000).toISOString()).slice(0,4),code='ASM-'+year+'-'+String(all.length+1).padStart(4,'0'),now=new Date().toISOString(),round4=v=>Math.round((Number(v)+Number.EPSILON)*10000)/10000;
@@ -33,6 +34,7 @@ return{id:assemblyId,code,status:mode==='release'?'waiting_pick':'draft',materia
 
 export const AssemblyUpdateDraft = defineAction({
   name: 'assembly_update_draft', label: '编辑草稿', objectName: 'forge_assembly_order', icon: 'pencil', locations: [...locations], order: 5,
+  requiredPermissions: ['forge_production_operator'],
   visible: `record.status == 'draft'`, refreshAfter: true, description: '修改草稿的计划数量、仓库、计划完工日期和备注，并重新展开当前生效 BOM。', successMessage: '组装草稿已保存',
   params: [
     { name: 'planned_quantity', label: '组装数量', type: 'number', required: true },
@@ -55,6 +57,7 @@ const now=new Date().toISOString();await ctx.api.object('forge_assembly_order').
 
 export const AssemblyCancel = defineAction({
   name: 'assembly_cancel', label: '取消组装单', objectName: 'forge_assembly_order', icon: 'ban', locations: [...locations], order: 6,
+  requiredPermissions: ['forge_production_operator'],
   visible: `record.status == 'draft'`, refreshAfter: true, description: '取消仍处于草稿状态的组装单，保留单据和操作记录。', successMessage: '组装单已取消',
   params: [{ name: 'reason', label: '取消原因', type: 'textarea', required: true }],
   body: { language: 'js', capabilities: ['api.read', 'api.write'], source: `
@@ -64,15 +67,17 @@ const id=ctx.recordId||(ctx.record&&ctx.record.id),order=ctx.record,actor=ctx.se
 
 export const AssemblyRelease = defineAction({
   name: 'assembly_release', label: '下达组装', objectName: 'forge_assembly_order', icon: 'send', locations: [...locations], order: 10,
+  requiredPermissions: ['forge_production_reviewer'],
   visible: `record.status == 'draft'`, refreshAfter: true, description: '把草稿下达为待领料并重新读取真实库存。', successMessage: '组装单已下达',
   params: [{ field: 'warehouse_id', objectOverride: 'forge_assembly_order', required: true }],
   body: { language: 'js', capabilities: ['api.read', 'api.write'], source: `
-const id=ctx.recordId||(ctx.record&&ctx.record.id),order=ctx.record,actor=ctx.session&&ctx.session.userId;if(ctx.recordLoadDenied===true||!id||!order)throw new Error('当前组装单不存在或不可访问');if(!actor)throw new Error('无法识别当前操作人');if(order.status!=='draft')throw new Error('仅草稿组装单可以下达');if(!ctx.input.warehouse_id)throw new Error('出入库仓库不能为空');const now=new Date().toISOString();await ctx.api.object('forge_assembly_order').update({id,warehouse_id:ctx.input.warehouse_id,status:'waiting_pick',released_at:now});await ctx.api.object('forge_production_approval_log').insert({name:order.code+' 下达',event_key:order.code+'-REL',source_object:'forge_assembly_order',source_id:id,action:'released',from_status:'draft',to_status:'waiting_pick',comment:'组装单下达',occurred_at:now,operator_id:actor});return{id,status:'waiting_pick'};
+const id=ctx.recordId||(ctx.record&&ctx.record.id),order=ctx.record,actor=ctx.session&&ctx.session.userId;if(ctx.recordLoadDenied===true||!id||!order)throw new Error('当前组装单不存在或不可访问');if(!actor)throw new Error('无法识别当前操作人');if(order.responsible_id===actor||order.created_by===actor)throw new Error('生产经办人不能下达本人组装单');if(order.status!=='draft')throw new Error('仅草稿组装单可以下达');if(!ctx.input.warehouse_id)throw new Error('出入库仓库不能为空');const now=new Date().toISOString();await ctx.api.object('forge_assembly_order').update({id,warehouse_id:ctx.input.warehouse_id,status:'waiting_pick',released_at:now});await ctx.api.object('forge_production_approval_log').insert({name:order.code+' 下达',event_key:order.code+'-REL',source_object:'forge_assembly_order',source_id:id,action:'released',from_status:'draft',to_status:'waiting_pick',comment:'组装单下达',occurred_at:now,operator_id:actor});return{id,status:'waiting_pick'};
 ` },
 });
 
 export const AssemblyRefreshReadiness = defineAction({
   name: 'assembly_refresh_readiness', label: '刷新齐套', objectName: 'forge_assembly_order', icon: 'refresh-cw', locations: [...locations], order: 20,
+  requiredPermissions: ['forge_production_operator'],
   visible: `record.status == 'waiting_pick'`, refreshAfter: true, description: '按计划完工日期顺序分配当前持久库存并刷新缺料。', successMessage: '齐套情况已刷新',
   body: { language: 'js', capabilities: ['api.read', 'api.write'], source: `
 const id=ctx.recordId||(ctx.record&&ctx.record.id),current=ctx.record,actor=ctx.session&&ctx.session.userId;if(ctx.recordLoadDenied===true||!id||!current)throw new Error('当前组装单不存在或不可访问');if(!actor)throw new Error('无法识别当前操作人');if(current.status!=='waiting_pick')throw new Error('仅待领料组装单可以刷新齐套');
@@ -84,6 +89,7 @@ const refreshed=await ctx.api.object('forge_assembly_order').findOne({where:{id}
 
 export const AssemblyCreateMaterialDocument = defineAction({
   name: 'assembly_create_material_document', label: '新建领退补料单', objectName: 'forge_assembly_order', icon: 'clipboard-list', locations: [...locations], order: 30,
+  requiredPermissions: ['forge_production_operator'],
   visible: `record.status == 'waiting_pick' || record.status == 'assembling'`, refreshAfter: true,
   description: '领料按 BOM 剩余需求生成；补料和退料按所填明细生成审批中单据。', successMessage: '生产物料单已提交审批',
   params: [
@@ -104,6 +110,7 @@ for(const item of prepared)await ctx.api.object('forge_production_material_docum
 
 export const ProductionMaterialDocumentConfirm = defineAction({
   name: 'production_material_document_confirm', label: '确认并过账', objectName: 'forge_production_material_document', icon: 'badge-check', locations: [...locations], order: 10,
+  requiredPermissions: ['forge_production_operator'],
   visible: `record.status == 'pending_approval'`, refreshAfter: true, description: '确认后按单据方向更新持久库存、组装净领用与库存流水。', successMessage: '物料单已确认并过账',
   params: [{ field: 'approval_note', objectOverride: 'forge_production_material_document', required: true }],
   body: { language: 'js', capabilities: ['api.read', 'api.write'], source: `
@@ -118,6 +125,7 @@ const assemblyLines=await ctx.api.object('forge_assembly_material_line').find({w
 
 export const ProductionMaterialDocumentUpdate = defineAction({
   name: 'production_material_document_update', label: '编辑物料单', objectName: 'forge_production_material_document', icon: 'pencil', locations: [...locations], order: 5,
+  requiredPermissions: ['forge_production_operator'],
   visible: `record.status == 'pending_approval'`, refreshAfter: true, description: '在过账前修改物料单日期、备注和数量。', successMessage: '生产物料单已保存',
   params: [{ name: 'handled_on', label: '业务日期', type: 'date', required: true }, { name: 'lines_json', label: '物料明细', type: 'textarea' }, { name: 'remarks', label: '备注', type: 'textarea' }],
   body: { language: 'js', capabilities: ['api.read', 'api.write'], source: `
@@ -127,6 +135,7 @@ const id=ctx.recordId||(ctx.record&&ctx.record.id),doc=ctx.record,actor=ctx.sess
 
 export const ProductionMaterialDocumentVoid = defineAction({
   name: 'production_material_document_void', label: '作废物料单', objectName: 'forge_production_material_document', icon: 'ban', locations: [...locations], order: 6,
+  requiredPermissions: ['forge_production_operator'],
   visible: `record.status == 'pending_approval' || record.status == 'rejected'`, refreshAfter: true, description: '作废尚未过账的生产物料单，保留来源和操作记录。', successMessage: '生产物料单已作废',
   params: [{ name: 'reason', label: '作废原因', type: 'textarea', required: true }],
   body: { language: 'js', capabilities: ['api.read', 'api.write'], source: `
@@ -136,6 +145,7 @@ const id=ctx.recordId||(ctx.record&&ctx.record.id),doc=ctx.record,actor=ctx.sess
 
 export const AssemblyRegisterInbound = defineAction({
   name: 'assembly_register_inbound', label: '登记生产入库', objectName: 'forge_assembly_order', icon: 'package-plus', locations: [...locations], order: 40,
+  requiredPermissions: ['forge_production_operator'],
   visible: `record.status == 'assembling'`, refreshAfter: true, description: '分批登记合格产出；该动作增加成品库存，但不自动把组装单标记完工。', successMessage: '生产入库已登记',
   params: [{ name: 'qualified_quantity', label: '合格入库数量', type: 'number', required: true }, { name: 'rejected_quantity', label: '不合格数量', type: 'number', defaultValue: 0 }, { name: 'inbound_on', label: '入库日期', type: 'date', required: true }, { name: 'batch_number', label: '批次', type: 'text' }, { name: 'remarks', label: '备注', type: 'textarea' }],
   body: { language: 'js', capabilities: ['api.read', 'api.write'], source: `
@@ -145,9 +155,10 @@ const id=ctx.recordId||(ctx.record&&ctx.record.id),order=ctx.record,actor=ctx.se
 
 export const AssemblyComplete = defineAction({
   name: 'assembly_complete', label: '确认完工', objectName: 'forge_assembly_order', icon: 'circle-check', locations: [...locations], order: 50,
+  requiredPermissions: ['forge_production_reviewer'],
   visible: `record.status == 'assembling'`, refreshAfter: true, description: '全部计划数量已有合格或不合格结果后，独立确认组装完工。', successMessage: '组装单已完工',
   params: [{ name: 'completion_note', label: '完工说明', type: 'textarea', required: true }],
   body: { language: 'js', capabilities: ['api.read', 'api.write'], source: `
-const id=ctx.recordId||(ctx.record&&ctx.record.id),order=ctx.record,actor=ctx.session&&ctx.session.userId;if(ctx.recordLoadDenied===true||!id||!order)throw new Error('当前组装单不存在或不可访问');if(!actor)throw new Error('无法识别当前操作人');if(order.status!=='assembling')throw new Error('仅组装中单据可以确认完工');if(Number(order.qualified_quantity||0)+Number(order.rejected_quantity||0)<Number(order.planned_quantity||0))throw new Error('计划数量尚未全部登记生产结果');const note=String(ctx.input.completion_note||'').trim();if(!note)throw new Error('完工说明不能为空');const now=new Date().toISOString();await ctx.api.object('forge_assembly_order').update({id,status:'completed',completed_at:now});const lines=await ctx.api.object('forge_assembly_material_line').find({where:{assembly_id:id}});for(const line of lines)await ctx.api.object('forge_assembly_material_line').update({id:line.id,status:'completed'});await ctx.api.object('forge_production_approval_log').insert({name:order.code+' 完工',event_key:order.code+'-CMP',source_object:'forge_assembly_order',source_id:id,action:'completed',from_status:'assembling',to_status:'completed',comment:note,occurred_at:now,operator_id:actor});return{id,status:'completed',qualified_quantity:order.qualified_quantity,rejected_quantity:order.rejected_quantity,inbound_quantity:order.inbound_quantity};
+const id=ctx.recordId||(ctx.record&&ctx.record.id),order=ctx.record,actor=ctx.session&&ctx.session.userId;if(ctx.recordLoadDenied===true||!id||!order)throw new Error('当前组装单不存在或不可访问');if(!actor)throw new Error('无法识别当前操作人');if(order.responsible_id===actor||order.created_by===actor)throw new Error('生产经办人不能确认本人组装单完工');if(order.status!=='assembling')throw new Error('仅组装中单据可以确认完工');if(Number(order.qualified_quantity||0)+Number(order.rejected_quantity||0)<Number(order.planned_quantity||0))throw new Error('计划数量尚未全部登记生产结果');const note=String(ctx.input.completion_note||'').trim();if(!note)throw new Error('完工说明不能为空');const now=new Date().toISOString();await ctx.api.object('forge_assembly_order').update({id,status:'completed',completed_at:now});const lines=await ctx.api.object('forge_assembly_material_line').find({where:{assembly_id:id}});for(const line of lines)await ctx.api.object('forge_assembly_material_line').update({id:line.id,status:'completed'});await ctx.api.object('forge_production_approval_log').insert({name:order.code+' 完工',event_key:order.code+'-CMP',source_object:'forge_assembly_order',source_id:id,action:'completed',from_status:'assembling',to_status:'completed',comment:note,occurred_at:now,operator_id:actor});return{id,status:'completed',qualified_quantity:order.qualified_quantity,rejected_quantity:order.rejected_quantity,inbound_quantity:order.inbound_quantity};
 ` },
 });
