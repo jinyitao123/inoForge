@@ -721,6 +721,7 @@ return await ctx.api.transaction(async () => {
     revenue_trigger: header.revenue_trigger || 'shipment', ordered_count: 0, ordered_amount: 0, invoiced_amount: 0, shipped_amount: 0, collected_amount: 0,
     status: 'draft', payment_term: text(header.payment_term, '付款条件', false, 2000), delivery_cycle_days: header.delivery_cycle_days === '' ? null : Number(header.delivery_cycle_days || 0),
     warranty_months: header.warranty_months === '' ? null : Number(header.warranty_months || 0), business_terms: text(header.business_terms, '商务条款', false, 8000),
+    requires_legal_review: header.requires_legal_review === true,
     attachment_ids: Array.isArray(header.attachment_ids) ? header.attachment_ids : [], attachment_note: text(header.attachment_note, '附件说明', false, 2000),
     draft_request_signature: signature, remarks: text(header.remarks, '备注', false, 4000),
   });
@@ -773,10 +774,12 @@ for (let index = 0; index < lines.length; index += 1) {
   const unit = material.unit_id ? await ctx.api.object('forge_unit').findOne({ where: { id: material.unit_id } }) : null;
   if (!belongsToOrganization(unit) || unit.status === 'inactive') throw new Error('第' + (index + 1) + '条合同明细的计量单位不可用');
 }
-const now = Date.now();
+const now = Date.now(), actor = ctx.session && ctx.session.userId;
+if (!actor) throw new Error('无法识别当前提交人');
 const reviewerPositions = [
   ['contract_delivery_reviewer', '合同交付复核岗'],
   ['contract_commercial_reviewer', '合同商务复核岗'],
+  ...(record.requires_legal_review ? [['contract_legal_reviewer', '非标合同法务复核岗']] : []),
 ];
 const reviewerUsers = [];
 for (const [position, label] of reviewerPositions) {
@@ -790,7 +793,7 @@ for (const [position, label] of reviewerPositions) {
   if (active.length > 1) throw new Error(label + '当前有多名员工，请先明确本次合同的复核负责人');
   reviewerUsers.push(active[0].user_id);
 }
-if (reviewerUsers[0] === reviewerUsers[1]) throw new Error('交付复核与商务复核必须由不同员工承担');
+if (new Set(reviewerUsers).size !== reviewerUsers.length || reviewerUsers.includes(actor)) throw new Error('合同提交人与各复核岗位必须由不同员工承担');
 const total = Math.round(lines.reduce((sum, line) => sum + Number(line.taxed_subtotal || 0), 0) * 10000) / 10000;
 await ctx.api.object('forge_sales_contract').update({ id, total_amount: total, status: 'pending_approval' });
 return { id, total_amount: total, status: 'pending_approval', routed: true };
@@ -899,6 +902,7 @@ const nowMs = Date.now();
 const reviewerPositions = [
   ['contract_delivery_reviewer', '合同交付复核岗'],
   ['contract_commercial_reviewer', '合同商务复核岗'],
+  ...(record.requires_legal_review ? [['contract_legal_reviewer', '非标合同法务复核岗']] : []),
 ];
 const reviewerUsers = [];
 for (const [position, label] of reviewerPositions) {
@@ -912,7 +916,7 @@ for (const [position, label] of reviewerPositions) {
   if (active.length > 1) throw new Error(label + '当前有多名员工，请先明确本次合同的复核负责人');
   reviewerUsers.push(active[0].user_id);
 }
-if (reviewerUsers[0] === reviewerUsers[1]) throw new Error('交付复核与商务复核必须由不同员工承担');
+if (new Set(reviewerUsers).size !== reviewerUsers.length || reviewerUsers.includes(actor)) throw new Error('合同提交人与各复核岗位必须由不同员工承担');
 const total = Math.round(lines.reduce((sum, line) => sum + Number(line.taxed_subtotal || 0), 0) * 10000) / 10000;
 const submittedAt = new Date().toISOString();
 let outcome;
@@ -1310,6 +1314,33 @@ ${extraSource}
 await ctx.api.object('forge_service_order').update(patch);
 return { id, status: '${to}' };
 `,
+});
+
+export const ServiceOrderCreate = defineAction({
+  name: 'service_order_create', label: '创建服务工单', objectName: 'forge_service_order', icon: 'file-plus-2',
+  locations: [], refreshAfter: true, requiredPermissions: ['forge_service_operator'],
+  params: [{ name: 'draft_json', label: '服务工单内容', type: 'textarea', required: true }],
+  body: { language: 'js', capabilities: ['api.read', 'api.write'], source: `
+const actor=ctx.session&&ctx.session.userId,organizationId=String((ctx.session&&ctx.session.organizationId)||(ctx.user&&ctx.user.organizationId)||'');
+if(!actor||!organizationId)throw new Error('无法确认当前服务员工及组织');
+let draft;try{draft=JSON.parse(String(ctx.input.draft_json||''))}catch{throw new Error('服务工单格式无效')}
+if(!draft||typeof draft!=='object'||Array.isArray(draft))throw new Error('服务工单格式无效');
+const name=String(draft.name||'').trim(),code=String(draft.code||'').trim();
+if(!name||!code||!draft.customer_id||!draft.sales_order_id)throw new Error('请填写工单标题、编号、客户和来源订单');
+if(!['onsite','remote','return_repair'].includes(draft.service_mode)||!['low','medium','high','urgent'].includes(draft.urgency))throw new Error('服务方式或紧急度无效');
+const customer=await ctx.api.object('forge_customer').findOne({where:{id:draft.customer_id}});
+const order=await ctx.api.object('forge_sales_order').findOne({where:{id:draft.sales_order_id}});
+if(!customer||!order||String(customer.organization_id||'')!==organizationId||String(order.organization_id||'')!==organizationId||order.customer_id!==customer.id)throw new Error('客户与来源订单不匹配或不可访问');
+if(draft.contract_id&&order.contract_id!==draft.contract_id)throw new Error('关联合同与来源订单不匹配');
+let contact=null;if(draft.contact_id){contact=await ctx.api.object('forge_contact').findOne({where:{id:draft.contact_id}});if(!contact||contact.customer_id!==customer.id||String(contact.organization_id||'')!==organizationId)throw new Error('联系人不属于当前客户')}
+const fields=['service_address','service_object','service_type','region','warranty_starts_on','warranty_ends_on','warranty_status','responsibility_type','quotation_handling','fault_symptom','impact_scope','expected_visit_on','remarks'];
+const payload={name,code,customer_id:customer.id,contact_id:contact&&contact.id||null,contact_phone:String(draft.contact_phone||contact&&contact.phone||''),sales_order_id:order.id,contract_id:order.contract_id||null,service_mode:draft.service_mode,urgency:draft.urgency,status:'pending_acceptance',next_step:'受理',submitted_at:new Date().toISOString(),responsible_id:actor};
+for(const field of fields)if(draft[field]!==undefined&&draft[field]!==null)payload[field]=String(draft[field]).trim();
+const saved=await ctx.api.object('forge_service_order').insert(payload);
+const id=typeof saved==='string'?saved:saved&&(saved.id||(saved.record&&saved.record.id));
+if(!id)throw new Error('服务工单创建后未返回记录');
+return{id,status:'pending_acceptance'};
+` },
 });
 
 export const ServiceOrderAccept = defineAction({
