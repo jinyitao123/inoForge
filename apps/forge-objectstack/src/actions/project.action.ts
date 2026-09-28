@@ -254,6 +254,7 @@ export const ProjectTerminate = defineAction({
 
 export const ProjectCreateManualPlan = defineAction({
   name: 'project_create_manual_plan', label: '手工创建计划', objectName: 'forge_project', icon: 'calendar-plus',
+  requiredPermissions: ['forge_project_manager'],
   locations: [...locations], order: 40, visible: `record.status == 'in_progress' || record.status == 'paused'`, refreshAfter: true,
   description: '从一个阶段开始建立项目计划，也可以在后续从项目配置中心套用可用模板。', successMessage: '项目计划和首个阶段已创建',
   params: [
@@ -300,6 +301,7 @@ return { id: planId, project_id: projectId, phase_id: phaseId, source: 'manual',
 
 export const ProjectPlanAddWorkItem = defineAction({
   name: 'project_plan_add_work_item', label: '新增阶段/里程碑/任务', objectName: 'forge_project_plan', icon: 'list-plus',
+  requiredPermissions: ['forge_project_manager'],
   locations: [...locations], order: 10, visible: `record.status == 'active'`, refreshAfter: true,
   description: '按 RISEMAP 计划页字段添加阶段、里程碑或任务。', successMessage: '计划工作项已添加',
   params: [
@@ -360,6 +362,7 @@ return { id: itemId, plan_id: planId, item_type: ctx.input.item_type, item_count
 
 export const ProjectWorkItemDelete = defineAction({
   name: 'project_work_item_delete', label: '删除工作项', objectName: 'forge_project_work_item', icon: 'trash-2',
+  requiredPermissions: ['forge_project_manager'],
   locations: [...locations], order: 90, visible: `record.status != 'completed'`, refreshAfter: true,
   confirmText: '删除后无法恢复。阶段下仍有任务或里程碑时必须先处理下级工作项。确认删除？', successMessage: '计划工作项已删除',
   body: { language: 'js', capabilities: ['api.read', 'api.write'], source: `
@@ -386,6 +389,7 @@ return { id, plan_id: item.plan_id, deleted: true, item_count: remaining.length,
 
 export const ProjectWorkItemUpdateProgress = defineAction({
   name: 'project_work_item_update_progress', label: '更新进度', objectName: 'forge_project_work_item', icon: 'gauge',
+  requiredPermissions: ['forge_project_work_member'],
   locations: [...locations], order: 10, visible: `record.item_type != 'phase'`, refreshAfter: true,
   description: '更新完成度、状态和实际日期，并回算计划与项目进度；尚未开始的新增工作项不立即拉低阶段进度。', successMessage: '工作项进度已更新',
   params: [
@@ -431,6 +435,7 @@ return { id, progress, status, actual_start_on: actualStart, actual_end_on: actu
 
 export const ProjectPlanSubmitDailyReport = defineAction({
   name: 'project_plan_submit_daily_report', label: '提交日报', objectName: 'forge_project_plan', icon: 'notebook-pen',
+  requiredPermissions: ['forge_project_manager'],
   locations: [...locations], order: 20, visible: `record.status == 'active'`, refreshAfter: true,
   description: '提交进度页中已观察到的日报字段。附件字段保留页面提示的 20MB 边界。', successMessage: '项目日报已提交',
   params: [
@@ -471,6 +476,7 @@ return { id: reportId, plan_id: planId, work_item_id: item.id, report_on: report
 
 export const ProjectPlanSaveAsTemplate = defineAction({
   name: 'project_plan_save_as_template', label: '保存为计划模板', objectName: 'forge_project_plan', icon: 'copy-check',
+  requiredPermissions: ['forge_project_manager'],
   locations: [...locations], order: 80, visible: `record.status == 'active'`, refreshAfter: true,
   description: '把当前计划的阶段、里程碑和任务保存为可复用模板。', successMessage: '计划模板已保存',
   params: [{ field: 'template_name', objectOverride: 'forge_project_plan_template', required: true }, { field: 'category', objectOverride: 'forge_project_plan_template', defaultValue: 'custom' }],
@@ -489,6 +495,7 @@ return { id, name, item_count: structure.length, source_plan_id: planId };
 
 export const ProjectPlanApplyTemplate = defineAction({
   name: 'project_plan_apply_template', label: '套用计划模板', objectName: 'forge_project_plan', icon: 'copy-plus',
+  requiredPermissions: ['forge_project_manager'],
   locations: [...locations], order: 70, visible: `record.status == 'active'`, refreshAfter: true,
   description: '将模板中的阶段、里程碑和任务复制到当前执行计划。', successMessage: '计划模板已套用',
   params: [{ field: 'template_id', objectOverride: 'forge_project_plan_template', required: true }],

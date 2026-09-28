@@ -4,6 +4,7 @@ const locations = ['record_header', 'record_more'] as const;
 
 export const SalesOrderIssueInvoice = defineAction({
   name: 'sales_order_issue_invoice', label: '登记销售发票', objectName: 'forge_sales_order', icon: 'receipt-text',
+  requiredPermissions: ['forge_finance_receivables_operator'],
   locations: [...locations], order: 30, visible: `record.status == 'partially_shipped' || record.status == 'shipped'`, refreshAfter: true,
   description: '按已发货且尚未开票的数量登记销项发票，并同步生成一笔未收应收账款。',
   successMessage: '销项发票与应收账款已登记',
@@ -67,6 +68,7 @@ return { id: invoiceId, receivable_id: receivableId, order_id: id, quantity: req
 });
 export const ProjectIssueAcceptanceInvoice = defineAction({
   name: 'project_issue_acceptance_invoice', label: '验收开票', objectName: 'forge_project', icon: 'receipt-text',
+  requiredPermissions: ['forge_finance_receivables_operator'],
   locations: [...locations], order: 80, visible: `record.status == 'completed'`, refreshAfter: true,
   description: '项目客户验收通过后，按关联订单的未开票金额登记销项发票和应收。', successMessage: '验收开票与应收已登记',
   params: [
@@ -82,6 +84,7 @@ const projectId=ctx.recordId||(ctx.record&&ctx.record.id),project=ctx.record;if(
 
 export const ReceivableRegisterCollection = defineAction({
   name: 'receivable_register_collection', label: '登记收款', objectName: 'forge_accounts_receivable', icon: 'badge-dollar-sign',
+  requiredPermissions: ['forge_finance_receivables_operator'],
   locations: [...locations], order: 20, visible: `record.status == 'unpaid' || record.status == 'partially_collected'`, refreshAfter: true,
   description: '登记实际到账流水。到账先进入待分配余额，核销审核后才回写应收和订单。',
   successMessage: '收款流水已登记，等待分配核销',
@@ -120,6 +123,7 @@ return { id: receiptId, receivable_id: id, amount, unallocated_amount: amount };
 
 export const CashReceiptAllocate = defineAction({
   name: 'cash_receipt_allocate', label: '分配到应收', objectName: 'forge_cash_receipt', icon: 'split',
+  requiredPermissions: ['forge_finance_receivables_operator'],
   locations: [...locations], order: 20, visible: `record.status == 'unallocated' || record.status == 'partially_allocated'`, refreshAfter: true,
   description: '把待分配到账金额关联到一笔同客户应收，提交后等待核销审核。',
   successMessage: '收款已分配，等待核销审核',
@@ -158,6 +162,7 @@ return { id: allocationId, receipt_id: id, receivable_id: receivable.id, amount,
 
 export const CashReceiptApprovePendingAllocations = defineAction({
   name: 'cash_receipt_approve_pending_allocations', label: '审核待核销', objectName: 'forge_cash_receipt', icon: 'badge-check',
+  requiredPermissions: ['forge_finance_reviewer'],
   locations: [...locations], order: 30, visible: `record.status == 'pending_review'`, refreshAfter: true,
   description: '从收款流水页审核本流水下全部待审核分配，审核后回写应收、发票、订单和项目回款。',
   successMessage: '收款流水下的待核销分配已审核',
@@ -166,7 +171,7 @@ const receiptId=ctx.recordId||(ctx.record&&ctx.record.id),receipt=ctx.record;
 if(ctx.recordLoadDenied===true||!receiptId||!receipt)throw new Error('当前收款流水不存在或不可访问');
 if(receipt.status!=='pending_review')throw new Error('仅待审核收款流水可以审核核销');
 const pending=(await ctx.api.object('forge_collection_allocation').find({where:{receipt_id:receiptId}})).filter(x=>x.status==='pending_review');
-if(!pending.length)throw new Error('当前收款流水没有待审核核销');
+if(!pending.length)throw new Error('当前收款流水没有待审核核销');const actor=ctx.session&&ctx.session.userId;if(!actor||receipt.responsible_id===actor||receipt.created_by===actor||pending.some(x=>x.responsible_id===actor||x.created_by===actor))throw new Error('收款登记人不能审核本人核销');
 const round4=v=>Math.round((Number(v)+Number.EPSILON)*10000)/10000,now=new Date().toISOString();
 let approvedAmount=0;
 for(const allocation of pending){
@@ -196,6 +201,7 @@ return{id:receiptId,status:nextStatus,approved_count:pending.length,approved_amo
 
 export const CollectionAllocationCancel = defineAction({
   name: 'collection_allocation_cancel', label: '取消分配', objectName: 'forge_collection_allocation', icon: 'unlink',
+  requiredPermissions: ['forge_finance_receivables_operator'],
   locations: [...locations], order: 20, visible: `record.status == 'pending_review'`, refreshAfter: true,
   description: '核销审核前解除收款与应收的分配关系，并释放收款待分配余额。', successMessage: '收款分配已取消',
   body: { language: 'js', capabilities: ['api.read', 'api.write'], source: `
@@ -213,12 +219,13 @@ return { id, receipt_id: receipt.id, status: 'cancelled', released_amount: amoun
 
 export const CollectionAllocationApprove = defineAction({
   name: 'collection_allocation_approve', label: '审核核销', objectName: 'forge_collection_allocation', icon: 'badge-check',
+  requiredPermissions: ['forge_finance_reviewer'],
   locations: [...locations], order: 30, visible: `record.status == 'pending_review'`, refreshAfter: true,
   description: '审核通过后回写应收、发票、订单和合同的已收金额。', successMessage: '核销已审核，应收与订单回款已更新',
   body: { language: 'js', capabilities: ['api.read', 'api.write'], source: `
 const id = ctx.recordId || (ctx.record && ctx.record.id); const allocation = ctx.record;
 if (ctx.recordLoadDenied === true || !id || !allocation) throw new Error('当前收款核销不存在或不可访问');
-if (allocation.status !== 'pending_review') throw new Error('仅待审核核销可以审核');
+if (allocation.status !== 'pending_review') throw new Error('仅待审核核销可以审核'); const actor=ctx.session&&ctx.session.userId; if(!actor||allocation.responsible_id===actor||allocation.created_by===actor) throw new Error('收款登记人不能审核本人核销');
 const receivable = await ctx.api.object('forge_accounts_receivable').findOne({ where: { id: allocation.receivable_id } });
 const invoice = await ctx.api.object('forge_sales_invoice').findOne({ where: { id: allocation.invoice_id } });
 const order = await ctx.api.object('forge_sales_order').findOne({ where: { id: allocation.order_id } });
@@ -243,6 +250,7 @@ return { id, receivable_id: receivable.id, invoice_id: invoice.id, order_id: ord
 
 export const CollectionAllocationReverse = defineAction({
   name: 'collection_allocation_reverse', label: '反核销', objectName: 'forge_collection_allocation', icon: 'rotate-ccw',
+  requiredPermissions: ['forge_finance_reviewer'],
   locations: [...locations], order: 40, visible: `record.status == 'approved'`, refreshAfter: true,
   description: '撤回已审核收款核销，恢复应收、发票和订单余额，并把金额退回原收款流水的未分配余额。', successMessage: '收款核销已撤回',
   params: [{ name: 'reversal_reason', label: '反核销原因', type: 'textarea', required: true }],
@@ -262,6 +270,7 @@ await ctx.api.object('forge_collection_reversal_log').insert({name:allocation.co
 
 export const CashReceiptReverse = defineAction({
   name: 'cash_receipt_reverse', label: '撤销到账', objectName: 'forge_cash_receipt', icon: 'undo-2', locations: [...locations], order: 50,
+  requiredPermissions: ['forge_finance_reviewer'],
   visible: `record.status == 'unallocated' || record.status == 'partially_allocated'`, refreshAfter: true,
   description: '在全部分配已取消或反核销后撤销实际到账，并从原资金账户扣回同额余额。', successMessage: '收款到账已撤销',
   params: [{ name: 'reversal_reason', label: '撤销原因', type: 'textarea', required: true }],
@@ -273,6 +282,7 @@ const allocations=await ctx.api.object('forge_collection_allocation').find({wher
 
 export const ProjectReconcileOrderLedger = defineAction({
   name: 'project_reconcile_order_ledger', label: '核对订单履约账', objectName: 'forge_project', icon: 'list-checks',
+  requiredPermissions: ['forge_finance_reviewer'],
   locations: [...locations], order: 75,
   visible: `record.status != 'settled' && record.status != 'archived' && record.status != 'terminated'`,
   refreshAfter: true,
@@ -337,6 +347,7 @@ return{id:projectId,order_count:prepared.length,contract_amount:orderAmount,invo
 
 export const ProjectSettle = defineAction({
   name: 'project_settle', label: '项目结算', objectName: 'forge_project', icon: 'chart-no-axes-combined',
+  requiredPermissions: ['forge_finance_reviewer'],
   locations: [...locations], order: 90, visible: `record.status == 'completed'`, refreshAfter: true,
   description: '在交付验收、全额开票和全额回款后固化项目收入、分类成本和毛利快照。', successMessage: '项目已结算',
   params: [{ field: 'code', objectOverride: 'forge_project_settlement', required: true }, { field: 'settled_on', objectOverride: 'forge_project_settlement', required: true }, { field: 'remarks', objectOverride: 'forge_project_settlement' }],
@@ -348,6 +359,7 @@ const projectId=ctx.recordId||(ctx.record&&ctx.record.id),project=ctx.record;if(
 
 export const PurchaseInboundRegisterInvoice = defineAction({
   name: 'purchase_inbound_register_invoice', label: '登记采购发票', objectName: 'forge_purchase_inbound', icon: 'receipt',
+  requiredPermissions: ['forge_finance_reviewer'],
   locations: [...locations], order: 30, visible: `record.status == 'stocked'`, refreshAfter: true,
   description: '按本次采购入库数量和金额登记一张进项发票，并关联或生成应付账款。',
   successMessage: '进项发票已登记并关联应付账款',
@@ -407,6 +419,7 @@ return { id: invoiceId, payable_id: payableId, inbound_id: id, quantity, total_a
 });
 export const SalesInvoiceRedReverse = defineAction({
   name: 'sales_invoice_red_reverse', label: '红冲发票', objectName: 'forge_sales_invoice', icon: 'receipt-text',
+  requiredPermissions: ['forge_finance_reviewer'],
   locations: [...locations], order: 40, visible: `record.status == 'issued' && (record.invoice_type == 'normal' || record.invoice_type == null)`, refreshAfter: true,
   description: '生成红字销项发票，关闭原应收并回退订单、合同和项目的已开票累计。', successMessage: '销项发票已红冲',
   params: [
@@ -430,6 +443,7 @@ for(const receivable of receivables)await ctx.api.object('forge_accounts_receiva
 
 export const PurchaseInvoiceRedReverse = defineAction({
   name: 'purchase_invoice_red_reverse', label: '红冲发票', objectName: 'forge_purchase_invoice', icon: 'receipt',
+  requiredPermissions: ['forge_finance_reviewer'],
   locations: [...locations], order: 40, visible: `record.status == 'normal' && (record.invoice_type == 'normal' || record.invoice_type == null)`, refreshAfter: true,
   description: '仅在应付从未付款、冲抵或形成有效付款任务时生成红字进项发票并关闭原应付。', successMessage: '进项发票已红冲',
   params: [

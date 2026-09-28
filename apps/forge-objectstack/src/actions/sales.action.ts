@@ -801,7 +801,7 @@ return { id, total_amount: total, status: 'pending_approval', routed: true };
 export const ContractRegisterSignature = defineAction({
   name: 'contract_register_signature', label: '登记客户签署', objectName: 'forge_sales_contract', icon: 'signature',
   locations: [...locations], order: 30, refreshAfter: true,
-  requiredPermissions: ['sales_contract_operator'],
+  requiredPermissions: ['contract_signature_registrar'],
   visible: `record.status == 'active' && record.signed_on == null`,
   description: '内部合同审批通过后，上传客户签署版本并登记实际签订日期；此动作不替代签署本身。',
   successMessage: '客户签署凭证已归档，合同可以进入订单办理',
@@ -827,7 +827,7 @@ if (!file || file.status !== 'committed' || file.owner_id !== actor) throw new E
 return await ctx.api.transaction(async () => {
   const current = await ctx.api.object('forge_sales_contract').findOne({ where: { id } });
   if (!current || current.status !== 'active') throw new Error('合同必须先完成内部审批');
-  if (current.responsible_id !== actor) throw new Error('只有合同负责人可以登记客户签署凭证');
+  if (current.responsible_id === actor) throw new Error('合同负责人不能代替独立登记人归档签署凭证');
   const storedFile = Array.isArray(current.signed_evidence_attachment) ? current.signed_evidence_attachment[0] : current.signed_evidence_attachment;
   const storedFileId = String(typeof storedFile === 'string' ? storedFile : storedFile && storedFile.id || '').trim();
   if (current.signed_on || storedFileId) {
@@ -1314,6 +1314,7 @@ return { id, status: '${to}' };
 
 export const ServiceOrderAccept = defineAction({
   name: 'service_order_accept', label: '受理', objectName: 'forge_service_order', icon: 'circle-check', locations: [...locations], order: 10,
+  requiredPermissions: ['forge_service_operator'],
   visible: `record.status == 'pending_acceptance'`, confirmText: '确认受理该服务工单并进入派工？', refreshAfter: true,
   successMessage: '服务工单已受理，等待派工',
   body: serviceOrderTransitionBody('pending_acceptance', 'pending_dispatch', `patch.accepted_at = now; patch.next_step = '派工';`),
@@ -1321,6 +1322,7 @@ export const ServiceOrderAccept = defineAction({
 
 export const ServiceOrderDispatch = defineAction({
   name: 'service_order_dispatch', label: '派工', objectName: 'forge_service_order', icon: 'route', locations: [...locations], order: 20,
+  requiredPermissions: ['forge_service_operator'],
   visible: `record.status == 'pending_dispatch'`, refreshAfter: true,
   successMessage: '服务工单已派工，等待工程师接单',
   params: [
@@ -1343,6 +1345,7 @@ patch.next_step = '工程师接单';
 
 export const ServiceOrderEngineerAccept = defineAction({
   name: 'service_order_engineer_accept', label: '工程师接单', objectName: 'forge_service_order', icon: 'wrench', locations: [...locations], order: 30,
+  requiredPermissions: ['forge_service_operator'],
   visible: `record.status == 'pending_receive'`, confirmText: '确认工程师已接单并开始服务？', refreshAfter: true,
   successMessage: '工程师已接单，工单进入服务中',
   body: serviceOrderTransitionBody('pending_receive', 'in_progress', `patch.received_at = now; patch.next_step = '处理记录 / 到场签到 / 提交服务结果';`),
@@ -1483,6 +1486,7 @@ return { id, status: 'claimed', customer_id: customerId };
 
 export const ServiceOrderComplete = defineAction({
   name: 'service_order_complete', label: '提交服务结果', objectName: 'forge_service_order', icon: 'check-circle', locations: [...locations], order: 40,
+  requiredPermissions: ['forge_service_operator'],
   visible: `record.status == 'in_progress'`, refreshAfter: true,
   successMessage: '服务工单已完工，可继续生成报价、结算或质保卡',
   params: [
@@ -1511,6 +1515,7 @@ patch.next_step = '服务报价 / 服务结算 / 质保卡';
 
 export const ServiceOrderCreateQuotation = defineAction({
   name: 'service_order_create_quotation', label: '生成服务报价', objectName: 'forge_service_order', icon: 'file-text', locations: [...locations], order: 50,
+  requiredPermissions: ['forge_service_operator'],
   visible: `record.status == 'completed'`, refreshAfter: true,
   successMessage: '服务报价单已生成',
   params: [
@@ -1536,6 +1541,7 @@ return { id: quotationId, code, service_order_id: id };
 
 export const ServiceOrderCreateSettlement = defineAction({
   name: 'service_order_create_settlement', label: '生成服务结算', objectName: 'forge_service_order', icon: 'receipt-text', locations: [...locations], order: 55,
+  requiredPermissions: ['forge_service_operator'],
   visible: `record.status == 'completed'`, refreshAfter: true,
   successMessage: '服务结算单已生成',
   params: [{ field: 'total_amount', objectOverride: 'forge_service_settlement', required: true }],
@@ -1557,6 +1563,7 @@ return { id: settlementId, code, service_order_id: id };
 
 export const ServiceQuotationConfirm = defineAction({
   name: 'service_quotation_confirm', label: '客户确认', objectName: 'forge_service_quotation', icon: 'circle-check', locations: [...locations], order: 10,
+  requiredPermissions: ['forge_service_operator'],
   visible: `record.status == 'draft' || record.status == 'pending_confirmation'`, confirmText: '确认客户已接受这份服务报价？', refreshAfter: true,
   successMessage: '服务报价已确认',
   body: { language: 'js', capabilities: ['api.write'], source: `
@@ -1570,6 +1577,7 @@ return { id, status: 'confirmed' };
 
 export const ServiceQuotationCreateSettlement = defineAction({
   name: 'service_quotation_create_settlement', label: '转服务结算', objectName: 'forge_service_quotation', icon: 'receipt-text', locations: [...locations], order: 20,
+  requiredPermissions: ['forge_service_operator'],
   visible: `record.status == 'confirmed'`, refreshAfter: true,
   successMessage: '服务结算单已生成',
   body: { language: 'js', capabilities: ['api.read', 'api.write', 'api.transaction'], source: `
@@ -1590,6 +1598,7 @@ return { id: settlementId, code, quotation_id: id };
 
 export const ServiceSettlementConfirm = defineAction({
   name: 'service_settlement_confirm', label: '确认结算', objectName: 'forge_service_settlement', icon: 'circle-check', locations: [...locations], order: 10,
+  requiredPermissions: ['forge_service_operator'],
   visible: `record.status == 'draft' || record.status == 'customer_confirming'`, confirmText: '确认服务结算金额并进入财务应收？', refreshAfter: true,
   successMessage: '服务结算已确认',
   body: { language: 'js', capabilities: ['api.write'], source: `
@@ -1603,6 +1612,7 @@ return { id, status: 'confirmed' };
 
 export const ServiceSettlementCreateReceivable = defineAction({
   name: 'service_settlement_create_receivable', label: '生成应收', objectName: 'forge_service_settlement', icon: 'wallet-cards', locations: [...locations], order: 20,
+  requiredPermissions: ['forge_service_operator'],
   visible: `record.status == 'confirmed'`, refreshAfter: true,
   successMessage: '服务应收已生成',
   params: [{ field: 'due_on', objectOverride: 'forge_accounts_receivable', required: true }],
@@ -1626,6 +1636,7 @@ return { id, receivable_code: code };
 
 export const ServiceOrderCreateWarranty = defineAction({
   name: 'service_order_create_warranty', label: '生成质保卡', objectName: 'forge_service_order', icon: 'shield-check', locations: [...locations], order: 60,
+  requiredPermissions: ['forge_service_operator'],
   visible: `record.status == 'completed'`, refreshAfter: true,
   successMessage: '质保卡已生成',
   body: { language: 'js', capabilities: ['api.read', 'api.write'], source: `

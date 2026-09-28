@@ -6,6 +6,14 @@ export { salesLeadConversionPermission, salesLeadOwnerPermission } from './sales
 export { salesQuotationAdjustmentPermission, salesQuotationDraftPermission } from './sales-quotation.permission.js';
 export { salesQuotationReviewerPermission } from './sales-quotation.permission.js';
 export {
+  solutionOperatorPermission, projectGateReviewerPermission, contractLegalReviewerPermission,
+  contractSignatureRegistrarPermission, materialMasterOperatorPermission, procurementOperatorPermission,
+  procurementReviewerPermission, productionOperatorPermission, productionReviewerPermission,
+  warehouseOperatorPermission, warehouseReviewerPermission, qualityInspectorPermission,
+  deliveryOperatorPermission, financeReceivablesOperatorPermission, financeReviewerPermission,
+  serviceOperatorPermission,
+} from './otc-role.permission.js';
+export {
   administrationSettingsManagerPermission,
   documentPrintingSettingsManagerPermission,
   financeSettingsManagerPermission,
