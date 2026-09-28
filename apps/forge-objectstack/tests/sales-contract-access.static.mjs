@@ -88,6 +88,11 @@ const contractSubmit = salesActions.slice(
   salesActions.indexOf('export const ContractSubmit = defineAction'),
   salesActions.indexOf('export const ContractSubmitFrozenMaterial'),
 );
+const contractDraftCreate = salesActions.slice(
+  salesActions.indexOf("export const SalesContractDraftCreate = defineAction"),
+  salesActions.indexOf('export const ContractSubmit = defineAction'),
+);
+assert.match(contractDraftCreate, /const contract = await ctx\.api\.object\('forge_sales_contract'\)\.insert\([\s\S]*?owner_id: actor,[\s\S]*?responsible_id: actor/);
 assert.match(contractSubmit, /if \(!organizationId\) throw new Error/);
 assert.match(contractSubmit, /sku\.enabled === false/);
 assert.match(contractSubmit, /material\.status === 'inactive'/);

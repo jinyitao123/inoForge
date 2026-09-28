@@ -22,4 +22,26 @@ BEGIN
 END
 $migration$;
 
+-- A previous draft Action persisted responsible_id/created_by but omitted the
+-- platform ownership field used by the sales operator's own-record read scope.
+-- Only restore drafts whose creator and responsible employee already agree.
+DO $migration$
+BEGIN
+  IF (
+    SELECT COUNT(*) = 4
+    FROM information_schema.columns
+    WHERE table_schema = current_schema()
+      AND table_name = 'forge_sales_contract'
+      AND column_name IN ('owner_id', 'created_by', 'responsible_id', 'status')
+  ) THEN
+    UPDATE forge_sales_contract
+    SET owner_id = responsible_id
+    WHERE owner_id IS NULL
+      AND status = 'draft'
+      AND created_by = responsible_id
+      AND responsible_id IS NOT NULL;
+  END IF;
+END
+$migration$;
+
 COMMIT;
