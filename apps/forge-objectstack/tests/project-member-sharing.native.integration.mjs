@@ -94,6 +94,13 @@ test('native project shares grant and revoke project and evidence read for an as
     return { status: response.status, value: await response.json().catch(() => ({})) };
   }
 
+  async function download(client, fileId) {
+    const response = await fetch(`${origin}/api/v1/storage/files/${fileId}`, {
+      headers: { Cookie: client.cookie },
+    });
+    return { status: response.status, bytes: Buffer.from(await response.arrayBuffer()) };
+  }
+
   function idOf(response, label) {
     const id = response.value.id || response.value.record?.id || response.value.data?.id || response.value.data?.record?.id;
     assert.ok(response.status >= 200 && response.status < 300 && id,
@@ -158,8 +165,33 @@ test('native project shares grant and revoke project and evidence read for an as
   assert.equal((await request(member, `/data/forge_project_log/${log}`)).status, 200);
   assert.equal((await request(outsider, `/data/forge_project_log/${log}`)).status, 404);
 
+  const bytes = Buffer.from('project member file readback');
+  const presigned = await request(admin, '/storage/upload/presigned', 'POST', {
+    filename: 'project-material.txt', mimeType: 'text/plain', size: bytes.length, scope: 'user',
+  });
+  assert.equal(presigned.status, 200, 'project file descriptor');
+  const upload = presigned.value.data || presigned.value;
+  const uploaded = await fetch(new URL(upload.uploadUrl, origin), {
+    method: upload.method || 'PUT', headers: upload.headers || {}, body: bytes,
+  });
+  assert.ok(uploaded.ok, `project file upload HTTP ${uploaded.status}`);
+  assert.equal((await request(admin, '/storage/upload/complete', 'POST', { fileId: upload.fileId })).status, 200);
+  const attachment = idOf(await request(admin, '/data/forge_project_attachment', 'POST', {
+    name: '项目技术资料', attachment_key: `PSA-${runId}`, project_id: project,
+    attachment: upload.fileId, category: 'technical',
+  }), 'project attachment');
+  assert.equal((await request(member, `/data/forge_project_attachment/${attachment}`)).status, 200);
+  assert.equal((await request(outsider, `/data/forge_project_attachment/${attachment}`)).status, 404);
+  const memberFile = await download(member, upload.fileId);
+  assert.equal(memberFile.status, 200,
+    'assigned project member must read the real attachment bytes');
+  assert.deepEqual(memberFile.bytes, bytes);
+  assert.ok((await download(outsider, upload.fileId)).status >= 400);
+
   const deactivated = await request(admin, `/data/forge_project_member/${membership}`, 'PATCH', { active: false });
   assert.ok(deactivated.status >= 200 && deactivated.status < 300, `deactivate HTTP ${deactivated.status}`);
   assert.equal((await request(member, `/data/forge_project/${project}`)).status, 404);
   assert.equal((await request(member, `/data/forge_project_log/${log}`)).status, 404);
+  assert.equal((await request(member, `/data/forge_project_attachment/${attachment}`)).status, 404);
+  assert.ok((await download(member, upload.fileId)).status >= 400);
 });
