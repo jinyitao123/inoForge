@@ -101,6 +101,7 @@ export const ReceivableRegisterCollection = defineAction({
   body: { language: 'js', capabilities: ['api.read', 'api.write'], source: `
 const id = ctx.recordId || (ctx.record && ctx.record.id); const receivable = ctx.record;
 if (ctx.recordLoadDenied === true || !id || !receivable) throw new Error('当前应收账款不存在或不可访问');
+const actor=ctx.session&&ctx.session.userId;if(!actor)throw new Error('无法识别当前收款登记人');
 if (!['unpaid', 'partially_collected'].includes(receivable.status)) throw new Error('仅未收款或部分收款应收可以登记收款');
 const amount = Number(ctx.input.amount || 0); if (!(amount > 0)) throw new Error('收款金额必须大于0');
 if (amount > Number(receivable.outstanding_amount || 0)) throw new Error('收款金额不得超过当前应收余额');
@@ -108,10 +109,10 @@ const account = await ctx.api.object('forge_fund_account').findOne({ where: { id
 if (!account || account.status !== 'active') throw new Error('收款账户不存在或未启用');
 const periods=await ctx.api.object('forge_financial_period').find({where:{account_id:account.id}});if(periods.length&&!periods.some(x=>x.status==='open'&&String(ctx.input.received_on)>=x.period_start&&String(ctx.input.received_on)<=x.period_end))throw new Error('收款日期不在开放财务期间内');
 const created = await ctx.api.object('forge_cash_receipt').insert({
-  name: receivable.code + ' 收款 ' + ctx.input.code, code: ctx.input.code, customer_id: receivable.customer_id,
+  name: receivable.code + ' 收款 ' + ctx.input.code, code: ctx.input.code, owner_id:actor, customer_id: receivable.customer_id,
   account_id: ctx.input.account_id, received_on: ctx.input.received_on, payment_method: ctx.input.payment_method,
   amount, allocated_amount: 0, unallocated_amount: amount, status: 'unallocated',
-  counterpart_reference: ctx.input.counterpart_reference || null, responsible_id: receivable.responsible_id,
+  counterpart_reference: ctx.input.counterpart_reference || null, responsible_id: actor,
   remarks: ctx.input.remarks || ('为应收 ' + receivable.code + ' 登记到账'),
 });
 const receiptId = typeof created === 'string' ? created : created && (created.id || (created.record && created.record.id));
@@ -138,6 +139,7 @@ export const CashReceiptAllocate = defineAction({
   body: { language: 'js', capabilities: ['api.read', 'api.write'], source: `
 const id = ctx.recordId || (ctx.record && ctx.record.id); const receipt = ctx.record;
 if (ctx.recordLoadDenied === true || !id || !receipt) throw new Error('当前收款流水不存在或不可访问');
+const actor=ctx.session&&ctx.session.userId;if(!actor||receipt.responsible_id!==actor)throw new Error('仅收款登记人可分配本人流水');
 if (!['unallocated', 'partially_allocated'].includes(receipt.status)) throw new Error('当前收款流水没有可分配余额');
 const receivable = await ctx.api.object('forge_accounts_receivable').findOne({ where: { id: ctx.input.receivable_id } });
 if (!receivable || !['unpaid', 'partially_collected'].includes(receivable.status)) throw new Error('目标应收不存在或已结清');
@@ -147,10 +149,10 @@ if (!(amount > 0)) throw new Error('分配金额必须大于0');
 if (amount > available) throw new Error('分配金额不得超过收款未分配余额');
 if (amount > Number(receivable.outstanding_amount || 0)) throw new Error('分配金额不得超过应收余额');
 const created = await ctx.api.object('forge_collection_allocation').insert({
-  name: receipt.code + ' 核销 ' + receivable.code, code: ctx.input.code, receipt_id: id, receivable_id: receivable.id,
+  name: receipt.code + ' 核销 ' + receivable.code, code: ctx.input.code, owner_id:actor, receipt_id: id, receivable_id: receivable.id,
   invoice_id: receivable.invoice_id, order_id: receivable.order_id, contract_id: receivable.contract_id || null,
   customer_id: receivable.customer_id, allocated_on: ctx.input.allocated_on, amount, status: 'pending_review',
-  responsible_id: receipt.responsible_id, remarks: ctx.input.remarks || ('收款 ' + receipt.code + ' 分配到 ' + receivable.code),
+  responsible_id: actor, remarks: ctx.input.remarks || ('收款 ' + receipt.code + ' 分配到 ' + receivable.code),
 });
 const allocationId = typeof created === 'string' ? created : created && (created.id || (created.record && created.record.id));
 if (!allocationId) throw new Error('收款核销创建后未返回记录ID');

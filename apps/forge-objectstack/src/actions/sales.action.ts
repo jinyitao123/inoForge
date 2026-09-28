@@ -1334,7 +1334,7 @@ if(!customer||!order||String(customer.organization_id||'')!==organizationId||Str
 if(draft.contract_id&&order.contract_id!==draft.contract_id)throw new Error('关联合同与来源订单不匹配');
 let contact=null;if(draft.contact_id){contact=await ctx.api.object('forge_contact').findOne({where:{id:draft.contact_id}});if(!contact||contact.customer_id!==customer.id||String(contact.organization_id||'')!==organizationId)throw new Error('联系人不属于当前客户')}
 const fields=['service_address','service_object','service_type','region','warranty_starts_on','warranty_ends_on','warranty_status','responsibility_type','quotation_handling','fault_symptom','impact_scope','expected_visit_on','remarks'];
-const payload={name,code,customer_id:customer.id,contact_id:contact&&contact.id||null,contact_phone:String(draft.contact_phone||contact&&contact.phone||''),sales_order_id:order.id,contract_id:order.contract_id||null,service_mode:draft.service_mode,urgency:draft.urgency,status:'pending_acceptance',next_step:'受理',submitted_at:new Date().toISOString(),responsible_id:actor};
+const payload={name,code,owner_id:actor,customer_id:customer.id,contact_id:contact&&contact.id||null,contact_phone:String(draft.contact_phone||contact&&contact.phone||''),sales_order_id:order.id,contract_id:order.contract_id||null,service_mode:draft.service_mode,urgency:draft.urgency,status:'pending_acceptance',next_step:'受理',submitted_at:new Date().toISOString(),responsible_id:actor};
 for(const field of fields)if(draft[field]!==undefined&&draft[field]!==null)payload[field]=String(draft[field]).trim();
 const saved=await ctx.api.object('forge_service_order').insert(payload);
 const id=typeof saved==='string'?saved:saved&&(saved.id||(saved.record&&saved.record.id));
@@ -1563,7 +1563,7 @@ const actor = ctx.session && ctx.session.userId;
 const existing = await ctx.api.object('forge_service_quotation').find({ where: { service_order_id: id } });
 if (existing.length) throw new Error('该服务工单已生成服务报价');
 const code = 'SQ-' + new Date().toISOString().replace(/[-:TZ.]/g,'').slice(0,14);
-const created = await ctx.api.object('forge_service_quotation').insert({ name: order.name + ' - 服务报价', code, service_order_id: id, order_code: order.code, customer_id: order.customer_id, contact_id: order.contact_id || null, total_amount: amount, status: 'draft', valid_until: ctx.input.valid_until, responsible_id: order.responsible_id || actor || null, remarks: order.service_result || order.remarks || null });
+const created = await ctx.api.object('forge_service_quotation').insert({ name: order.name + ' - 服务报价', code, owner_id:actor, service_order_id: id, order_code: order.code, customer_id: order.customer_id, contact_id: order.contact_id || null, total_amount: amount, status: 'draft', valid_until: ctx.input.valid_until, responsible_id: order.responsible_id || actor || null, remarks: order.service_result || order.remarks || null });
 const quotationId = typeof created === 'string' ? created : created && (created.id || (created.record && created.record.id));
 await ctx.api.object('forge_service_order').update({ id, quotation_code: code, quotation_handling: '已生成服务报价', next_step: '客户确认服务报价' });
 return { id: quotationId, code, service_order_id: id };
@@ -1585,7 +1585,7 @@ const actor = ctx.session && ctx.session.userId;
 const existing = await ctx.api.object('forge_service_settlement').find({ where: { service_order_id: id } });
 if (existing.length) throw new Error('该服务工单已生成服务结算');
 const code = 'SS-' + new Date().toISOString().replace(/[-:TZ.]/g,'').slice(0,14);
-const created = await ctx.api.object('forge_service_settlement').insert({ name: order.name + ' - 服务结算', code, service_order_id: id, quotation_id: null, order_code: order.code, customer_id: order.customer_id, contact_id: order.contact_id || null, total_amount: amount, status: 'draft', responsible_id: order.responsible_id || actor || null, remarks: order.service_result || order.remarks || null });
+const created = await ctx.api.object('forge_service_settlement').insert({ name: order.name + ' - 服务结算', code, owner_id:actor, service_order_id: id, quotation_id: null, order_code: order.code, customer_id: order.customer_id, contact_id: order.contact_id || null, total_amount: amount, status: 'draft', responsible_id: order.responsible_id || actor || null, remarks: order.service_result || order.remarks || null });
 const settlementId = typeof created === 'string' ? created : created && (created.id || (created.record && created.record.id));
 await ctx.api.object('forge_service_order').update({ id, settlement_code: code, next_step: '服务结算确认 / 财务应收' });
 return { id: settlementId, code, service_order_id: id };
@@ -1619,7 +1619,7 @@ const existing = await ctx.api.object('forge_service_settlement').find({ where: 
 if (existing.length) throw new Error('该服务报价已生成服务结算');
 const actor = ctx.session && ctx.session.userId;
 const code = 'SS-' + new Date().toISOString().replace(/[-:TZ.]/g,'').slice(0,14);
-const created = await ctx.api.object('forge_service_settlement').insert({ name: quote.name.replace('服务报价','服务结算'), code, service_order_id: quote.service_order_id || null, quotation_id: id, order_code: quote.order_code, customer_id: quote.customer_id, contact_id: quote.contact_id || null, total_amount: Number(quote.total_amount || 0), status: 'draft', responsible_id: quote.responsible_id || actor || null, remarks: quote.remarks || null });
+const created = await ctx.api.object('forge_service_settlement').insert({ name: quote.name.replace('服务报价','服务结算'), code, owner_id:actor, service_order_id: quote.service_order_id || null, quotation_id: id, order_code: quote.order_code, customer_id: quote.customer_id, contact_id: quote.contact_id || null, total_amount: Number(quote.total_amount || 0), status: 'draft', responsible_id: quote.responsible_id || actor || null, remarks: quote.remarks || null });
 const settlementId = typeof created === 'string' ? created : created && (created.id || (created.record && created.record.id));
 await ctx.api.object('forge_service_quotation').update({ id, status: 'settlement_created' });
 if (quote.service_order_id) await ctx.api.object('forge_service_order').update({ id: quote.service_order_id, settlement_code: code, next_step: '服务结算确认' });
@@ -1674,10 +1674,11 @@ export const ServiceOrderCreateWarranty = defineAction({
 const id = ctx.recordId || (ctx.record && ctx.record.id); const order = ctx.record;
 if (ctx.recordLoadDenied === true || !id || !order) throw new Error('当前服务工单不存在或不可访问');
 if (order.status !== 'completed') throw new Error('仅已完工服务工单可以生成质保卡');
+const actor=ctx.session&&ctx.session.userId;if(!actor)throw new Error('无法识别当前服务员工');
 const existing = await ctx.api.object('forge_warranty_card').find({ where: { service_order_id: id } });
 if (existing.length) throw new Error('该服务工单已生成质保卡');
 const code = 'WC-' + new Date().toISOString().replace(/[-:TZ.]/g,'').slice(0,14);
-await ctx.api.object('forge_warranty_card').insert({ name: order.service_object || order.name, code, service_order_id: id, sales_order_id: order.sales_order_id || null, customer_id: order.customer_id, product_sn: order.service_object || order.name, scope: '整机/整单服务', starts_on: order.warranty_starts_on || new Date().toISOString().slice(0,10), ends_on: order.warranty_ends_on || null, status: 'active', responsible_party: '供应商', remarks: order.service_result || null });
+await ctx.api.object('forge_warranty_card').insert({ name: order.service_object || order.name, code, owner_id:actor, service_order_id: id, sales_order_id: order.sales_order_id || null, customer_id: order.customer_id, product_sn: order.service_object || order.name, scope: '整机/整单服务', starts_on: order.warranty_starts_on || new Date().toISOString().slice(0,10), ends_on: order.warranty_ends_on || null, status: 'active', responsible_party: '供应商', remarks: order.service_result || null });
 await ctx.api.object('forge_service_order').update({ id, warranty_code: code });
 return { id, warranty_code: code };
 ` },
