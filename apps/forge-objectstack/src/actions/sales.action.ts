@@ -712,7 +712,7 @@ return await ctx.api.transaction(async () => {
     delivery_address: text(header.delivery_address, '收货地址', false), delivery_contact: text(header.delivery_contact, '收货人', false), delivery_phone: text(header.delivery_phone, '收货联系电话', false),
     signed_on: null, signed_evidence_attachment: null, signed_evidence_note: null,
     signed_recorded_by: null, signed_recorded_at: null, starts_on: header.starts_on || null, ends_on: header.ends_on || null,
-    responsible_id: actor, collaborator_ids: header.collaborator_ids || [], total_amount: total,
+    owner_id: actor, responsible_id: actor, collaborator_ids: header.collaborator_ids || [], total_amount: total,
     has_order_amount_limit: Boolean(header.has_order_amount_limit), order_amount_limit: header.has_order_amount_limit ? number(header.order_amount_limit, '累计下单金额上限', 0.0001, 1000000000000) : 0,
     allow_affiliate_orders: Boolean(header.allow_affiliate_orders), affiliate_company_names: header.allow_affiliate_orders ? text(header.affiliate_company_names, '关联公司', false, 2000) : null,
     outside_item_requires_approval: header.outside_item_requires_approval !== false, all_orders_require_approval: Boolean(header.all_orders_require_approval),
