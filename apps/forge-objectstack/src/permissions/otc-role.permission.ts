@@ -395,14 +395,30 @@ export const financeReviewerPermission = definePermissionSet({
 
 export const serviceOperatorPermission = definePermissionSet({
   name: 'forge_service_operator', label: '售后服务办理',
-  description: '办理本人负责的质保范围内工单和服务结果；不读取无关客户财务记录。',
+  description: '办理指派给本人的服务工单与服务结果；客户、联系人、订单和合同按本人记录或工单关联分享读取，不办理报价、结算与应收。',
   systemPermissions: ['forge_service_operator'],
   fields: nonFinancialFieldMask,
   objects: {
     forge_service_order: ownRead,
-    forge_service_quotation: ownRead,
-    forge_service_settlement: ownRead,
     forge_warranty_card: ownRead,
+    forge_customer: ownRead,
+    forge_contact: ownRead,
+    forge_sales_order: ownRead,
+    forge_sales_contract: ownRead,
+    sys_file: ownRead,
+  },
+});
+
+export const serviceManagerPermission = definePermissionSet({
+  name: 'forge_service_manager', label: '售后服务主管',
+  description: '受理、派工并跟踪本组织售后工单，维护服务报价、结算和应收衔接。',
+  systemPermissions: ['forge_service_manager'],
+  fields: nonFinancialFieldMask,
+  objects: {
+    forge_service_order: orgRead,
+    forge_service_quotation: orgRead,
+    forge_service_settlement: orgRead,
+    forge_warranty_card: orgRead,
     forge_customer: orgRead,
     forge_contact: orgRead,
     forge_sales_order: orgRead,

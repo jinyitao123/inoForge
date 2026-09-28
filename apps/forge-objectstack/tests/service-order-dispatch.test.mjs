@@ -89,7 +89,7 @@ test('candidate Action returns only active same-org ordinary members in the serv
   const result = await execute(ServiceOrderDispatchEngineers, h.ctx);
   assert.deepEqual(result.engineers, [{ id: 'engineer-1', name: '售后工程师甲' }]);
   assert.equal(h.writes.length, 0);
-  assert.deepEqual(ServiceOrderDispatchEngineers.requiredPermissions, ['forge_service_operator']);
+  assert.deepEqual(ServiceOrderDispatchEngineers.requiredPermissions, ['forge_service_manager']);
 });
 
 test('dispatch Action binds the selected user and transfers own-read ownership to that user', async () => {
@@ -118,11 +118,13 @@ test('dispatch rejects a user without an effective service assignment before wri
   assert.equal(h.writes.length, 0);
 });
 
-test('dispatch rejects a caller who does not own the pending work order', async () => {
-  const h = harness({ order: { ...orderSeed, owner_id: 'another-user', responsible_id: 'another-user' } });
-  h.ctx.input = { engineer_id: 'engineer-1', dispatch_note: '安排处理' };
-  await assert.rejects(() => execute(ServiceOrderDispatch, h.ctx), /只有当前工单负责人可以派工/);
-  assert.equal(h.writes.length, 0);
+test('supervisor capability can dispatch an in-org queue item created by another supervisor', async () => {
+  const h = harness({ order: { ...orderSeed, owner_id: 'another-supervisor', responsible_id: 'another-supervisor' } });
+  h.ctx.input = { engineer_id: 'engineer-1', dispatch_note: '主管接续处理待派工队列' };
+  const result = await execute(ServiceOrderDispatch, h.ctx);
+  assert.equal(result.status, 'pending_receive');
+  assert.equal(h.rows.forge_service_order[0].owner_id, 'engineer-1');
+  assert.deepEqual(ServiceOrderDispatch.requiredPermissions, ['forge_service_manager']);
 });
 
 test('only the assigned engineer can accept, and the assigned engineer can read back the accepted order', async () => {
@@ -153,6 +155,15 @@ test('service pages select account ids and remove the hard-coded dispatch target
   assert.match(page, /scheduled_at:row\.expected_visit_on\|\|''/);
   assert.doesNotMatch(page, /scheduled_at:'2026-09-15'/);
   assert.doesNotMatch(page, /售后工程师-苏州现场支持|SVC-ENG-SUZHOU-0913|派给苏州现场支持工程师处理/);
+});
+
+test('engineer page loads only references linked from visible service orders', () => {
+  assert.match(ServiceOrdersPage.source, /service_order_manager_context/);
+  assert.match(ServiceOrdersPage.source, /loadRelated\('forge_customer',rows\.map\(x=>x\.customer_id\)\)/);
+  assert.match(ServiceOrdersPage.source, /loadRelated\('forge_sales_order',rows\.map\(x=>x\.sales_order_id\)\)/);
+  assert.match(ServiceOrdersPage.source, /state\.canManage&&/);
+  assert.match(ServiceDispatchPage.source, /当前账号无权访问此页面/);
+  assert.match(ServiceWorkspacePage.source, /loadRelated\('forge_contact',rows\.map\(row=>row\.contact_id\)\)/);
 });
 
 test('dispatch and receiving page source parses after the role-based controls change', () => {
