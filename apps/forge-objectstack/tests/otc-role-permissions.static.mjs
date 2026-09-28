@@ -191,6 +191,28 @@ test('OTC role grants are named, bounded and omit destructive or blanket access'
   }
 });
 
+test('finance reversals remain readable to reviewers and service financial fields stay hidden', () => {
+  const reviewer = roleSets.find(permission => permission.name === 'forge_finance_reviewer');
+  const receiptRule = reviewer.rowLevelSecurity.find(rule => rule.object === 'forge_cash_receipt');
+  const allocationRule = reviewer.rowLevelSecurity.find(rule => rule.object === 'forge_collection_allocation');
+  assert.match(receiptRule.using, /unallocated/);
+  assert.match(receiptRule.using, /partially_allocated/);
+  assert.match(allocationRule.using, /approved/);
+  assert.equal(reviewer.objects.forge_sales_contract.allowRead, true);
+  const service = roleSets.find(permission => permission.name === 'forge_service_operator');
+  for (const field of [
+    'forge_sales_order.total_amount', 'forge_sales_order.recognized_amount',
+    'forge_sales_order.company_account_id', 'forge_sales_order.payment_term',
+    'forge_sales_order.payment_method',
+    'forge_sales_contract.total_amount', 'forge_sales_contract.order_amount_limit',
+    'forge_sales_contract.payment_term', 'forge_sales_contract.business_terms',
+    'forge_customer.credit_limit', 'forge_customer.bank_account',
+    'forge_customer.tax_number', 'forge_customer.invoice_address',
+  ]) {
+    assert.equal(service.fields[field]?.readable, false, field);
+  }
+});
+
 test('contract signature registration is a separate action, not a general contract edit grant', () => {
   const registrar = roleSets.find(permission => permission.name === 'contract_signature_registrar');
   assert.deepEqual(ContractRegisterSignature.requiredPermissions, ['contract_signature_registrar']);
