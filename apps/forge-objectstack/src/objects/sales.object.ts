@@ -106,6 +106,7 @@ export const SalesContract = master('forge_sales_contract', '框架销售合同'
   status: { ...choice('合同状态', ['草稿', '待审批', '执行中', '已完成', '已终止', '已驳回'], '草稿'), readonly: true },
   payment_term: text('付款条件'), delivery_cycle_days: Field.number({ label: '交货周期（天）', min: 0, scale: 0, defaultValue: 21 }),
   warranty_months: Field.number({ label: '质保期（月）', min: 0, scale: 0 }), business_terms: Field.textarea({ label: '合同条款' }),
+  requires_legal_review: Field.boolean({ label: '非标条款需要法务复核', defaultValue: false }),
   attachment_ids: Field.file({ label: '合同附件', multiple: true }), attachment_note: text('附件说明'),
   draft_request_signature: Field.text({ label: '草稿请求摘要', maxLength: 32, hidden: true, readonly: true }),
   submitted_material_id: Field.file({ label: '本次提交版本', readonly: true }),

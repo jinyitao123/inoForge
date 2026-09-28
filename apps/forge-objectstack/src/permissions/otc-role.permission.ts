@@ -2,6 +2,7 @@ import { definePermissionSet } from '@objectstack/spec';
 import { salesQuotationCostFieldMask } from './sales-quotation.permission.js';
 
 const ownRead = { allowRead: true, readScope: 'own' as const };
+const ownEvidenceCreate = { allowCreate: true, allowRead: true, readScope: 'own' as const, writeScope: 'own' as const };
 const orgRead = { allowRead: true, readScope: 'org' as const };
 const orgMasterWork = {
   allowCreate: true, allowRead: true, allowEdit: true,
@@ -25,13 +26,14 @@ const nonFinancialFieldMask = {
 // only organization master-data maintenance uses generic create/edit grants.
 export const solutionOperatorPermission = definePermissionSet({
   name: 'forge_solution_operator', label: '解决方案办理',
-  description: '整理本人负责项目的需求、方案和技术材料；不办理销售成交或项目审批。',
+  description: '为有效任职项目上传技术材料、记录方案与SOW工作；不办理销售成交或项目审批。',
   systemPermissions: ['forge_solution_operator', 'forge_project_work_member'],
   fields: nonFinancialFieldMask,
   objects: {
     forge_project: ownRead,
     forge_project_work_item: ownRead,
-    forge_project_attachment: ownRead,
+    forge_project_attachment: ownEvidenceCreate,
+    forge_project_log: ownEvidenceCreate,
     forge_customer: ownRead,
     forge_sales_contract: ownRead,
     forge_sales_contract_line: ownRead,
@@ -41,7 +43,7 @@ export const solutionOperatorPermission = definePermissionSet({
 
 export const projectGateReviewerPermission = definePermissionSet({
   name: 'forge_project_gate_reviewer', label: '项目阶段材料复核',
-  description: '读取本人获分配项目的阶段材料；正式阶段批准另由审批流程决定。',
+  description: '为有效任职项目检查阶段材料并登记评审组织记录；正式阶段批准另由审批流程决定。',
   systemPermissions: ['forge_project_gate_reviewer'],
   fields: nonFinancialFieldMask,
   objects: {
@@ -49,6 +51,7 @@ export const projectGateReviewerPermission = definePermissionSet({
     forge_project_plan: ownRead,
     forge_project_work_item: ownRead,
     forge_project_attachment: ownRead,
+    forge_project_log: ownEvidenceCreate,
     forge_project_type: orgRead,
   },
 });
@@ -210,6 +213,10 @@ export const warehouseOperatorPermission = definePermissionSet({
     forge_inventory_serial_number: orgRead,
     forge_purchase_order: orgRead,
     forge_purchase_order_line: orgRead,
+    forge_purchase_inspection: orgRead,
+    forge_purchase_inbound_approval_log: orgRead,
+    forge_supplier: orgRead,
+    sys_user: orgRead,
     forge_warehouse: orgRead,
     forge_material: orgRead,
     forge_material_sku: orgRead,
@@ -224,6 +231,12 @@ export const warehouseReviewerPermission = definePermissionSet({
   objects: {
     forge_purchase_inbound: orgRead,
     forge_purchase_inbound_line: orgRead,
+    forge_purchase_inspection: orgRead,
+    forge_purchase_inbound_approval_log: orgRead,
+    forge_purchase_order: orgRead,
+    forge_purchase_order_line: orgRead,
+    forge_supplier: orgRead,
+    sys_user: orgRead,
     forge_opening_inbound: orgRead,
     forge_opening_inbound_line: orgRead,
     forge_other_inbound: orgRead,
@@ -252,6 +265,7 @@ export const qualityInspectorPermission = definePermissionSet({
     forge_production_inbound: ownRead,
     forge_inspection_plan: orgRead,
     forge_inspection_plan_item: orgRead,
+    sys_user: orgRead,
     forge_material: orgRead,
     forge_material_sku: orgRead,
   },
@@ -291,6 +305,9 @@ export const financeReceivablesOperatorPermission = definePermissionSet({
     forge_sales_contract: orgRead,
     forge_sales_order: orgRead,
     forge_project: orgRead,
+    forge_project_sales_link: orgRead,
+    forge_project_settlement: orgRead,
+    sys_user: orgRead,
   },
 });
 
@@ -308,6 +325,7 @@ export const financeReviewerPermission = definePermissionSet({
     forge_customer: orgRead,
     forge_sales_order: orgRead,
     forge_supplier: orgRead,
+    sys_user: orgRead,
   },
   rowLevelSecurity: [
     { name: 'review_pending_receipts', object: 'forge_cash_receipt', operation: 'select', using: "status == 'pending_review'" },

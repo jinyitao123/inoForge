@@ -17,6 +17,10 @@ import * as allActions from '../src/actions/index.ts';
 import { PurchaseRequestPage } from '../src/pages/purchase-request.page.ts';
 import { PurchaseInspectionWorkspacePage } from '../src/pages/purchase-inspection-workspace.page.ts';
 import { ProductionAssemblyWorkspacePage } from '../src/pages/production-assembly-workspace.page.ts';
+import { ServiceOrdersPage } from '../src/pages/sales-crm-service-pages.page.ts';
+import { SalesContractCreatePage } from '../src/pages/sales-contract-create.page.ts';
+import { SalesContractApprovalFlow, SalesContractLegalApprovalFlow } from '../src/flows/sales-contract-approval.flow.ts';
+import { ProjectAttachmentAssignmentGuard, ProjectLogAssignmentGuard } from '../src/hooks/project-evidence.hook.ts';
 
 const expected = new Set([
   'forge_solution_operator', 'forge_project_gate_reviewer', 'sales_contract_legal_reviewer',
@@ -48,6 +52,7 @@ test('purchase request page saves drafts through its bounded action', () => {
   const save = procurementActions.PurchaseRequestSaveDraft;
   assert.deepEqual(save.requiredPermissions, ['forge_procurement_operator']);
   assert.match(PurchaseRequestPage.source, /purchase_request_save_draft/);
+  assert.match(PurchaseRequestPage.source, /p\.result\?\.id/);
   assert.doesNotMatch(PurchaseRequestPage.source, /method:'DELETE'/);
   assert.doesNotMatch(PurchaseRequestPage.source, /request\('\/data\/forge_purchase_request/);
 });
@@ -92,6 +97,35 @@ test('production operator cannot bypass independent assembly release when creati
   assert.doesNotMatch(ProductionAssemblyWorkspacePage.source, /保存并下达/);
 });
 
+test('service orders are opened through the service capability with linked customer and order checks', () => {
+  const create = allActions.ServiceOrderCreate;
+  assert.deepEqual(create.requiredPermissions, ['forge_service_operator']);
+  assert.match(create.body.source, /order\.customer_id!==customer\.id/);
+  assert.match(ServiceOrdersPage.source, /service_order_create/);
+  assert.doesNotMatch(ServiceOrdersPage.source, /request\('\/data\/forge_service_order'/);
+});
+
+test('project evidence creation requires an actual project assignment', async () => {
+  for (const guard of [ProjectAttachmentAssignmentGuard, ProjectLogAssignmentGuard]) {
+    const invoke = new Function('ctx', `return (async () => { ${guard.body.source} })()`);
+    const input = { project_id: 'project-a' };
+    const ctx = {
+      session: { userId: 'staff-a', organizationId: 'org-a' }, input,
+      api: { object: name => ({
+        findOne: async () => name === 'forge_project' ? { id: 'project-a', organization_id: 'org-a', manager_id: 'manager-a' } : null,
+        find: async () => name === 'forge_project_member' ? [] : [],
+      }) },
+    };
+    await assert.rejects(invoke(ctx), /仅项目负责人或有效成员/);
+    ctx.api.object = name => ({
+      findOne: async () => name === 'forge_project' ? { id: 'project-a', organization_id: 'org-a', manager_id: 'manager-a' } : null,
+      find: async () => name === 'forge_project_member' ? [{ user_id: 'staff-a', active: true }] : [],
+    });
+    await invoke(ctx);
+    assert.equal(input[guard.object === 'forge_project_log' ? 'author_id' : 'uploaded_by'], 'staff-a');
+  }
+});
+
 test('OTC role grants are named, bounded and omit destructive or blanket access', () => {
   for (const permission of roleSets) {
     assert.ok(permission.systemPermissions?.includes(permission.name), permission.name);
@@ -101,9 +135,14 @@ test('OTC role grants are named, bounded and omit destructive or blanket access'
       assert.equal(grant.allowDelete, false, `${permission.name}: delete ${name}`);
       assert.equal(grant.viewAllRecords, false, `${permission.name}: view all ${name}`);
       assert.equal(grant.modifyAllRecords, false, `${permission.name}: modify all ${name}`);
-      if (permission.name !== 'forge_material_master_operator') {
+      const evidenceCreate = (permission.name === 'forge_solution_operator' && ['forge_project_attachment', 'forge_project_log'].includes(name))
+        || (permission.name === 'forge_project_gate_reviewer' && name === 'forge_project_log');
+      if (permission.name !== 'forge_material_master_operator' && !evidenceCreate) {
         assert.equal(grant.allowCreate, false, `${permission.name}: generic create ${name}`);
         assert.equal(grant.allowEdit, false, `${permission.name}: generic edit ${name}`);
+      } else if (evidenceCreate) {
+        assert.equal(grant.allowCreate, true, `${permission.name}: evidence create ${name}`);
+        assert.equal(grant.allowEdit, false, `${permission.name}: evidence edit ${name}`);
       }
     }
   }
@@ -117,6 +156,22 @@ test('contract signature registration is a separate action, not a general contra
   assert.equal(registrar.objects.forge_sales_contract.allowCreate, false);
   assert.match(registrar.rowLevelSecurity[0].using, /signed_recorded_by == current_user\.id/);
   assert.match(ContractRegisterSignature.body.source, /current\.responsible_id === actor/);
+});
+
+test('nonstandard contracts route legal review while standard contracts retain two reviewers', () => {
+  const standardStart = SalesContractApprovalFlow.nodes.find(node => node.id === 'start');
+  const legalStart = SalesContractLegalApprovalFlow.nodes.find(node => node.id === 'start');
+  const standardApproval = SalesContractApprovalFlow.nodes.find(node => node.id === 'contract_review');
+  const legalApproval = SalesContractLegalApprovalFlow.nodes.find(node => node.id === 'contract_review');
+  assert.match(standardStart.config.condition, /requires_legal_review != true/);
+  assert.match(legalStart.config.condition, /requires_legal_review == true/);
+  assert.equal(standardApproval.config.approvers.length, 2);
+  assert.deepEqual(legalApproval.config.approvers.map(value => value.value), [
+    'contract_delivery_reviewer', 'contract_commercial_reviewer', 'contract_legal_reviewer',
+  ]);
+  assert.match(allActions.ContractSubmit.body.source, /record\.requires_legal_review/);
+  assert.match(allActions.ContractSubmitFrozenMaterial.body.source, /record\.requires_legal_review/);
+  assert.match(SalesContractCreatePage.source, /非标条款需要法务复核/);
 });
 
 function signatureFixture(actor, overrides = {}) {

@@ -9,7 +9,7 @@ export const PurchaseRequestSaveDraft = defineAction({
   name: 'purchase_request_save_draft', label: '保存采购申请草稿', objectName: 'forge_purchase_request',
   locations: [], refreshAfter: true, requiredPermissions: ['forge_procurement_operator'],
   params: [{ name: 'draft_json', label: '采购申请草稿', type: 'textarea', required: true }],
-  body: { language: 'js', capabilities: ['api.read', 'api.write'], source: `
+  body: { language: 'js', capabilities: ['api.read', 'api.write', 'api.transaction'], source: `
 const actor=ctx.session&&ctx.session.userId;
 if(!actor)throw new Error('无法识别当前采购经办人');
 let draft;try{draft=JSON.parse(String(ctx.input.draft_json||''))}catch{throw new Error('采购申请草稿格式无效')}
@@ -422,7 +422,7 @@ export const PurchaseInspectionComplete = defineAction({
     { name: 'record_mode', label: '检验记录方式', type: 'select', required: true, options: [{ value: 'summary', label: '汇总数量' }, { value: 'item', label: '逐项检验' }] },
     { name: 'items_json', label: '逐项检验结果', type: 'textarea' },
   ],
-  body: { language: 'js', capabilities: ['api.read', 'api.write'], source: `
+  body: { language: 'js', capabilities: ['api.read', 'api.write', 'api.transaction'], source: `
 const id = ctx.recordId || (ctx.record && ctx.record.id); const inspection = ctx.record;
 if (ctx.recordLoadDenied === true || !id || !inspection) throw new Error('当前检验单不存在或不可访问');
 if (inspection.status !== 'pending') throw new Error('检验单状态已变化，请刷新后重试');
