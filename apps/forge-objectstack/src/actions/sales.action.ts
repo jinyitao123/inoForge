@@ -1,4 +1,5 @@
 import { defineAction } from '@objectstack/spec';
+import { hasExactQuotationLineSet } from './sales-contract-source-set.js';
 
 const locations = ['record_header', 'record_more'] as const;
 
@@ -586,6 +587,7 @@ export const SalesContractDraftCreate = defineAction({
     { name: 'fees_json', label: '附加费用', type: 'text' },
   ],
   body: { language: 'js', capabilities: ['api.read', 'api.write', 'api.transaction'], source: `
+const hasExactQuotationLineSet = ${hasExactQuotationLineSet.toString()};
 const actor = String(ctx.session && ctx.session.userId || '').trim();
 const organizationId = String(ctx.session && ctx.session.organizationId || '').trim();
 if (!actor || !organizationId) throw new Error('无法确认当前员工和组织，请重新登录后重试');
@@ -683,7 +685,7 @@ for (let index = 0; index < requestedLines.length; index += 1) {
     quantity_limit: lineQuantity, ordered_quantity: 0, taxed_unit_price: linePrice, tax_rate: lineTax,
     discount_rate: lineDiscount, taxed_subtotal: subtotal, remarks: source ? source.remarks || null : text(input.remarks, '备注', false, 1000) });
 }
-if (quoteId && lines.length !== quoteLines.length) throw new Error('来源报价的每条明细都必须完整带入合同');
+if (quoteId && !hasExactQuotationLineSet(quoteLines, lines)) throw new Error('来源报价的每条明细都必须完整带入合同');
 const fees = requestedFees.map((fee, index) => {
   if (!fee || typeof fee !== 'object') throw new Error('第' + (index + 1) + '项附加费用格式无效');
   const amount = number(fee.total_amount, '第' + (index + 1) + '项费用金额', 0.0001, 1000000000000);
