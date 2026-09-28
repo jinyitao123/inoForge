@@ -19,6 +19,8 @@ import { PurchaseInspectionWorkspacePage } from '../src/pages/purchase-inspectio
 import { ProductionAssemblyWorkspacePage } from '../src/pages/production-assembly-workspace.page.ts';
 import { ServiceOrdersPage } from '../src/pages/sales-crm-service-pages.page.ts';
 import { SalesContractCreatePage } from '../src/pages/sales-contract-create.page.ts';
+import { SupplierWorkspacePage } from '../src/pages/supplier-workspace.page.ts';
+import { BomWorkspacePage } from '../src/pages/bom-workspace.page.ts';
 import { SalesContractApprovalFlow, SalesContractLegalApprovalFlow } from '../src/flows/sales-contract-approval.flow.ts';
 import { ProjectAttachmentAssignmentGuard, ProjectLogAssignmentGuard } from '../src/hooks/project-evidence.hook.ts';
 
@@ -118,6 +120,32 @@ test('service orders are opened through the service capability with linked custo
   assert.match(create.body.source, /order\.customer_id!==customer\.id/);
   assert.match(ServiceOrdersPage.source, /service_order_create/);
   assert.doesNotMatch(ServiceOrdersPage.source, /request\('\/data\/forge_service_order'/);
+});
+
+test('supplier draft can be created by procurement without generic supplier writes', () => {
+  const save = supplierActions.SupplierSaveDraft;
+  assert.deepEqual(save.requiredPermissions, ['forge_procurement_operator']);
+  assert.match(save.body.source, /owner_id:actor/);
+  assert.match(SupplierWorkspacePage.source, /supplier_save_draft/);
+  assert.doesNotMatch(SupplierWorkspacePage.source, /method:f\.id\?'PATCH':'POST'/);
+  assert.match(supplierActions.SupplierSubmitApproval.body.source, /supplier\.owner_id!==actor/);
+  assert.match(supplierActions.SupplierReview.body.source, /supplier\.owner_id===actor/);
+});
+
+test('BOM drafting creates a root and confines component edits to its author', async () => {
+  assert.deepEqual(bomActions.BomDraftCreate.requiredPermissions, ['forge_production_operator']);
+  assert.ok(bomActions.BomDraftCreate.body.capabilities.includes('api.transaction'));
+  assert.match(bomActions.BomDraftCreate.body.source, /node_type:'root'/);
+  assert.deepEqual(bomActions.BomAddComponent.requiredPermissions, ['forge_production_operator']);
+  assert.match(BomWorkspacePage.source, /bom_draft_create/);
+  assert.match(BomWorkspacePage.source, /添加物料/);
+  assert.doesNotMatch(BomWorkspacePage.source, /ForgeApiResponse\(adapter,'\/data\/forge_bom',\{method:'POST'/);
+  const invoke = new Function('ctx', `return (async () => { ${bomActions.BomAddComponent.body.source} })()`);
+  await assert.rejects(invoke({
+    recordId: 'bom-a', record: { id: 'bom-a', status: 'draft', owner_id: 'operator-a' },
+    session: { userId: 'operator-b' }, input: { sku_id: 'sku-a', quantity: 1 },
+    api: { object: () => { throw new Error('unexpected trusted write'); } },
+  }), /仅BOM编制人可修改本人草稿/);
 });
 
 test('project evidence creation requires an actual project assignment', async () => {

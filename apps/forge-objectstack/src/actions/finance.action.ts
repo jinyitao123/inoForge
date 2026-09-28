@@ -210,8 +210,11 @@ export const CollectionAllocationCancel = defineAction({
 const id = ctx.recordId || (ctx.record && ctx.record.id); const allocation = ctx.record;
 if (ctx.recordLoadDenied === true || !id || !allocation) throw new Error('当前收款核销不存在或不可访问');
 if (allocation.status !== 'pending_review') throw new Error('仅待审核核销可以取消分配');
+const actor=String(ctx.session&&ctx.session.userId||'').trim();if(!actor)throw new Error('无法识别当前收款经办人');
+const isActorRecord=row=>[row&&row.owner_id,row&&row.responsible_id,row&&row.created_by].some(value=>value!=null&&String(value).trim()===actor);
 const receipt = await ctx.api.object('forge_cash_receipt').findOne({ where: { id: allocation.receipt_id } });
 if (!receipt) throw new Error('核销关联的收款流水不存在');
+if(!isActorRecord(allocation)&&!isActorRecord(receipt))throw new Error('仅收款分配或收款流水的实际经办人可取消分配');
 const amount = Number(allocation.amount || 0), nextAllocated = Math.max(0, Number(receipt.allocated_amount || 0) - amount), nextUnallocated = Number(receipt.unallocated_amount || 0) + amount;
 await ctx.api.object('forge_cash_receipt').update({ id: receipt.id, allocated_amount: nextAllocated, unallocated_amount: nextUnallocated, status: nextAllocated > 0 ? 'partially_allocated' : 'unallocated' });
 await ctx.api.object('forge_collection_allocation').update({ id, status: 'cancelled' });
