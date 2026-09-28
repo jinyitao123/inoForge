@@ -66,13 +66,17 @@ function createHarness() {
     clearTimeout,
     console,
   };
-  vm.runInNewContext(code, context);
+  vm.runInNewContext(`${code}\nglobalThis.__ForgeDateInputProbe = ForgeDateInput;`, context);
   const App = module.exports.default;
   const render = () => {
     cursor = 0;
     return App();
   };
-  return { render };
+  const renderDateInput = () => {
+    cursor = 0;
+    return context.__ForgeDateInputProbe({ value: '', onChange() {} });
+  };
+  return { render, renderDateInput };
 }
 
 function findNodes(tree, predicate, results = []) {
@@ -80,6 +84,15 @@ function findNodes(tree, predicate, results = []) {
   if (predicate(tree)) results.push(tree);
   for (const child of tree.children || []) findNodes(child, predicate, results);
   return results;
+}
+
+function renderComponents(tree) {
+  if (!tree || typeof tree !== 'object') return;
+  if (typeof tree.type === 'function') {
+    renderComponents(tree.type(tree.props || {}));
+    return;
+  }
+  for (const child of tree.children || []) renderComponents(child);
 }
 
 test('typing multiple characters in the new project name keeps the same field component mounted', () => {
@@ -90,6 +103,7 @@ test('typing multiple characters in the new project name keeps the same field co
   createButton.props.onClick();
 
   tree = render();
+  renderComponents(tree);
   let nameField = findNodes(tree, node => typeof node.type === 'function' && node.type.name === 'Field' && node.props.label === '项目名称')[0];
   assert.ok(nameField, 'the normal create-project dialog renders the project name field');
   const stableFieldType = nameField.type;
@@ -97,9 +111,15 @@ test('typing multiple characters in the new project name keeps the same field co
   for (const value of ['项', '项目', '项目名称测试']) {
     nameField.props.onChange(value);
     tree = render();
+    renderComponents(tree);
     nameField = findNodes(tree, node => typeof node.type === 'function' && node.type.name === 'Field' && node.props.label === '项目名称')[0];
     assert.ok(nameField);
     assert.equal(nameField.type, stableFieldType, 'React keeps the same controlled field component type after each state update');
     assert.equal(nameField.props.value, value);
   }
+});
+
+test('project form date controls do not shadow the native Date constructor', () => {
+  const { renderDateInput } = createHarness();
+  assert.doesNotThrow(() => renderDateInput());
 });
