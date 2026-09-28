@@ -92,6 +92,7 @@ assert.match(projectCenter, /errorStatus===401/);
 assert.match(projectCenter, /errorStatus===403/);
 assert.match(projectCenter, /tabReadFailures/);
 assert.match(projectCenterDetailSource, /tabReadFailures=/);
+assert.match(projectCenterDetailSource, /canRefreshCustomerSnapshot=/);
 assert.match(projectCenter, /关联订单读取失败，当前无法确认关联状态/);
 assert.match(projectActions, /requiredPermissions: \['forge_project_operator', 'sales_contract_operator'\]/);
 assert.match(projectActions, /order_status_snapshot: order\.status/);
