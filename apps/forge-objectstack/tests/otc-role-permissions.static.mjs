@@ -29,7 +29,7 @@ const expected = new Set([
   'contract_signature_registrar', 'forge_material_master_operator', 'forge_procurement_operator',
   'forge_production_operator', 'forge_warehouse_operator', 'forge_quality_inspector',
   'forge_delivery_operator', 'forge_finance_receivables_operator', 'forge_finance_reviewer',
-  'forge_service_operator',
+  'forge_service_operator', 'forge_service_manager',
   'forge_procurement_reviewer', 'forge_production_reviewer', 'forge_warehouse_reviewer',
 ]);
 const packages = [salesApplication, projectApplication, supplyChainApplication, productionApplication, financeApplication];
@@ -116,10 +116,33 @@ test('production operator cannot bypass independent assembly release when creati
 
 test('service orders are opened through the service capability with linked customer and order checks', () => {
   const create = allActions.ServiceOrderCreate;
-  assert.deepEqual(create.requiredPermissions, ['forge_service_operator']);
+  assert.deepEqual(create.requiredPermissions, ['forge_service_manager']);
   assert.match(create.body.source, /order\.customer_id!==customer\.id/);
   assert.match(ServiceOrdersPage.source, /service_order_create/);
   assert.doesNotMatch(ServiceOrdersPage.source, /request\('\/data\/forge_service_order'/);
+});
+
+
+test('service manager and engineer permissions have separate action and row scopes', () => {
+  const service = roleSets.find(permission => permission.name === 'forge_service_operator');
+  const manager = roleSets.find(permission => permission.name === 'forge_service_manager');
+  for (const object of ['forge_customer', 'forge_contact', 'forge_sales_order', 'forge_sales_contract']) {
+    assert.equal(service.objects[object].readScope, 'own', `${object} stays own-scoped for engineers`);
+    assert.notEqual(service.objects[object].readScope, 'org');
+    assert.equal(manager.objects[object].readScope, 'org', `${object} is available to supervisors for intake`);
+  }
+  assert.equal(service.objects.forge_service_quotation, undefined);
+  assert.equal(service.objects.forge_service_settlement, undefined);
+  assert.deepEqual(allActions.ServiceOrderAccept.requiredPermissions, ['forge_service_manager']);
+  assert.deepEqual(allActions.ServiceOrderDispatch.requiredPermissions, ['forge_service_manager']);
+  assert.deepEqual(allActions.ServiceOrderDispatchEngineers.requiredPermissions, ['forge_service_manager']);
+  assert.deepEqual(allActions.ServiceOrderComplete.requiredPermissions, ['forge_service_operator']);
+  assert.deepEqual(allActions.ServiceOrderEngineerAccept.requiredPermissions, ['forge_service_operator']);
+  for (const action of [
+    allActions.ServiceOrderCreateQuotation, allActions.ServiceOrderCreateSettlement,
+    allActions.ServiceQuotationConfirm, allActions.ServiceQuotationCreateSettlement,
+    allActions.ServiceSettlementConfirm, allActions.ServiceSettlementCreateReceivable,
+  ]) assert.deepEqual(action.requiredPermissions, ['forge_service_manager']);
 });
 
 test('supplier draft can be created by procurement without generic supplier writes', () => {
