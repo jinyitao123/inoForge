@@ -98,6 +98,7 @@ function observedNativeApprovalService(engine) {
       requestId,
       userId: context.userId,
       organizationId: context.tenantId || context.organizationId,
+      positions: [...(context.positions ?? [])],
       isSystem: context.isSystem === true,
       resultId: result?.id ?? null,
     });
@@ -266,6 +267,10 @@ test('historical approval and owner routes read deleted contract originals only 
     await engine.insert('sys_user', {
       id: userId, name, email: `${userId}@example.invalid`, organization_id: ids.organization,
     }, { context: tenantContext });
+    await engine.insert('sys_member', {
+      id: id(), user_id: userId, organization_id: ids.organization,
+      role: userId === ids.admin ? 'admin' : 'member',
+    }, { context: SYSTEM });
   }
   await engine.insert('forge_customer', { id: ids.customer, name: 'Customer', organization_id: ids.organization }, { context: tenantContext });
   await engine.insert('forge_contract_type', { id: ids.type, name: 'Sales Contract', organization_id: ids.organization }, { context: tenantContext });
@@ -390,7 +395,7 @@ test('historical approval and owner routes read deleted contract originals only 
   assert.deepEqual(original.raw, oldBytes);
   assert.deepEqual(approvalHarness.calls.getRequest[0], {
     requestId: ids.request, userId: ids.reviewer, organizationId: ids.organization,
-    isSystem: false, resultId: ids.request,
+    positions: ['org_member', 'everyone'], isSystem: false, resultId: ids.request,
   }, 'the native ApprovalService receives the Bearer-derived employee, org, and non-system context');
   assert.equal(original.headers['content-type'], ORIGINAL_MEDIA_TYPE);
   assert.equal(original.headers['content-length'], String(oldBytes.length));
@@ -416,6 +421,7 @@ test('historical approval and owner routes read deleted contract originals only 
     'an admin override capability does not grant historical material access');
   const adminServiceRead = [...approvalHarness.calls.getRequest].reverse().find((call) => call.userId === ids.admin);
   assert.equal(adminServiceRead?.resultId, ids.request, 'native getRequest can expose a request to its recorded override actor');
+  assert.ok(adminServiceRead?.positions.includes('org_admin'), 'the Bearer-resolved caller is currently an organization admin');
   const adminServiceActions = [...approvalHarness.calls.listActions].reverse().find((call) => call.userId === ids.admin)?.actions;
   assert.equal(adminServiceActions?.find((action) => action.actor_id === ids.admin)?.via_override, true,
     'the route receives the native override marker and still refuses history bytes');
