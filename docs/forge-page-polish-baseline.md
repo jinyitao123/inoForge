@@ -25,7 +25,11 @@
 
 ### 当前组件进展与正式迁移边界（2026-10-01）
 
-公共 UI 来源 `a7c79ef4f8fe9911f4d5b29f5dba7adafe20a0e9` 已推送 fork，从该精确提交归档构建并注入本地 Console，产物摘要 `14322987093b9976b8e73e2f480a7f4eef3a05f2e22257cf9d07b6910be601d6` 与 CLI 实际解析目录核对一致。原生列表新增 host 控制的常驻搜索行；关键词、模型 searchableFields、清除和刷新沿用同一查询状态。实际项目页中，无匹配查询为空、刷新保留关键词、清除恢复项目并回到搜索焦点。甘特自己的查询现收到相同的活动筛选和搜索条件，独立刷新不再留下父工具栏的无效重复入口；宿主记录导航回调透传，保持时间轴完整查询而不接受父表格的分页行。
+当前安装版来源已推进到 `e67d6a5892d70b5366678bbd4ad9941733454d10`，从精确Git归档构建、重锁并注入4635；树摘要 `2a236ecb60da71df571750d462996ce6cc2611c9181200a94e85428b949dc0f4` 与CLI解析目录一致。新增受审查代码注册的React-runtime入口，保留函数children／footer并强制模型组件使用宿主adapter，不创造JSON／递归FormView协议。公共CompositeDialog复用MobileDialogContent／几何token，独立滚动、固定footer、取消确认和busy关闭保护；只读事务probe要求服务明确保证后才允许严格复合保存，原兼容降级行为未用于新客户路径。5文件111项关键回归、相关包完整类型检查与组件／Console归档构建通过覆盖范围。
+
+客户正常新增入口已消费这一组件批次；使用贴近业务的同材料客户／联系人／邮箱，从UI实际保存并在独立对象页面读回，同一PG完全停服重启后客户关联页仍为1联系人。证据与限制见[CRM合同](forge-sales-crm-page-contract-20260913.md#本轮复合创建与独立读回2026-10-01)。这是单管理账号正常路径，未证明失败回滚、完整权限或所有客户按钮；客户旧列表／编辑／团队仍待重构。截图确认联系人控件首次接入为两列，随后已按现有客户FormView的四列配置收紧；主项按钮、字典下拉／备注控件、联系方式列宽及企业检索等继续对照。颜色仍后置，不把能保存写成完全视觉对应。
+
+前序公共 UI 来源 `a7c79ef4f8fe9911f4d5b29f5dba7adafe20a0e9` 已推送 fork，从该精确提交归档构建并注入本地 Console，产物摘要 `14322987093b9976b8e73e2f480a7f4eef3a05f2e22257cf9d07b6910be601d6` 与 CLI 实际解析目录核对一致。原生列表新增 host 控制的常驻搜索行；关键词、模型 searchableFields、清除和刷新沿用同一查询状态。实际项目页中，无匹配查询为空、刷新保留关键词、清除恢复项目并回到搜索焦点。甘特自己的查询现收到相同的活动筛选和搜索条件，独立刷新不再留下父工具栏的无效重复入口；宿主记录导航回调透传，保持时间轴完整查询而不接受父表格的分页行。
 
 正式项目页面与对象视图共用周粒度／日期／进度／提示字段配置；视图选择写入 URL，详情往返保留该选择。源码预览与安装版均从正常页面验证打开项目详情和浏览器返回；同一 PostgreSQL 停服重启后原项目仍可读。compact 时间轴最小高度可随行收紧，窄容器工具栏换行保持周期标签可读。上述只证明本批已操作路径，不证明项目详情各模块、全部筛选或其他身份已验收。
 
@@ -35,9 +39,9 @@ Dataset KPI 的两处原生 Dashboard 呈现路径消费已有 icon、descriptio
 
 ObjectUI 新提交 `2d8d3196e93ab10fdaa7cba185bdf3f9a9ddf03c` 实现 ObjectForm 的受控 React 值与 validate-only 控制器，并复用同一 RHF／native 校验、条件只读和 FLS／系统字段／默认值过滤；没有新增 JSON FormView 键。`RelationshipCollectionEditor` 从子对象 lookup／master_detail 元数据解析关系，联系人用卡片、联系方式用行式呈现，React slot 组合孙级而不改变独立对象生命周期。宿主一次校验包括嵌套集合，默认空草稿可跳过，未就绪、无创建权限和校验期间草稿变化会拒绝。内层 Enter 只收集草稿，移除空操作区边距，没有持久删除或通用 CRUD。components／plugin-form 构建、三包类型检查、6文件54项表单／集合回归、README 导出与changeset检查通过；定向lint有3条警告（helper导出及回调ref静态检查），不报告全仓lint通过。
 
-正常浏览器预览 `http://127.0.0.1:5180/?sample=relationships` 已操作：客户名＋全空联系人校验为0／0；只有非空邮箱时报联系人姓名错误并聚焦；补姓名／职务后为1联系人／1邮箱；增加并删除第2空联系人，原姓名／职务／邮箱仍在。1280×720根横向溢出0，行式表头只呈现一次，三渠道行高45.5／46.5／46.5px（后两行含分隔边框），与参考相同高度规则；参考渠道列宽132／112／剩余空间／34px，当前均分字段列仍待校准。截图 `36-risemap-contact-channel-rows.png`、`37-objectui-relationship-rows-current.png` 只存本地忽略目录；这是直接React组件的草稿预览，不代表Forge同材料保存、原子事务或页面验收。上述新提交尚未重新归档构建Console／注入Forge，安装版仍为上段a7来源。
+正常浏览器预览 `http://127.0.0.1:5180/?sample=relationships` 已操作：客户名＋全空联系人校验为0／0；只有非空邮箱时报联系人姓名错误并聚焦；补姓名／职务后为1联系人／1邮箱；增加并删除第2空联系人，原姓名／职务／邮箱仍在。1280×720根横向溢出0，行式表头只呈现一次，三渠道行高45.5／46.5／46.5px（后两行含分隔边框），与参考相同高度规则；参考渠道列宽132／112／剩余空间／34px，当前均分字段列仍待校准。截图 `36-risemap-contact-channel-rows.png`、`37-objectui-relationship-rows-current.png` 只存本地忽略目录；这是直接React组件的草稿预览，不代表Forge同材料保存、原子事务或页面验收。该 `2d8d3196e` 观察时尚未重新归档构建Console／注入Forge，当时安装版为上段a7来源；当前安装来源已由本节首段更新。
 
-17.3锁定作者规则 `validateReactPageProps` 对ObjectForm的3个新runtime props返回空问题列表，但它们仍未进入Spec的REACT_BLOCKS作者声明；单一规则探针不替代完整Forge validate。关系集合虽从包导出，目前尚无元数据React Page实际注入路径，通用wrapper还会丢弃render-function children。下一步补真实、保留宿主认证adapter和React slot的运行入口，明确runtime扩展与可序列化元数据的边界，再迁移客户／采购正式页面；不使用别名或伪造递归FormView。
+17.3锁定作者规则 `validateReactPageProps` 对ObjectForm的3个新runtime props返回空问题列表，但它们仍未进入Spec的REACT_BLOCKS作者声明；单一规则探针不替代完整Forge validate。上述 `2d8d3196e` 当时尚无元数据React Page关系集合入口，其连接缺口已由本节当前 `e67d6a589` 的受审查React-runtime通道补齐；历史预览保持直接React边界，不能追改成当时已经接入。Spec正式React作者overlay声明仍待上游补齐，不把本批runtime扩展称作已发布Spec协议。
 
 用户已要求使用贴近实际业务材料遍历 RISEMAP 页面、子页面和按钮，并在全量迁移后执行完整 OTC 正常／异常链路。既有技术 fixture 的观察保留原义，后续业务验收改用标准测试资料及真实上下游关联，不把本批代码或构建扩大为全量通过；尚未合入 inoForge main，未部署 124。
 
