@@ -175,6 +175,13 @@ function canonicalJson(value: unknown): string {
     .map((key) => `${JSON.stringify(key)}:${canonicalJson((value as JsonRecord)[key])}`).join(',')}}`;
 }
 
+function selectOptionLabel(value: unknown, options: unknown): string | undefined {
+  if (!Array.isArray(options)) return undefined;
+  const option = options.find((candidate) => isRecord(candidate) && candidate.value === value &&
+    typeof candidate.label === 'string' && candidate.label.trim());
+  return isRecord(option) && typeof option.label === 'string' ? option.label.trim() : undefined;
+}
+
 function snapshotFiles(payload: unknown, fields: Set<string>): Map<string, SnapshotFile> {
   const result = new Map<string, Set<string>>();
   if (!isRecord(payload)) return new Map();
@@ -243,10 +250,17 @@ function snapshotFiles(payload: unknown, fields: Set<string>): Map<string, Snaps
 function humanFieldValue(
   name: string,
   value: unknown,
-  schemaField: { type?: string; label?: string; system?: boolean; internal?: boolean } | undefined,
+  schemaField: { type?: string; label?: string; system?: boolean; internal?: boolean; hidden?: boolean; options?: unknown } | undefined,
   payloadDisplay: JsonRecord,
 ): string | undefined {
-  if (!schemaField || schemaField.system || schemaField.internal || FILE_FIELD_TYPES.has(schemaField.type ?? '')) return undefined;
+  if (!schemaField || schemaField.hidden || schemaField.system || schemaField.internal || FILE_FIELD_TYPES.has(schemaField.type ?? '')) return undefined;
+  if (schemaField.type === 'select') {
+    const optionLabel = selectOptionLabel(value, schemaField.options);
+    if (optionLabel) return optionLabel;
+    if (typeof value === 'string' && value.trim()) return `未知（原值：${value.trim()}）`;
+    if (typeof value === 'number' && Number.isFinite(value)) return `未知（原值：${String(value)}）`;
+    return undefined;
+  }
   const display = payloadDisplay[name];
   if (typeof display === 'string' && display.trim()) return display.trim();
   if (/(^id$|_id$|_sha256$|_manifest$|_request_id$)/i.test(name)) return undefined;
