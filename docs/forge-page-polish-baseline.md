@@ -17,13 +17,23 @@
 | 几何 token | 控件高、圆角、字号、水平内边距、按钮间距、工具栏动作高；后续补表格、字段组、弹窗与文字层级 | 呈现 profile；不携带业务字段或状态 | ObjectUI `compact-enterprise` 已实现控件高 28px、圆角 3.5px、字号 12.25px，以及间距候选值；仍需逐控件对照，颜色后置 |
 | 基础控件 | Button、Input、Select、Textarea、Label、日期与关系选择、校验反馈 | Field 类型、校验、必填、默认值、lookup／user 关系和字段权限 | Button／Input／SelectTrigger／SelectItem／Textarea／Label／NativeSelect 已通过自定义包装消费 token，保留上游基础文件；日期与关系选择的组合行为继续收敛 |
 | 模型列表 | 工具栏、范围／状态页签、搜索筛选、列、行操作、分页、加载／空／错态、横向滚动 | Object／View 的字段、列宽、排序、查询、Action 和权限 | 原生 `ListView` 可用；正式项目列表已消费共用列定义，其页面组合仍在精修 |
-| 模型表单与弹窗 | 字段组、两列布局、完整行字段、固定提交区、取消／校验／处理中／错误、滚动和焦点 | Object 的 fieldGroups、FormView 的 columns、Field 与 Action params | 客户原生表单已验证字段组和两列；ModalForm／DrawerForm 保留模型字段与校验能力 |
+| 模型表单与弹窗 | 字段组、显式列与跨列、完整行字段、固定提交区、取消／校验／处理中／错误、滚动和焦点 | Object 的 fieldGroups、FormView 的 columns／sections、Field 与 Action params | 首批客户表单已验证字段组和两列；四列与跨列候选已声明，运行读回待核；ModalForm／DrawerForm 保留模型字段与校验能力 |
 | 主从单据编辑 | 主单字段组、关系明细表、行编辑／选择、明细动作与汇总呈现 | 主从／lookup 关系、子对象字段和受控 Action；汇总来自权威结果 | 采购订单／明细 View 已声明；需要明确原生关联列表和复杂编辑工作区的组合边界 |
 | 分析与任务工作区 | 页头、范围选择、指标组、图表／排行、任务列表、办理抽屉、来源链接 | Dataset／Report、原生任务与 Action 的呈现元数据 | 作为组件结构样板核对；不以更换入口或前端重算业务指标代替复用 |
 
 覆盖率以五个样板的“呈现能力需求”为分母，例如字段组、关系选择、状态筛选、主从明细、错误与取消路径。逐项记录原生可复用、需扩展公共 renderer、需定制组合及待验证；不能用页面数、截图数量或构建通过来计算组件覆盖率。Skill 负责指导模型和组件的选用，token 与 renderer 承载实际运行表现。
 
-### 第一批组件观察（2026-09-30）
+### 第二批组件与公开样式核对（2026-09-30）
+
+ObjectUI 来源 `6f9ab0b5bb8f946b931a4d8b5e7a43745fc55556` 已从干净归档完成 Console 构建、锁更新、注入与运行时摘要核对，4635 已接入这一产物。真实客户表单在 1280×720 下读到外层 padding 0px、宽 1120px、客户名称 527.5px、相邻两项各 253.25px、整行长文本 1076px；折叠／展开保留草稿，脏取消确认与继续编辑已实际办理。非法日期在折叠组内提交时，最初未展开错误组；新增集成回归复现后由公共原生 invalid 捕获修复，真实 UI 复验自动展开、聚焦成立日期并拦截保存，独立客户列表仍为原有一条。截图 `12-forge-customer-create.png`、`14-forge-collapsed-date-error.png` 只留在本地忽略目录；不把这些交互通过扩写成客户业务全验收。
+
+首批截图暴露长弹窗重复内边距：外层 MobileDialogContent 仍带桌面 padding，头、正文、尾又各带一层。第二批源码将外层桌面 padding 清零，组件预览实测外层 0px，三段宽均为 1118px；新增字段组折叠和填写计数，折叠保留已注册草稿和必填校验，提交错误展开对应组。8 个表单分组回归文件 85 项、取消回归 15 项通过，不代表正式页面已验收。RISEMAP 日期控件实测为可编辑文本、右侧日历图标、包含年份的本地化日期、今天／清除和年月切换；对照发现的日期差距已在公共日期组件修正；自定义年月面板无原生 select，包含年份的日期、清除、非法文本提示已在浏览器核对。RISEMAP 已改动表单的取消会弹出确认，compact 候选已复用原有 discard guard 承载该路径。
+
+用户指出卡片质感仍不足后，直接读取已加载的公开 `ReportVisuals-B237nn0H.js`、CSS 和 DOM computed style：根字号 14px；KPI 卡高 112px、圆角 5.25px、padding 14px 17px、数字字号／行高 25px／25px、字重 800；图表卡 padding 17.5px、圆角 5.25px、标题 12.25px／17.5px／700、标题下 padding 13px 和间隔 18px、列比例 1.75:1。静止阴影分别为 `0 1px 1px rgba(9,30,66,.04)` 和 `0 1px 2px rgba(9,30,66,.04)`。公共 Card 包装与 JSON card renderer 已消费相应 token，明细预览补齐宿主卡片边界；候选 Card 在 DOM 读到 5.25px 圆角、白底、17.5px 内边距、12.25px／700 标题和 1px／2px 轻阴影。没有将参考站整包源码复制进产品；公开产物和截图只留在本地忽略的 `.objectstack/acceptance/ui-components/`，颜色仍未整体校准。
+
+主从草稿已通过正常控件输入两行，读到 360＋50＝410，键盘移除第二行后总计为 360；样板隐藏保存，因为内存数据源没有原子父子事务。独立原生分析 fixture 已真实启动并查询，发现 ObjectStack 17.3 artifact ingestion 没有将 `datasets` 注册进 metadata，Dashboard 报 Dataset not found；当前仅补预览启动注册连接，不以假聚合数据宣称通过；四张原生 KPI 读到数量 12、金额 79,550、平均 6,629.17、最大 11,900，状态 Ready 筛选后变为 3／16,400／5,466.67／6,250，复位恢复原值。KPI 卡实测高 112px、圆角 5.25px；图表卡当前高 435.5px，仍大于参考 365.75px，标题区／筛选组合、图表高度、排行表现和侧栏宽差保持待精修。正式采购数据、权限、图表交互与结果仍待验。
+
+### 第一批组件观察（2026-09-30，保留该来源边界）
 
 ObjectUI 来源 `44b6375ebddc5c03d19bc3394f496a7563725018` 的公共控件、表单、弹窗、列表与表格已形成候选；准确产物来源见[Console 锁](../apps/forge-objectstack/console94.lock.json)。该提交带独立 `apps/console/preview`，通过内存 fixture 的 ObjectForm／ListView 展示组件，不连接业务数据库。预览可重新读取实际 DOM 几何，不把 fixture 操作写成业务验收。
 

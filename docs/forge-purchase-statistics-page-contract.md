@@ -16,3 +16,5 @@
 | PST-04 | 页面结构、日期选择、图表与导出对应 RISEMAP 已观察状态 | 原生报表当前只有简单摘要，空态英文文案亦待本地化 | 待精修，颜色后置 |
 
 本轮无完整图表的 RISEMAP 同材料对照、业务独立复核或同库重启结果。保持 `review_required`，不改写旧证据。
+
+2026-09-30 公共组件批次以独立开发 fixture 核对原生 Dataset／Dashboard：首轮实际查询报 Dataset not found，定位为 ObjectStack 17.3 artifact ingestion 的类型映射没有 `datasets`，编译产物本身保留定义。仅在预览启动插件通过公开 `MetadataManager.registerInMemory` 注册同一 Dataset 后，正常 Console 页面读到 12 条 fixture 请求、金额合计 79,550、平均金额 6,629.17、最大金额 11,900、月份趋势、状态分布、供应商金额图和强制无结果空态；Ready 筛选四指标变为 3／16,400／5,466.67／6,250，复位恢复原值。没有改平台加载器、正式 Forge 数据或权限；这项预览连接不能证明正式采购统计已修复，正式口径和权限继续待验。RISEMAP 公共卡片的 CSS、已加载 ReportVisuals 代码与 computed style 已用于公共呈现层差异核对，来源 `6f9ab0b5b` 固定产物已接入本地；KPI 高度 112px 已对应，图表卡高 435.5px 对参考 365.75px，完整页面组合仍待精修和正式业务复核。
