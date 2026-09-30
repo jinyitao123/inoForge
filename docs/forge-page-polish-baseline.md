@@ -31,7 +31,13 @@
 
 Dataset KPI 的两处原生 Dashboard 呈现路径消费已有 icon、description 与 drillDown 配置；帮助可通过键盘打开／Escape 关闭，compact 标题邻近帮助、图标与静态角标的几何由 host token 提供。角标没有点击行为，不冒充办理入口。真实钻取仍受服务端查询结果约束：17.3 无维度指标未返回 base object，箭头操作不出现；任意 Dataset 的有效过滤范围也需要权威 sidecar，不能在前端猜对象或补造范围。单元测试中的可钻取结果仅证明组件能力。原生审批补齐 `cancelled` 过滤，Submitted／All 发出该状态而 Pending 仍只查本人 pending；实际本地原生审批中心目前为空，未办理真实请求，Forge 正式自建审批任务入口未迁移。
 
-相关列表／甘特／指标／审批定向检查和包类型检查通过各自范围。旧 KPI 测试改为核对颜色与子说明只改变相应语义节点，保留 enum、unknown/default、数值／度量与趋势校验，避免冻结已替换的 Tailwind 布局字节。五个样板与全站仍待逐页验收。当前正式迁移的公共缺口是 ObjectForm 的受控 React 值与 validate-only 通道，正在基础组件实现；关系集合仅完成模型解析 helper，尚不能称内联组合完成。采购统计的 metadata ingestion、行内计算能力与字段读权限需要先按正式合同核对；旧 Page 算法是现状证据，不自动作为新的权威口径。
+相关列表／甘特／指标／审批定向检查和包类型检查通过各自范围。旧 KPI 测试改为核对颜色与子说明只改变相应语义节点，保留 enum、unknown/default、数值／度量与趋势校验，避免冻结已替换的 Tailwind 布局字节。五个样板与全站仍待逐页验收。公共表单与关系草稿组件本轮进展见下段；采购统计的 metadata ingestion、行内计算能力与字段读权限需要先按正式合同核对，旧 Page 算法是现状证据，不自动作为新的权威口径。
+
+ObjectUI 新提交 `2d8d3196e93ab10fdaa7cba185bdf3f9a9ddf03c` 实现 ObjectForm 的受控 React 值与 validate-only 控制器，并复用同一 RHF／native 校验、条件只读和 FLS／系统字段／默认值过滤；没有新增 JSON FormView 键。`RelationshipCollectionEditor` 从子对象 lookup／master_detail 元数据解析关系，联系人用卡片、联系方式用行式呈现，React slot 组合孙级而不改变独立对象生命周期。宿主一次校验包括嵌套集合，默认空草稿可跳过，未就绪、无创建权限和校验期间草稿变化会拒绝。内层 Enter 只收集草稿，移除空操作区边距，没有持久删除或通用 CRUD。components／plugin-form 构建、三包类型检查、6文件54项表单／集合回归、README 导出与changeset检查通过；定向lint有3条警告（helper导出及回调ref静态检查），不报告全仓lint通过。
+
+正常浏览器预览 `http://127.0.0.1:5180/?sample=relationships` 已操作：客户名＋全空联系人校验为0／0；只有非空邮箱时报联系人姓名错误并聚焦；补姓名／职务后为1联系人／1邮箱；增加并删除第2空联系人，原姓名／职务／邮箱仍在。1280×720根横向溢出0，行式表头只呈现一次，三渠道行高45.5／46.5／46.5px（后两行含分隔边框），与参考相同高度规则；参考渠道列宽132／112／剩余空间／34px，当前均分字段列仍待校准。截图 `36-risemap-contact-channel-rows.png`、`37-objectui-relationship-rows-current.png` 只存本地忽略目录；这是直接React组件的草稿预览，不代表Forge同材料保存、原子事务或页面验收。上述新提交尚未重新归档构建Console／注入Forge，安装版仍为上段a7来源。
+
+17.3锁定作者规则 `validateReactPageProps` 对ObjectForm的3个新runtime props返回空问题列表，但它们仍未进入Spec的REACT_BLOCKS作者声明；单一规则探针不替代完整Forge validate。关系集合虽从包导出，目前尚无元数据React Page实际注入路径，通用wrapper还会丢弃render-function children。下一步补真实、保留宿主认证adapter和React slot的运行入口，明确runtime扩展与可序列化元数据的边界，再迁移客户／采购正式页面；不使用别名或伪造递归FormView。
 
 用户已要求使用贴近实际业务材料遍历 RISEMAP 页面、子页面和按钮，并在全量迁移后执行完整 OTC 正常／异常链路。既有技术 fixture 的观察保留原义，后续业务验收改用标准测试资料及真实上下游关联，不把本批代码或构建扩大为全量通过；尚未合入 inoForge main，未部署 124。
 
