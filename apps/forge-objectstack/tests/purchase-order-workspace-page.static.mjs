@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises';
 
 const page = await readFile(new URL('../src/pages/purchase-order-workspace.page.ts', import.meta.url), 'utf8');
 
-assert.match(page, /<ForgePageHeader section="供应链 \/ 采购管理" title="采购订单"/, 'order list must use the shared header');
+assert.match(page, /<ForgeHero section="供应链 \/ 采购管理" title="采购订单"/, 'order list must use the shared hero with its existing title and avoid repeating the page label in the section trail');
 assert.doesNotMatch(page, /供应链 \/ 采购管理 \/ 采购订单/, 'list view must not repeat the module breadcrumb already shown by the Console shell');
 assert.equal(page.match(/fp-phase-index">04/g)?.length, 2, 'only the new-order and detail sub-views keep a back-to-list trail');
 assert.equal(page.match(/新建采购单<\/button>/g)?.length, 1, 'primary create action must appear exactly once');

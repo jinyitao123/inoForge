@@ -36,3 +36,22 @@ export const CustomerViews = defineView({
     ],
   },
 });
+
+/** Contact storage and lifecycle stay on Contact; this view selects its compact editor. */
+export const ContactViews = defineView({
+  object: 'forge_contact',
+  form: {
+    type: 'simple',
+    data: { provider: 'object', object: 'forge_contact' },
+    columns: 4,
+    sections: [
+      { name: 'contact_context', label: '所属客户与任职', columns: 4,
+        fields: ['customer_id', 'is_primary', 'employment_status', 'responsible_id'] },
+      { name: 'contact_information', label: '联系人信息', columns: 4,
+        fields: [
+          'name', 'job_title', 'gender', 'department', 'decision_weight',
+          { field: 'remarks', widget: 'input', colSpan: 3 },
+        ] },
+    ],
+  },
+});

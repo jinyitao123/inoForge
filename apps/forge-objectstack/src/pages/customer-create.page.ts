@@ -1,6 +1,6 @@
 import { definePage } from '@objectstack/spec/ui';
 import { Contact, ContactChannel, Customer } from '../objects/customer.object.js';
-import { CustomerViews } from '../views/customer.view.js';
+import { ContactViews, CustomerViews } from '../views/customer.view.js';
 
 const customerObjectName = Customer.name;
 const contactObjectName = Contact.name;
@@ -22,7 +22,16 @@ const channelParentField = Object.entries(ContactChannel.fields)
 if (!customerForm || !contactParentField || !channelParentField) {
   throw new Error('Customer creation requires the declared Customer form and both lookup relationships.');
 }
-const contactInputFields = ['name', 'job_title', 'gender', 'department', 'decision_weight', 'remarks'];
+const contactForm = ContactViews.form;
+// The collection card supplies the heading; retain the View's field layout inside it.
+const contactSections = (contactForm?.sections ?? [])
+  .filter(section => section.name === 'contact_information')
+  .map(({ name: _name, label: _label, ...section }) => section);
+if (!contactForm || contactSections.length === 0) {
+  throw new Error('Customer creation requires the declared Contact information form section.');
+}
+const contactInputFields = contactSections.flatMap(section =>
+  (section.fields ?? []).map(field => typeof field === 'string' ? field : field.field));
 const contactVisibleFields = [...contactInputFields, 'is_primary'];
 if (contactVisibleFields.some((fieldName) => !Object.prototype.hasOwnProperty.call(Contact.fields, fieldName))) {
   throw new Error('Customer contact presentation references a field that is not declared on Contact.');
@@ -39,6 +48,8 @@ const CUSTOMER_PROFILE_SECTIONS=${JSON.stringify(customerProfileSections)};
 const CUSTOMER_COLUMNS=${JSON.stringify(customerFormColumns)};
 const CONTACT_INPUT_FIELDS=${JSON.stringify(contactInputFields)};
 const CONTACT_VISIBLE_FIELDS=${JSON.stringify(contactVisibleFields)};
+const CONTACT_SECTIONS=${JSON.stringify(contactSections)};
+const CONTACT_COLUMNS=${JSON.stringify(contactForm?.columns ?? 4)};
 const CONTACT_PRIMARY_FIELD='is_primary';
 const CHANNEL_VALUE_FIELD='value';
 
@@ -158,12 +169,18 @@ function CustomerCreateDialog({open,onOpenChange,onCreated}){
       throw new Error('客户联系人关系与已声明的对象模型不一致。');
     }
     const operations=[{object:CUSTOMER_OBJECT,action:'create',data:customerData}];
-    const primaryContactKey=contactDraft.rows.find(row=>row.values?.[CONTACT_PRIMARY_FIELD]===true)?.draftKey
-      ||contactDraft.rows[0]?.draftKey;
+    const writablePrimaryRows=contactDraft.rows.filter(row=>
+      Object.prototype.hasOwnProperty.call(row.values||{},CONTACT_PRIMARY_FIELD));
+    const primaryContactKey=writablePrimaryRows.find(row=>row.values?.[CONTACT_PRIMARY_FIELD]===true)?.draftKey
+      ||writablePrimaryRows[0]?.draftKey;
     for(const contactRow of contactDraft.rows){
       const contactValues={...(contactRow.values||{})};
       delete contactValues[CONTACT_PARENT_FIELD];
-      contactValues[CONTACT_PRIMARY_FIELD]=contactRow.draftKey===primaryContactKey;
+      // The controller has already stripped fields the actor cannot write.
+      // Apply host primary policy only to the fields that survived that gate.
+      if(Object.prototype.hasOwnProperty.call(contactValues,CONTACT_PRIMARY_FIELD)){
+        contactValues[CONTACT_PRIMARY_FIELD]=contactRow.draftKey===primaryContactKey;
+      }
       const contactOperationIndex=operations.length;
       operations.push({
         object:CONTACT_OBJECT,
@@ -316,7 +333,10 @@ function CustomerCreateDialog({open,onOpenChange,onCreated}){
         value={contacts}
         onChange={updateContacts}
         fields={CONTACT_VISIBLE_FIELDS}
-        columns={CUSTOMER_COLUMNS}
+        sections={CONTACT_SECTIONS}
+        columns={CONTACT_COLUMNS}
+        primaryField={CONTACT_PRIMARY_FIELD}
+        parentRecord={customerValues}
         title="联系人"
         itemLabel="联系人"
         addLabel="添加联系人"
@@ -341,6 +361,8 @@ function CustomerCreateDialog({open,onOpenChange,onCreated}){
           presentation="rows"
           columns={3}
           fields={['channel_type','name','value']}
+          fieldWidths={{channel_type:132,name:112}}
+          parentRecord={row.values}
           includeRow={channel=>hasText(channel.values?.[CHANNEL_VALUE_FIELD])}
           createDraftValues={()=>({channel_type:'mobile',name:'工作手机'})}
           onControllerReady={onControllerReady}

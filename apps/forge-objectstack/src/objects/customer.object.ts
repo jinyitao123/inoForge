@@ -73,7 +73,15 @@ export const CustomerTeamMember = master('forge_customer_team_member', '客户�
 export const Contact = master('forge_contact', '联系人管理', 'contact', {
   name: text('姓名', true), customer_id: { ...reference('forge_customer', '客户', true), relatedList: true, relatedListTitle: '联系人', relatedListColumns: ["name", "is_primary", "job_title", "department", "employment_status"] },
   is_primary: Field.boolean({ label: '主要联系人', defaultValue: false }), job_title: text('职位'), department: text('部门'),
-  gender: text('性别'), decision_weight: text('决策权重'),
+  // Retain stored text values while declaring the choices for the shared widget.
+  gender: { ...text('性别'), widget: 'declared-label-select', options: [
+    { value: 'male', label: '男' }, { value: 'female', label: '女' },
+  ] },
+  decision_weight: { ...text('决策权重'), widget: 'declared-label-select', options: [
+    { value: 'price', label: '价格' }, { value: 'delivery', label: '交期' },
+    { value: 'quality', label: '质量' }, { value: 'service', label: '服务' },
+    { value: 'brand', label: '品牌' }, { value: 'payment_terms', label: '付款条件' },
+  ] },
   employment_status: Field.select([
     { value: 'active', label: '在职' }, { value: 'transferred', label: '已跳槽' },
     { value: 'resigned', label: '已离职' }, { value: 'retired', label: '已退休' },

@@ -3,7 +3,7 @@ import test from 'node:test';
 import ts from 'typescript';
 import * as customerCreatePageModule from '../src/pages/customer-create.page.ts';
 import { Contact, ContactChannel, Customer } from '../src/objects/customer.object.ts';
-import { CustomerViews } from '../src/views/customer.view.ts';
+import { ContactViews, CustomerViews } from '../src/views/customer.view.ts';
 
 const { CustomerCreatePage, customerCreateRuntime } = customerCreatePageModule;
 
@@ -44,6 +44,29 @@ test('customer composite save uses only the declared atomic batch adapter and pr
   assert.doesNotMatch(CustomerCreatePage.source, /\/api\/v1\/batch/);
   assert.doesNotMatch(CustomerCreatePage.source, /原子保存|transactionalBatch|正在确认保存能力/);
   assert.doesNotMatch(CustomerCreatePage.source, /\._id/);
+});
+
+test('customer batch host policy does not restore a primary field stripped by permissions or readonly rules', () => {
+  const start = customerCreateRuntime.indexOf('function buildOperations(');
+  const end = customerCreateRuntime.indexOf('async function createCustomer()', start);
+  const build = new Function(
+    'CUSTOMER_OBJECT', 'CONTACT_OBJECT', 'CHANNEL_OBJECT', 'CONTACT_PARENT_FIELD', 'CHANNEL_PARENT_FIELD', 'CONTACT_PRIMARY_FIELD',
+    customerCreateRuntime.slice(start, end) + '\nreturn buildOperations;',
+  )(Customer.name, Contact.name, ContactChannel.name, 'customer_id', 'contact_id', 'is_primary');
+  const rows = [
+    { draftKey: 'restricted', values: { name: 'Restricted field contact' } },
+    { draftKey: 'writable', values: { name: 'Writable field contact', is_primary: false } },
+  ].map(row => ({ ...row, children: [{
+    parentObjectName: Contact.name, childObjectName: ContactChannel.name,
+    relationshipField: 'contact_id', rows: [],
+  }] }));
+  const operations = build({ name: 'Equipment customer' }, {
+    parentObjectName: Customer.name, childObjectName: Contact.name,
+    relationshipField: 'customer_id', rows,
+  });
+  assert.equal(Object.hasOwn(operations[1].data, 'is_primary'), false);
+  assert.equal(operations[2].data.is_primary, true);
+  assert.deepEqual(operations[1].data.customer_id, { $ref: 0 });
 });
 
 function createPageHarness(adapter) {
@@ -158,7 +181,11 @@ test('customer page validates both controlled parent sections and sends one refe
     draftKey: 'initial-primary-contact',
     values: { name: 'Ada', is_primary: true, employment_status: 'active' },
   }), true);
-  assert.deepEqual(collection.props.fields, ['name', 'job_title', 'department', 'gender', 'decision_weight', 'remarks', 'is_primary']);
+  assert.deepEqual(collection.props.fields, ['name', 'job_title', 'gender', 'department', 'decision_weight', 'remarks', 'is_primary']);
+  assert.deepEqual(collection.props.sections, ContactViews.form.sections
+    .filter(section => section.name === 'contact_information')
+    .map(({ name, label, ...section }) => section));
+  assert.equal(collection.props.primaryField, 'is_primary');
 
   const nested = collection.props.children({
     row: { draftKey: 'initial-primary-contact', values: { is_primary: true } },

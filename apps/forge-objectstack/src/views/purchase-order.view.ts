@@ -3,6 +3,28 @@ import { defineView } from '@objectstack/spec';
 /** Read-oriented order and line views over the canonical procurement objects. */
 export const PurchaseOrderViews = defineView({
   object: 'forge_purchase_order',
+  form: {
+    type: 'simple',
+    data: { provider: 'object', object: 'forge_purchase_order' },
+    columns: 3,
+    sections: [
+      {
+        name: 'source',
+        label: '采购来源',
+        columns: 3,
+        fields: ['source_type'],
+      },
+      {
+        name: 'purchase_information',
+        label: '采购信息',
+        columns: 3,
+        fields: [
+          'code', 'supplier_id', 'warehouse_id', 'expected_arrival_on',
+          'payment_term', 'payment_method', 'remarks',
+        ],
+      },
+    ],
+  },
   list: {
     label: '订单列表',
     type: 'grid',
