@@ -49,12 +49,12 @@ export function master(
   label: string,
   icon: string,
   fields: Record<string, Field>,
-  columns: string[],
+  columns: string[] | null,
   sharingModel: 'private' | 'public_read' | 'public_read_write' | 'controlled_by_parent' = 'private',
 ) {
   return ObjectSchema.create({
     name, label, pluralLabel: label, icon, sharingModel, fields,
-    nameField: 'name', listViews: { all: { label: '全部', type: 'grid', columns } },
+    nameField: 'name', ...(columns ? { listViews: { all: { label: '全部', type: 'grid' as const, columns } } } : {}),
     enable: { apiEnabled: true, searchable: true, trackHistory: true },
   });
 }

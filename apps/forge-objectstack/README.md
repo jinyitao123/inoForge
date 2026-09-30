@@ -1,6 +1,6 @@
 # Forge ObjectStack
 
-当前这里仍集中注册一个 Forge 应用，七应用及各自设置的拆分尚待实施；包含业务对象、动作、运行时 hooks 和 Console 页面。入口为 [objectstack.config.ts](objectstack.config.ts)，依赖版本和可执行命令以 [package.json](package.json) 为准；不在说明中手工维护容易过时的对象、字段或页面总数。
+这里以共享业务能力包加七个应用包注册 Forge；应用分别拥有导航与页面，共用 ObjectStack 对象、动作和权限。入口为 [objectstack.config.ts](objectstack.config.ts)，依赖版本和可执行命令以 [package.json](package.json) 为准；不在说明中手工维护容易过时的对象、字段或页面总数。
 
 业务范围、质量要求与当前资料入口见[项目首页](../../README.md)、[项目规则](../../AGENTS.md)和[文档索引](../../docs/README.md)。
 
@@ -16,7 +16,7 @@ pnpm dev
 
 先为当前任务选择未占用的独立端口与独立 SQLite，再启动开发服务；实际 Console/API 地址和持久库位置以启动配置及日志为准。不要照抄旧报告的端口或数据库路径，也不要为验证文档修改重启正在使用的服务。
 
-`pnpm dev` 是 package.json 定义的开发入口，不代表已有环境已启动、已登录或数据已准备。登录使用当前测试环境配置，本文件不维护账号密码。验收脚本须显式设置指向本任务环境的 `FORGE_URL`，不得借用主线环境证明分支通过。
+`pnpm dev` 是 package.json 定义的开发入口，不代表已有环境已启动、已登录或数据已准备。登录使用当前测试环境配置，本文件不维护账号密码。验收脚本须显式设置指向本任务环境的 `FORGE_URL`，不得借用主线环境证明分支通过。本轮七应用的入口候选对应见[RISEMAP 对应清单](tests/risemap-correspondence.json)，候选不是验收通过。
 
 ## 代码入口
 
@@ -39,7 +39,7 @@ pnpm validate
 pnpm build
 ```
 
-再执行对应业务链的验收脚本。涉及持久状态时，使用同一持久数据库完整停服重启回读；页面与业务验收遵循 Forge 合同、实际角色操作和独立读回，外部参考对照可选。不要把脚本存在或工程检查通过写成业务验收通过。
+再执行对应业务链的验收脚本。涉及持久状态时，使用同一持久数据库完整停服重启回读；页面与业务验收遵循 Forge 合同、实际角色操作和独立读回。有直接对应的页面按[交付标准](../../docs/forge-page-delivery-standard.md)核对 RISEMAP 已观察的结构和交互；不要把脚本存在或工程检查通过写成业务验收通过。
 
 页面交付另见[默认标准](../../docs/forge-page-delivery-standard.md)和[精修基线](../../docs/forge-page-polish-baseline.md)。纯文档整理按链接、引用及内容一致性验证，不启动业务服务。
 
@@ -62,6 +62,8 @@ pnpm console94:cli-smoke
 ```
 
 构建脚本用 `git archive` 读取锁定的 ObjectUI 提交，不读取工作区改动。它将站点基路径设为 `/_console/`，移除仅供分析且包含构建机绝对路径的 `stats.html`，修正生成 HTML 中嵌套路由下会错误解析的 manifest 相对地址，再对注入文件树逐字节校验。产物写入 `.generated/console94/`，已加入 Git 与主构建上下文忽略列表。
+
+本轮公共组件使用 `compact-enterprise` 呈现 profile。改造 ObjectUI 后，先在其源码仓完成对应检查并形成提交，再将 lock 的源码修订指向该提交；使用固定 Node／pnpm 执行 `node scripts/build-console94.mjs --refresh-lock`，从该提交的干净归档构建并重新计算全部产物摘要。普通 `console94:build` 仍严格核对已有锁，不会自动接受差异。重新锁定后继续执行 `console94:verify` 与运行时来源核对，组件检查不替代样板页面对照。
 
 Docker Compose 通过 BuildKit `additional_contexts` 注入该目录；直接使用 Compose 构建时，也将 `console94-build.env` 中的源码修订和树摘要传入 `FORGE_CONSOLE_SOURCE_REVISION`、`FORGE_CONSOLE_TREE_SHA256`。Docker build stage 使用同一 CLI 解析器定位并注入 Console；runtime stage 在复制完整 pnpm `node_modules` 后，再用 Node 22 中的 CLI 重解析并校验路径和摘要。`scripts/deploy.sh` 自动传递同一上下文和摘要，并在备份和切换前检查构建材料。Docker 镜像标签及发布记录都写入 Console 源提交与树摘要。ObjectStack runtime 固定为 `17.3.0` 的 OCI digest，与 Forge 锁定的 CLI 主机版本配套；现有发布流程通过重新启用上一应用/代理镜像回滚，候选失败时不会改变公网入口。
 

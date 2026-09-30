@@ -5,6 +5,9 @@ import * as actions from '../actions/index.js';
 import * as hooks from '../hooks/index.js';
 import * as seedData from '../data/index.js';
 import * as flows from '../flows/index.js';
+import * as views from '../views/index.js';
+import * as datasets from '../datasets/index.js';
+import * as reports from '../reports/index.js';
 import { documentPrintingSettingsManagerPermission } from '../permissions/application-settings.permission.js';
 import { weaveTeamDeveloperPermission } from '../permissions/team-development.permission.js';
 
@@ -25,6 +28,9 @@ export const sharedForgeCoreBundle = defineStack({
   requires: ['automation', 'triggers', 'queue', 'approvals', 'messaging'],
   apps: [],
   pages: [],
+  views: Object.values(views),
+  datasets: Object.values(datasets),
+  reports: Object.values(reports),
   objects: Object.values(objects),
   data: Object.values(seedData),
   actions: Object.values(actions),

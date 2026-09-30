@@ -37,7 +37,6 @@ export const Project = ObjectSchema.create({
     description: Field.textarea({ label: '项目描述' }), remarks: remarks(),
   },
   nameField: 'name',
-  listViews: { all: { label: '全部', type: 'grid', columns: ['code', 'name', 'customer_id', 'manager_id', 'planned_start_on', 'planned_end_on', 'progress', 'expected_revenue', 'budget_amount', 'contract_amount', 'total_cost', 'status'] } },
   validations: [
     { type: 'script', name: 'project_date_order', condition: 'record.planned_end_on < record.planned_start_on', message: '计划结束日期不得早于计划开始日期' },
     { type: 'state_machine', name: 'project_lifecycle', field: 'status', initialStates: ['pending'], transitions: {

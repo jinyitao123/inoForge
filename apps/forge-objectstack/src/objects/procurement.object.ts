@@ -224,10 +224,10 @@ export const PurchaseOrder = master('forge_purchase_order', '采购订单', 'sho
   ], 'draft'), readonly: true },
   submitted_at: Field.datetime({ label: '提交时间', readonly: true }), submitted_by: Field.user({ label: '提交人', readonly: true }),
   approved_at: Field.datetime({ label: '审核时间', readonly: true }), approved_by: Field.user({ label: '审核人', readonly: true }), remarks: remarks(),
-}, ['code', 'name', 'supplier_id', 'bom_id', 'purchase_request_id', 'expected_arrival_on', 'warehouse_id', 'total_amount', 'arrived_quantity', 'inbound_quantity', 'status', 'responsible_id']);
+}, null);
 
 export const PurchaseOrderLine = master('forge_purchase_order_line', '采购订单明细', 'list', {
-  name: text('物料名称', true), order_id: reference('forge_purchase_order', '采购订单', true),
+  name: text('物料名称', true), order_id: { ...reference('forge_purchase_order', '采购订单', true), relatedList: true, relatedListTitle: '采购明细', relatedListColumns: ['item_code', 'name', 'model', 'quantity', 'taxed_unit_price', 'tax_rate', 'taxed_subtotal'] },
   sku_id: reference('forge_material_sku', '物料规格', true), item_code: text('物料编码'), model: text('型号'),
   specification: text('规格'), unit_name: text('单位'), quantity: positiveQuantity(),
   arrived_quantity: nonNegativeQuantity('已到货数量', true), inspected_quantity: nonNegativeQuantity('已检验数量', true),
@@ -238,7 +238,7 @@ export const PurchaseOrderLine = master('forge_purchase_order_line', '采购订�
   source_bom_id: reference('forge_bom', '来源BOM'), source_analysis_line_id: reference('forge_bom_shortage_line', '来源缺料明细'),
   purchase_request_line_id: reference('forge_purchase_request_line', '来源采购申请明细'),
   expected_arrival_on: Field.date({ label: '期望到货日期' }), remarks: remarks(),
-}, ['order_id', 'purchase_request_line_id', 'item_code', 'name', 'model', 'quantity', 'arrived_quantity', 'inspected_quantity', 'inbound_quantity', 'taxed_unit_price', 'taxed_subtotal']);
+}, null);
 
 // Live RISEMAP evidence: approval produces one order-level notice with multiple material lines; it does not record physical receipt.
 export const PurchaseArrivalNotice = master('forge_purchase_arrival_notice', '采购到货通知', 'package-search', {

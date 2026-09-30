@@ -29,14 +29,15 @@
 
 | 范围 | 合同与盘点入口 |
 | --- | --- |
-| 销售到项目业务走查 | [Forge OTC 顺序业务走查台账](forge-otc-sequential-ledger.md)（当前覆盖表）；[CRM 销售页面合同](forge-sales-crm-page-contract-20260913.md)、[报价/合同/订单切片](forge-sales-workflow-slice.md)、[项目计划合同](forge-project-plan-page-contract.md) |
+| 销售到项目业务走查 | [Forge OTC 顺序业务走查台账](forge-otc-sequential-ledger.md)（当前覆盖表）；[CRM 销售页面合同](forge-sales-crm-page-contract-20260913.md)、[报价/合同/订单切片](forge-sales-workflow-slice.md)、[项目中心页面合同](forge-project-center-page-contract.md)、[项目计划合同](forge-project-plan-page-contract.md) |
 | 财务全量精修 | [财务页面清单](forge-finance-page-inventory-20260915.md)、[财务精修合同](forge-finance-page-polish-contract-20260915.md)、[确认与发票合同](forge-finance-confirmation-invoice-contract-20260915.md) |
 | 供应链逐页交付 | [供应链页面设计清单](forge-supply-chain-page-design-inventory-20260915.md)、[采购申请合同](forge-purchase-request-page-contract-20260916.md)、[采购待办池](forge-purchase-todo-pool-page-contract-20260915.md)、[询价](forge-purchase-inquiry-page-contract-20260916.md)、[供应商价格本](forge-supplier-price-book-page-contract-20260916.md) |
 | 其他业务域 | [RISEMAP 功能域目录](risemap/README.md)，再按域定位对应 Forge 页面合同；不能把目录存在计为功能完成 |
+| 采购统计样板 | [采购统计页面合同](forge-purchase-statistics-page-contract.md)：数据集、报表口径、当前原生样板与缺口；历史取证仍见原验收记录 |
 
 ## 规范与原始材料
 
-- [RISEMAP 参考资料使用规范](risemap-replication-spec.md)、[跨模块业务旅程](risemap/journeys.md)。
+- [RISEMAP 对照资料使用规范](risemap-replication-spec.md)、[跨模块业务旅程](risemap/journeys.md)。
 - [三类业务定义](business-model.md)、[客户会议纪要提炼](customer-meeting-20260907-findings.md)、[正式版本要求](first-release.md)。
 - [references](references/)：原始截图、DOM、采集步骤及来源；[evidence](evidence/)：验收图像等证据；[standard-test-data](standard-test-data/)：对照材料。均按需读取，不因体积或数量批量删除。
 - 正式要求、页面合同和验收证据继续保留原路径。日期较早不自动意味着失效，证据需与对应实现版本一起判断。

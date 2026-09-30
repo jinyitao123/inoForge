@@ -1,21 +1,65 @@
-import { Field } from '@objectstack/spec/data';
-import { master, text, reference, choice, owner, remarks, money, code } from '../model.js';
+import { Field, ObjectSchema } from '@objectstack/spec/data';
+import { master, text, reference, choice, owner, remarks, code } from '../model.js';
 
 // Source: DP008/2068 form and DP008/2069 saved list.
-export const Customer = master('forge_customer', '客户管理', 'building-2', {
-  name: text('客户名称', true), customer_type: choice('客户类型', ['企业', '个人'], '企业'),
-  credit_code: text('统一社会信用代码'), legal_representative: text('法定代表人'),
-  registered_capital: text('注册资金'), established_on: Field.date({ label: '成立日期' }),
-  enterprise_scale: text('企业规模'), website: Field.url({ label: '公司网站' }), business_scope: Field.textarea({ label: '经营范围' }),
-  category_id: reference('forge_customer_category', '客户分类', true), level_id: reference('forge_customer_level', '客户级别'),
-  industry: text('行业'), responsible_id: owner(), description: Field.textarea({ label: '客户描述' }),
-  invoice_type: text('发票类型'), tax_number: text('纳税人识别号'), bank_name: text('开户银行'), bank_account: text('银行账号'),
-  invoice_address: text('开票地址'), invoice_phone: text('开票电话'),
-  payment_term: text('默认付款条件'), revenue_recognition: text('收入确认方式'),
-  credit_limit: money('信用额度'), payment_days: Field.number({ label: '账期天数', defaultValue: 30 }),
-  credit_status: Field.select([{ value: 'active', label: '正常' }, { value: 'frozen', label: '已冻结' }], { label: '授信状态', defaultValue: 'active' }),
-  address: text('详细地址'), province: text('省份'), city: text('城市'), remarks: remarks(),
-}, ['name', 'responsible_id', 'category_id', 'level_id', 'credit_limit', 'payment_days']);
+export const Customer = ObjectSchema.create({
+  name: 'forge_customer', label: '客户管理', pluralLabel: '客户管理', icon: 'building-2', sharingModel: 'private',
+  fieldGroups: [
+    { key: 'company', label: '工商信息', collapse: 'expanded' },
+    { key: 'profile', label: '客户资料', collapse: 'expanded' },
+    { key: 'invoicing', label: '开票信息', collapse: 'expanded' },
+    { key: 'commercial', label: '商务条件', collapse: 'expanded' },
+    { key: 'address', label: '商务信息', collapse: 'expanded' },
+  ],
+  fields: {
+    name: { ...text('客户名称', true), group: 'company' },
+    customer_type: { ...choice('客户类型', ['企业', '个人'], '企业'), group: 'company' },
+    credit_code: { ...text('统一社会信用代码'), group: 'company' },
+    legal_representative: { ...text('法定代表人'), group: 'company' },
+    registered_capital: { ...text('注册资金'), group: 'company' },
+    established_on: { ...Field.date({ label: '成立日期' }), group: 'company' },
+    enterprise_scale: { ...text('企业规模'), group: 'company' },
+    website: { ...Field.url({ label: '公司网站' }), group: 'company' },
+    business_scope: { ...Field.textarea({ label: '经营范围' }), group: 'company' },
+    category_id: { ...reference('forge_customer_category', '客户分类', true), group: 'profile' },
+    level_id: { ...reference('forge_customer_level', '客户级别'), group: 'profile' },
+    industry: { ...text('行业'), group: 'profile' },
+    responsible_id: { ...Field.user({ label: '负责人', defaultValue: 'current_user' }), group: 'profile' },
+    description: { ...Field.textarea({ label: '客户描述' }), group: 'profile' },
+    invoice_type: { ...text('发票类型'), group: 'invoicing' },
+    tax_number: { ...text('纳税人识别号'), group: 'invoicing' },
+    bank_name: { ...text('开户银行'), group: 'invoicing' },
+    bank_account: { ...text('银行账号'), group: 'invoicing' },
+    invoice_address: { ...text('开票地址'), group: 'invoicing' },
+    invoice_phone: { ...text('开票电话'), group: 'invoicing' },
+    payment_term: { ...text('默认付款条件'), group: 'commercial' },
+    revenue_recognition: { ...text('收入确认方式'), group: 'commercial' },
+    credit_limit: { ...Field.currency({ label: '信用额度', precision: 18, scale: 2, min: 0, defaultValue: 0 }), group: 'commercial' },
+    payment_days: { ...Field.number({ label: '账期天数', defaultValue: 30 }), group: 'commercial' },
+    credit_status: { ...Field.select([{ value: 'active', label: '正常' }, { value: 'frozen', label: '已冻结' }], { label: '授信状态', defaultValue: 'active' }), group: 'commercial' },
+    address: { ...text('详细地址'), group: 'address' },
+    province: { ...text('省份'), group: 'address' },
+    city: { ...text('城市'), group: 'address' },
+    remarks: { ...remarks(), group: 'address' },
+  },
+  nameField: 'name',
+  listViews: { all: {
+    label: '全部', type: 'grid',
+    columns: [
+      { field: 'name', link: true, width: 240, pinned: 'left' },
+      { field: 'responsible_id', width: 150 },
+      { field: 'category_id', width: 150 },
+      { field: 'level_id', width: 130 },
+      { field: 'credit_limit', width: 140 },
+      { field: 'payment_days', width: 120 },
+    ],
+    searchableFields: ['name'],
+    pagination: { pageSize: 20 },
+    selection: { type: 'multiple' },
+    rowHeight: 'extra_tall',
+  } },
+  enable: { apiEnabled: true, searchable: true, trackHistory: true },
+});
 
 // RISEMAP /base/customers: “标签与团队 → 团队成员” and the
 // “我参与的 / 下属参与的” customer-owner scopes.

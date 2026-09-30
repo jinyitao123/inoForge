@@ -10,7 +10,7 @@
   "scripts": {
     "dev": "objectstack dev",
     "start": "objectstack start",
-    "prebuild": "node tests/page-polish.static.mjs",
+    "prebuild": "node tests/page-polish.static.mjs && node --import tsx scripts/risemap-correspondence.mjs --check",
     "build": "objectstack build",
     "console94:build": "node scripts/build-console94.mjs",
     "console94:verify": "node scripts/verify-console94.mjs .generated/console94",
@@ -26,6 +26,7 @@
     "acceptance:contract-revision-native-lifecycle": "tsx --test tests/contract-revision-native-lifecycle.integration.mjs",
     "acceptance:finance-workflow": "node tests/finance-workflow.integration.mjs",
     "acceptance:page-polish": "node tests/page-polish.static.mjs",
+    "acceptance:risemap-correspondence": "node --import tsx scripts/risemap-correspondence.mjs --check && node --test tests/risemap-correspondence.test.mjs",
     "page-pixel-compare": "node tests/page-pixel-compare.mjs",
     "acceptance:product-structure": "node tests/risemap-product-structure.static.mjs && node tests/navigation-linkage.static.mjs",
     "acceptance:master-data": "node tests/master-data.integration.mjs",
