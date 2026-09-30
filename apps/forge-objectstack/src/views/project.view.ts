@@ -14,6 +14,17 @@ export const projectGridColumns = [
   { field: 'status', label: '状态', width: 110 },
 ];
 export const projectGanttColumns = ['name', 'manager_id', 'status'];
+export const projectGanttConfig = {
+  startDateField: 'planned_start_on',
+  endDateField: 'planned_end_on',
+  titleField: 'name',
+  progressField: 'progress',
+  viewMode: 'week' as const,
+  tooltipFields: [
+    { field: 'manager_id', label: '项目经理' },
+    { field: 'status', label: '状态' },
+  ],
+};
 
 /**
  * The project list and timeline share the same governed object. The view only
@@ -39,12 +50,7 @@ export const ProjectViews = defineView({
       type: 'gantt',
       data,
       columns: projectGanttColumns,
-      gantt: {
-        startDateField: 'planned_start_on',
-        endDateField: 'planned_end_on',
-        titleField: 'name',
-        progressField: 'progress',
-      },
+      gantt: projectGanttConfig,
       searchableFields: ['name', 'code'],
       pagination: { pageSize: 20 },
     },
