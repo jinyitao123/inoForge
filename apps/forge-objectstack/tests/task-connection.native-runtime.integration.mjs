@@ -12,6 +12,7 @@ import { Client } from 'pg';
 const APP = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const ROOT = '/api/v1/apps/forge/task-delegations';
 const OBJECT = 'forge_task_probe_record';
+const TARGET_OBJECT = 'forge_task_probe_target_record';
 const KEY = `forge:action:${OBJECT}.task_probe_touch`;
 
 test('native auth signing, scoped MCP, session revocation, and native inbox keyset stay authoritative', {
@@ -40,10 +41,11 @@ import { currentNativeActor } from ${JSON.stringify(path.join(APP, 'src/plugins/
 import { TaskDelegationService } from ${JSON.stringify(path.join(APP, 'src/plugins/task-delegation.plugin.ts'))};
 const object = ObjectSchema.create({ name:'${OBJECT}', label:'任务验证记录', sharingModel:'private', fields:{
   name:{type:'text',required:true}, counter:{type:'number',defaultValue:0}, attachment:{type:'file'}, owner_id:{type:'text'}, organization_id:{type:'text'} } });
+const target = ObjectSchema.create({name:'${TARGET_OBJECT}',label:'动作字段验证',sharingModel:'private',fields:{name:{type:'text'},attachment:{type:'file'}}});
 const action = defineAction({ name:'task_probe_touch', label:'验证动作', objectName:'${OBJECT}', type:'script', locations:['record_header'], target:'TaskProbeTouch',
-  visible:false, ai:{exposed:true,category:'action',description:'Only increments the authenticated caller-bound isolated task fixture record for native delegation regression validation.'}, params:[{field:'attachment',label:'任务材料',required:false}] });
+  visible:false, ai:{exposed:true,category:'action',description:'Only increments the authenticated caller-bound isolated task fixture record for native delegation regression validation.'}, params:[{field:'name',objectOverride:'${TARGET_OBJECT}',label:'动作目标名称',required:false},{field:'attachment',objectOverride:'${TARGET_OBJECT}',label:'任务材料',required:false}] });
 object.actions=[action];
-const bundle = {...sharedForgeCoreBundle, objects:[...sharedForgeCoreBundle.objects,object], actions:[...sharedForgeCoreBundle.actions,action]};
+const bundle = {...sharedForgeCoreBundle, objects:[...sharedForgeCoreBundle.objects,object,target], actions:[...sharedForgeCoreBundle.actions,action]};
 stack.plugins = stack.plugins.map(plugin => plugin === sharedForgeCorePlugin ? new AppPlugin(bundle) : plugin);
 stack.plugins.push({ name:'test.task-connection-bootstrap', init(ctx) { ctx.hook('kernel:ready',()=>{
   const server=ctx.getService('http.server'), engine=ctx.getService('objectql'), messaging=ctx.getService('messaging');
@@ -122,9 +124,14 @@ export default stack;
     let rpcId=0;
     async function rpc(method,params={},taskToken=token) { return request(ROOT+'/mcp','POST',{jsonrpc:'2.0',id:++rpcId,method,params},taskToken); }
     const init=await rpc('initialize',{protocolVersion:'2025-03-26',capabilities:{},clientInfo:{name:'native-task-test',version:'1'}});assert.equal(init.status,200,'mcp init:'+String(init.value?.error?.code));
-    const actionReply=await rpc('tools/call',{name:'run_action',arguments:{actionName:'task_probe_touch',objectName:OBJECT,recordId:scope.business_record.record_id,params:{}}});
+    const actionReply=await rpc('tools/call',{name:'run_action',arguments:{actionName:'task_probe_touch',objectName:OBJECT,recordId:scope.business_record.record_id,params:{name:'可信动作字段'}}});
     assert.equal(actionReply.status,200,JSON.stringify(actionReply.value)); assert.ok(actionReply.value.result && actionReply.value.result.isError!==true,JSON.stringify(actionReply.value));
     const wrongFile=await rpc('tools/call',{name:'run_action',arguments:{actionName:'task_probe_touch',objectName:OBJECT,recordId:scope.business_record.record_id,params:{attachment:randomUUID()}}});assert.ok(wrongFile.status===403 || wrongFile.value.result?.isError,'field-backed file reference outside scope must be rejected');
+    assert.equal((await request(ROOT+'/objects/'+TARGET_OBJECT,'GET',undefined,token)).status,403,'internal action field lookup must not expose target metadata');
+    const targetRead=await rpc('tools/call',{name:'get_record',arguments:{objectName:TARGET_OBJECT,recordId:randomUUID()}});
+    assert.ok(targetRead.status===403 || targetRead.value.result?.isError,'action field target records stay outside the grant');
+    const targetDescription=await rpc('tools/call',{name:'describe_object',arguments:{objectName:TARGET_OBJECT}});
+    assert.ok(targetDescription.status===403 || targetDescription.value.result?.isError,'action field target is not a public task object');
     assert.equal((await rpc('tools/call',{name:'create_record',arguments:{objectName:OBJECT,data:{name:'绕过尝试'}}})).status,403);
     const other=await rpc('tools/call',{name:'get_record',arguments:{objectName:OBJECT,recordId:setup.value.recordIds[1]}});
     assert.ok(other.status===403 || other.value.result?.isError,'outside-record read must be refused');

@@ -28,6 +28,16 @@ export class TaskMcpAdapter {
 
   async objectMetadata(actor: ExecutionContext, scope: TaskScope, name: string): Promise<Record<string, unknown>> {
     if (!allowedObjectNames(scope).has(name)) throw new TaskConnectionFailure(403, 'FORGE_TASK_SCOPE_FORBIDDEN', '该对象不在本次授权范围');
+    const body = await this.nativeObjectMetadata(actor, name);
+    const item = body.item as Record<string, unknown>;
+    if (Array.isArray(item.actions)) {
+      return { ...body, item: { ...item, actions: item.actions.filter((action: Action) =>
+        scope.allowed_actions.includes(`forge:action:${name}.${String(action.name)}`)) } };
+    }
+    return body;
+  }
+
+  private async nativeObjectMetadata(actor: ExecutionContext, name: string): Promise<Record<string, unknown>> {
     const result = await this.sdk.handleMetadata(`objects/${encodeURIComponent(name)}`, { request: { method: 'POST', url: '/api/v1/mcp', headers: {} }, executionContext: actor }, 'GET');
     if (result.response?.status !== 200 || !result.response.body || typeof result.response.body !== 'object') {
       throw new TaskConnectionFailure(result.response?.status ?? 503, 'FORGE_TASK_METADATA_UNAVAILABLE', '当前能力定义不可读取');
@@ -37,10 +47,6 @@ export class TaskMcpAdapter {
     const body = envelope.data as Record<string, unknown>;
     const item = body.item as Record<string, unknown> | undefined;
     if (!item || item.name !== name) throw new TaskConnectionFailure(503, 'FORGE_TASK_METADATA_UNAVAILABLE', '当前能力定义不完整');
-    if (Array.isArray(item.actions)) {
-      return { ...body, item: { ...item, actions: item.actions.filter((action: Action) =>
-        scope.allowed_actions.includes(`forge:action:${name}.${String(action.name)}`)) } };
-    }
     return body;
   }
 
@@ -88,7 +94,9 @@ export class TaskMcpAdapter {
           let field: Action | undefined;
           if (typeof parameter.field === 'string') {
             const fieldItem = parameter.objectOverride && parameter.objectOverride !== input.objectName
-              ? (await this.objectMetadata(actor, scope, String(parameter.objectOverride))).item as Action : item;
+              // The target comes from the selected native action declaration, never caller input.
+              // Inspect its field internally without exposing target objects or records.
+              ? (await this.nativeObjectMetadata(actor, String(parameter.objectOverride))).item as Action : item;
             field = (fieldItem.fields as Record<string, Action> | undefined)?.[parameter.field];
             if (!field) throw new TaskConnectionFailure(503, 'FORGE_TASK_METADATA_UNAVAILABLE', '当前字段参数不可核验');
           }
