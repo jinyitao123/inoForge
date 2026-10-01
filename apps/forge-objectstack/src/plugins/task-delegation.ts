@@ -172,9 +172,10 @@ export function entryAllowed(
   if (verb === 'GET' && /^\/api\/v1\/meta\/objects?\/[a-z][a-z0-9_]{1,127}$/.test(clean)) return true;
   if (verb === 'DELETE' && clean === `/api/v1/workbench/task-delegations/${delegation.delegationId}`) return true;
   if (verb !== 'GET') return false;
-  const owned = /^\/api\/v1\/workbench\/materials\/([^/]+)(?:\/original)?$/.exec(clean);
+  // Weave also verifies frozen text materials through the native storage route.
+  const owned = /^\/api\/v1\/(?:workbench\/materials\/([^/]+)(?:\/original)?|storage\/files\/([^/]+))$/.exec(clean);
   if (owned) {
-    const fileId = decodeURIComponent(owned[1]!);
+    const fileId = decodeURIComponent((owned[1] ?? owned[2])!);
     return delegation.files.some((file) => file.sourceKind === 'owner' && file.fileId === fileId);
   }
   const approval = /^\/api\/v1\/approvals\/requests\/([^/]+)\/(?:workbench-context|workbench-history)\/files\/([^/]+)\/original$/.exec(clean);
