@@ -240,6 +240,9 @@ export default stack;
     assert.equal(stillRevoked.status,401);assert.equal(stillRevoked.value.error.code,'FORGE_TASK_SUBJECT_INACTIVE','unban cannot revive the original grant');
     const cleanup=await request(ROOT+'/'+targetGrant.value.grant_id,'DELETE',{reason:'run_terminal'},targetGrant.value.access_token);
     assert.equal(cleanup.status,200);assert.equal(cleanup.value.reason,'subject_inactive');
+    const restartedLogin=await request('/api/v1/auth/sign-in/email','POST',{email:targetEmail,password:changedPassword});
+    assert.equal(restartedLogin.status,200);const restartedToken=restartedLogin.value.token;secrets.push(restartedToken);
+    assert.equal((await request(ROOT,'POST',{request_id:randomUUID(),scope:targetScope},restartedToken)).status,409,'a new login must not resurrect the disabled original input');
     const cancelGrant=await request(ROOT,'POST',{request_id:randomUUID(),scope:{...scope,input_revision_id:randomUUID()}});
     assert.equal(cancelGrant.status,200);secrets.push(cancelGrant.value.access_token);
     const cancellations=await Promise.all([

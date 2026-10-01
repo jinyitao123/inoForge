@@ -78,6 +78,9 @@ export class TaskDelegationService {
     }
     const previous = await this.latest(key);
     if (previous && previous.scope_sha256 !== scopeHash) throw new TaskConnectionFailure(409, 'FORGE_TASK_SCOPE_CONFLICT', '原输入的授权范围不能更换');
+    if (previous?.revoked_at && ['employee_cancel', 'subject_inactive'].includes(String(previous.revocation_reason))) {
+      throw new TaskConnectionFailure(409, 'FORGE_TASK_REVOCATION_FINAL', '原工作授权已终止，请从新的工作输入开始');
+    }
     const oldGeneration = previous ? Number(previous.generation) : 0;
     if (body?.expected_generation !== undefined && body.expected_generation !== oldGeneration) {
       throw new TaskConnectionFailure(409, 'FORGE_TASK_GENERATION_CONFLICT', '任务授权已有更新，请重新核对');
