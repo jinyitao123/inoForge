@@ -13,7 +13,7 @@ const delegation = {
 
 test('entry allowlist covers exactly the paths Weave uses with a task credential', () => {
   const allowed = [
-    ['POST', '/api/v1/mcp'], ['GET', '/api/v1/auth/me/permissions'], ['GET', '/api/v1/meta/objects/forge_sales_contract'],
+    ['POST', '/api/v1/mcp'], ['GET', '/api/v1/auth/me/permissions'], ['GET', '/api/v1/auth/get-session'], ['GET', '/api/v1/meta/objects/forge_sales_contract'],
     ['GET', '/api/v1/storage/files/owned-1'], ['GET', '/api/v1/workbench/materials/owned-1'], ['GET', '/api/v1/workbench/materials/owned-1/original'],
     ['GET', '/api/v1/approvals/requests/req-1/workbench-history/files/approval-1/original'], ['DELETE', '/api/v1/workbench/task-delegations/d-1'],
   ];

@@ -168,7 +168,8 @@ export function entryAllowed(
   const verb = method.toUpperCase();
   const clean = path.split('?')[0]!.replace(/\/+$/, '');
   if (clean === '/api/v1/mcp') return true;
-  if (verb === 'GET' && clean === '/api/v1/auth/me/permissions') return true;
+  // Weave verifies the credential through the session and permission reads.
+  if (verb === 'GET' && (clean === '/api/v1/auth/me/permissions' || clean === '/api/v1/auth/get-session')) return true;
   if (verb === 'GET' && /^\/api\/v1\/meta\/objects?\/[a-z][a-z0-9_]{1,127}$/.test(clean)) return true;
   if (verb === 'DELETE' && clean === `/api/v1/workbench/task-delegations/${delegation.delegationId}`) return true;
   if (verb !== 'GET') return false;
