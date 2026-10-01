@@ -26,3 +26,4 @@ export * from './report-settings.object.js';
 export * from './business-setting.object.js';
 
 export { TaskDelegation } from './task-delegation.object.js';
+export * from './task-delegation.object.js';
