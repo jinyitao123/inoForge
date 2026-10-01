@@ -3,6 +3,7 @@ import { makeExecutionContextResolver } from '@objectstack/plugin-hono-server';
 import type { IHttpRequest, IHttpResponse, IHttpServer, IObjectQLEngine, IStorageService } from '@objectstack/spec/contracts';
 import type { ExecutionContext } from '@objectstack/spec/kernel';
 import { resolveRetainedContractMaterialForOwner } from './contract-material-holder.js';
+import { currentNativeActor, TaskConnectionFailure } from './native-task-auth.js';
 
 const ROUTE = '/api/v1/workbench/materials/:fileId';
 const ORIGINAL_ROUTE = '/api/v1/workbench/materials/:fileId/original';
@@ -187,12 +188,13 @@ export class WorkbenchOwnedMaterialPlugin implements Plugin {
         const storage = service<IStorageService>(context, 'storage');
         if (!engine || !storage) return sendError(response, 503, 'MATERIAL_UNAVAILABLE');
         try {
+          await currentNativeActor(context, actor.userId, actor.tenantId ?? '');
           const file = await engine.findOne('sys_file', { where: { id: fileId } }, { context: SYSTEM_CONTEXT });
           if (!file || file.status !== 'committed' || !['user', 'attachments'].includes(String(file.scope)) || file.acl !== 'private' ||
-              file.owner_id !== actor.userId || file.ref_object || file.ref_id) {
+              file.owner_id !== actor.userId || file.ref_object || file.ref_id || file.ref_field) {
             return sendError(response, 404, 'MATERIAL_NOT_FOUND');
           }
-          if (file.organization_id && actor.organizationId && file.organization_id !== actor.organizationId) {
+          if (!actor.tenantId || file.organization_id !== actor.tenantId) {
             return sendError(response, 404, 'MATERIAL_NOT_FOUND');
           }
           const key = nonempty(file.key, 2048), name = nonempty(file.name, 255);
@@ -200,7 +202,7 @@ export class WorkbenchOwnedMaterialPlugin implements Plugin {
           const mediaType = nonempty(file.mime_type, 160)?.toLowerCase();
           if (!key || !name || !Number.isSafeInteger(size) || size < 1) return sendError(response, 422, 'MATERIAL_INVALID');
           if (size > MAX_TEXT_BYTES) return sendError(response, 413, 'MATERIAL_TOO_LARGE');
-          if (!mediaType || !/^(text\/plain|text\/markdown)(;\s*charset=utf-8)?$/.test(mediaType)) {
+          if (!mediaType || !/^(text\/plain|text\/markdown|text\/csv|application\/json)(;\s*charset=utf-8)?$/.test(mediaType)) {
             return sendError(response, 415, 'MATERIAL_UNSUPPORTED');
           }
           const downloaded = await storage.download(key);
@@ -213,7 +215,8 @@ export class WorkbenchOwnedMaterialPlugin implements Plugin {
           await response.status(200).json({
             version: '1', fileId, name, mediaType, bytes: size, sha256: await sha256(bytes), content,
           });
-        } catch {
+        } catch (error) {
+          if (error instanceof TaskConnectionFailure) return sendError(response, error.status, error.code);
           context.logger.error('[workbench-owned-material] failed to read an owned text material');
           await sendError(response, 503, 'MATERIAL_UNAVAILABLE');
         }
@@ -234,6 +237,7 @@ export class WorkbenchOwnedMaterialPlugin implements Plugin {
         const storage = service<IStorageService>(context, 'storage');
         if (!engine || !storage) return sendError(response, 503, 'MATERIAL_UNAVAILABLE');
         try {
+          await currentNativeActor(context, actor.userId, actor.tenantId ?? '');
           const original = await readOwnedOriginal(engine, storage, actor, fileId, expected);
           const { name, mediaType, bytes, sha256: digest } = original;
           response.header('Content-Type', mediaType);
@@ -247,7 +251,7 @@ export class WorkbenchOwnedMaterialPlugin implements Plugin {
             mediaType, bytes: bytes.byteLength, sha256: digest,
           });
         } catch (error) {
-          if (error instanceof OwnedOriginalFailure) return sendError(response, error.status, error.code);
+          if (error instanceof OwnedOriginalFailure || error instanceof TaskConnectionFailure) return sendError(response, error.status, error.code);
           context.logger.error('[workbench-owned-material] failed to read an owned binary original');
           await sendError(response, 503, 'MATERIAL_UNAVAILABLE');
         }

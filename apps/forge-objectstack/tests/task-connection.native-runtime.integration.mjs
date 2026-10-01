@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import { randomBytes, randomUUID } from 'node:crypto';
+import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { mkdtemp, rm, symlink, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:net';
 import os from 'node:os';
@@ -104,8 +104,21 @@ export default stack;
     assert.ok(session.user.id && session.session.activeOrganizationId);
     const setup=await request('/api/v1/__test/task-connection','POST',{userId:session.user.id,organizationId:session.session.activeOrganizationId},launcher);
     assert.equal(setup.status,200); assert.equal(setup.value.recordIds.length,2);
+    const resources=[];
+    for(const [name,mediaType,content] of [['客户&金额.csv','text/csv','客户,金额\n样板,1200\n'],['任务.json','application/json','{"客户":"样板","金额":1200}']]) {
+      const bytes=Buffer.from(content);
+      const presigned=await request('/api/v1/storage/upload/presigned','POST',{filename:name,mimeType:mediaType,size:bytes.length,scope:'attachments'});
+      assert.equal(presigned.status,200);
+      const descriptor=presigned.value.data??presigned.value;
+      assert.ok(descriptor.fileId&&descriptor.uploadUrl);
+      secrets.push(descriptor.uploadUrl);
+      const uploaded=await fetch(new URL(descriptor.uploadUrl,origin),{method:descriptor.method??'PUT',headers:descriptor.headers??{},body:bytes});
+      assert.equal(uploaded.status,200);await uploaded.body?.cancel();
+      const completed=await request('/api/v1/storage/upload/complete','POST',{fileId:descriptor.fileId});assert.equal(completed.status,200);
+      resources.push({type:'forge-file',id:descriptor.fileId,name,mediaType,bytes:bytes.length,sha256:createHash('sha256').update(bytes).digest('hex')});
+    }
     const scope={input_revision_id:randomUUID(),registration_id:randomUUID(),task_sha256:'a'.repeat(64),workflow_id:randomUUID(),workflow_version:1,
-      allowed_actions:[KEY],resources:[],business_record:{object_name:OBJECT,record_id:setup.value.recordIds[0]}};
+      allowed_actions:[KEY],resources,business_record:{object_name:OBJECT,record_id:setup.value.recordIds[0]}};
     assert.ok(setup.value.actions.some(a=>a.name==='task_probe_touch'),JSON.stringify({actions:setup.value.actions,permissions:setup.value.permissions,positions:setup.value.positions}));
     const requestId=randomUUID();
     const firstRacing=await Promise.all(Array.from({length:6},()=>request(ROOT,'POST',{request_id:requestId,scope})));
@@ -114,6 +127,18 @@ export default stack;
     assert.equal(first.status,200,first.value?.error?.code ?? 'native issuance rejected'); secrets.push(first.value.access_token);
     const token=first.value.access_token; assert.equal(first.value.generation,1);
     const checked=await request(ROOT+'/current','GET',undefined,token); assert.equal(checked.status,200,'initial current:'+String(checked.value?.error?.code));
+    for(const resource of resources){
+      const original=await fetch(origin+ROOT+'/files/'+resource.id+'/original',{headers:{Authorization:'Bearer '+token}});
+      assert.equal(original.status,200,'task original:'+resource.mediaType);
+      const bytes=Buffer.from(await original.arrayBuffer());assert.equal(bytes.length,resource.bytes);
+      assert.equal(createHash('sha256').update(bytes).digest('hex'),resource.sha256);
+      assert.equal(original.headers.get('content-type'),resource.mediaType);
+    }
+    for(const resource of resources){
+      const owned=await request('/api/v1/workbench/materials/'+resource.id);
+      assert.equal(owned.status,200);assert.equal(owned.value.mediaType,resource.mediaType);
+      assert.equal(owned.value.sha256,resource.sha256);assert.equal(Buffer.byteLength(owned.value.content),resource.bytes);
+    }
     const racing=await Promise.all(Array.from({length:6},()=>request(ROOT,'POST',{request_id:requestId,scope})));
     for(const response of racing){assert.equal(response.status,200);assert.equal(response.value.grant_id,first.value.grant_id);assert.equal(response.value.generation,1);secrets.push(response.value.access_token);}
     const repeated=await request(ROOT,'POST',{request_id:requestId,scope}); assert.equal(repeated.value.grant_id,first.value.grant_id); assert.equal(repeated.value.generation,1);
@@ -164,6 +189,7 @@ export default stack;
       assert.equal(current.value.error.no_effect,true);
       assert.equal((await request(ROOT,'POST',{request_id:randomUUID(),scope})).status,403);
       assert.equal((await request('/api/v1/apps/forge/workbench/inbox?limit=100')).status,403);
+      for(const resource of resources)assert.equal((await request('/api/v1/workbench/materials/'+resource.id)).status,403);
       assert.equal((await request(ROOT+'/files/'+randomUUID()+'/original','GET',undefined,renewed.value.access_token)).status,403);
       assert.equal((await rpc('tools/call',{name:'run_action',arguments:{actionName:'task_probe_touch',objectName:OBJECT,recordId:scope.business_record.record_id,params:{}}},renewed.value.access_token)).status,403);
     }
