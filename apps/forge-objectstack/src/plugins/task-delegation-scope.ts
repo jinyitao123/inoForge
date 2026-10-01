@@ -65,11 +65,13 @@ export async function readTaskResource(context: PluginContext, actor: ExecutionC
     if (!file || file.status !== 'committed' || !['user', 'attachments'].includes(String(file.scope)) || file.acl !== 'private' ||
         file.owner_id !== actor.userId || file.organization_id !== actor.tenantId || file.ref_object || file.ref_id || file.ref_field ||
         Number(file.size) !== resource.bytes || Number(file.size) > 2 * 1024 * 1024 ||
-        !nonempty(file.key, 2048) || !nonempty(file.name, 255) || !/^(text\/plain|text\/markdown)(;\s*charset=utf-8)?$/.test(String(file.mime_type))) {
+        !nonempty(file.key, 2048) || !nonempty(file.name, 255) || !/^(text\/plain|text\/markdown|text\/csv|application\/json)(;\s*charset=utf-8)?$/.test(String(file.mime_type))) {
       throw new TaskConnectionFailure(404, 'FORGE_TASK_MATERIAL_NOT_FOUND', '当前材料不可读取');
     }
     const bytes = new Uint8Array(await storage.download(String(file.key)));
-    const content = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(bytes);
+    let content: string;
+    try { content = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(bytes); }
+    catch { throw new TaskConnectionFailure(422, 'FORGE_TASK_MATERIAL_INVALID', '当前材料不是有效的 UTF-8 文本'); }
     if (!content.trim() || content.includes('\0')) throw new TaskConnectionFailure(422, 'FORGE_TASK_MATERIAL_INVALID', '当前材料无效');
     original = { fileId: resource.id, name: String(file.name), mediaType: String(file.mime_type), bytes, sha256: await digest(bytes) };
   }
