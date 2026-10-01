@@ -6,6 +6,23 @@ import type { ExecutionContext } from '@objectstack/spec/kernel';
 
 export const SYSTEM_READ: ExecutionContext = { isSystem: true, positions: [], permissions: [] };
 
+export function taskIdentityIssuer(): string {
+  const issuer = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env?.FORGE_IDENTITY_ISSUER?.trim();
+  if (!issuer || !/^[A-Za-z][A-Za-z0-9+.-]*:\S{1,240}$/.test(issuer) || /^https?:\/\//i.test(issuer)) {
+    throw new TaskConnectionFailure(503, 'IDENTITY_SOURCE_UNCONFIGURED', '身份来源尚未配置');
+  }
+  return issuer;
+}
+
+export function taskAudience(issuer: string): string { return `forge_task:${issuer}`; }
+
+export function taskLifetimeMs(): number {
+  const raw = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env?.FORGE_TASK_DELEGATION_MAX_HOURS;
+  const hours = raw === undefined || raw === '' ? 24 : Number(raw);
+  if (!Number.isFinite(hours) || hours <= 0 || hours > 24) throw new TaskConnectionFailure(503, 'FORGE_TASK_LIFETIME_INVALID', '任务有效期配置无效');
+  return Math.floor(hours * 60 * 60_000 / 1000) * 1000;
+}
+
 export interface NativeAuthApi {
   getSession(args: { headers: Headers }): Promise<{ user?: { id?: string; authGate?: { code: string; message?: string } }; session?: { id?: string; activeOrganizationId?: string; expiresAt?: string | Date } } | null>;
   signJWT(args: { body: { payload: Record<string, unknown> } }): Promise<{ token: string }>;
