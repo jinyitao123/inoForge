@@ -2,6 +2,15 @@ import assert from 'node:assert/strict';
 
 const { PurchaseOrderWorkspacePage } = await import('../src/pages/purchase-order-workspace.page.ts');
 const pageSource = PurchaseOrderWorkspacePage.source;
+const loadNewStart = pageSource.indexOf('async function loadNew(){');
+const loadNewEnd = pageSource.indexOf('\n  async function loadDetail', loadNewStart);
+assert.ok(loadNewStart >= 0 && loadNewEnd > loadNewStart, 'the source-owned loadNew path should be extractable');
+const loadNewSource = pageSource.slice(loadNewStart, loadNewEnd).trim();
+const codeGeneratorStart = pageSource.indexOf('function forgeDocCode(');
+const codeGeneratorEnd = pageSource.indexOf('\nfunction ForgeDateInput', codeGeneratorStart);
+assert.ok(codeGeneratorStart >= 0 && codeGeneratorEnd > codeGeneratorStart, 'loadNew should use the existing forgeDocCode runtime helper');
+const forgeDocCodeSource = pageSource.slice(codeGeneratorStart, codeGeneratorEnd).trim();
+const forgeDocCode = new Function(`return (${forgeDocCodeSource});`)();
 const functionStart = pageSource.indexOf('async function createOrder(mode){');
 const functionEnd = pageSource.indexOf('\n  async function approve()', functionStart);
 assert.ok(functionStart >= 0 && functionEnd > functionStart, 'the source-owned createOrder action should be extractable');
@@ -39,6 +48,37 @@ function makeHarness({ sourceResult, informationResult, form, analysis } = {}) {
   );
   return { createOrder, calls };
 }
+
+async function runLoadNew({ code, orders }) {
+  let formState = { code, analysis_id: '' };
+  let state = { loading: true, error: '', orders: [] };
+  const calls = { fetches: [] };
+  const setForm = (next) => { formState = typeof next === 'function' ? next(formState) : next; };
+  const setState = (next) => { state = typeof next === 'function' ? next(state) : next; };
+  const fetchAll = async (object) => {
+    calls.fetches.push(object);
+    return object === 'forge_purchase_order' ? orders : [];
+  };
+  const loadNew = new Function(
+    'setState', 'setForm', 'fetchAll', 'form', 'params', 'forgeDocCode',
+    `return (${loadNewSource});`,
+  )(setState, setForm, fetchAll, formState, new URLSearchParams(), forgeDocCode);
+  await loadNew();
+  return { formState, state, calls };
+}
+
+const today = new Date().toISOString().slice(0, 10);
+const year = today.slice(0, 4);
+const existingOrders = [{ code: `PO-${year}-0001` }, { code: `PO-${year}-0010` }];
+const expectedCandidate = forgeDocCode('PO', existingOrders.map((order) => order.code), today);
+const generated = await runLoadNew({ code: '', orders: existingOrders });
+assert.equal(generated.formState.code, expectedCandidate, 'loadNew should prefill the existing date-scoped next code when the current code is blank');
+assert.deepEqual(generated.calls.fetches.slice(0, 1), ['forge_purchase_order'], 'loadNew should derive the candidate from the orders it reads');
+assert.equal(generated.state.error, '', 'candidate generation should not put loadNew into its error state');
+
+const manual = await runLoadNew({ code: 'PO-MANUAL-99', orders: existingOrders });
+assert.equal(manual.formState.code, 'PO-MANUAL-99', 'loadNew must preserve a nonblank manually entered code');
+assert.equal(manual.state.error, '', 'preserving a manual code should leave loadNew successful');
 
 const ordinary = makeHarness({
   form: {
@@ -139,4 +179,4 @@ assert.deepEqual(JSON.parse(shortage.calls.actions[0].options.body).params, {
   remarks: 'validated BOM header',
 });
 
-process.stdout.write('PASS extracted purchase-order Page validates controlled values and preserves ordinary/BOM action payloads\n');
+process.stdout.write('PASS extracted purchase-order Page loadNew candidate generation, manual-code preservation, validation, and ordinary/BOM action payloads\n');
