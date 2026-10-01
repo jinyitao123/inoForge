@@ -15,13 +15,16 @@ transformSync(PurchaseOrderWorkspacePage.source, {
   sourcefile: 'page_purchase_order_workspace.jsx',
 });
 
-const sourceFields = PurchaseOrderViews.form.sections.find((section) => section.name === 'source')?.fields ?? [];
-const informationFields = PurchaseOrderViews.form.sections.find((section) => section.name === 'purchase_information')?.fields ?? [];
-assert.deepEqual(sourceFields, ['source_type']);
-for (const field of ['code', 'supplier_id', 'warehouse_id', 'expected_arrival_on', 'payment_term', 'payment_method', 'remarks']) {
+const names = fields => fields.map(field => typeof field === 'string' ? field : field.field);
+const sourceFields = names(PurchaseOrderViews.form.sections.find((section) => section.name === 'source')?.fields ?? []);
+const informationFields = names(PurchaseOrderViews.form.sections.find((section) => section.name === 'purchase_information')?.fields ?? []);
+const arrivalFields = names(PurchaseOrderViews.form.sections.find((section) => section.name === 'arrival')?.fields ?? []);
+assert.deepEqual(sourceFields, ['source_type', 'project_id']);
+for (const field of ['code', 'supplier_id', 'warehouse_id', 'payment_term', 'payment_method', 'remarks']) {
   assert.ok(informationFields.includes(field), `purchase-order View is missing ${field}`);
 }
-for (const field of [...sourceFields, ...informationFields]) {
+assert.deepEqual(arrivalFields, ['unified_delivery_date', 'expected_arrival_on', 'supplier_confirmed_arrival_on']);
+for (const field of [...sourceFields, ...informationFields, ...arrivalFields]) {
   assert.ok(Object.hasOwn(PurchaseOrder.fields, field), `purchase-order View references an undeclared model field: ${field}`);
 }
 assert.equal(typeof PurchaseOrder.fields.source_type.defaultValue, 'string');
@@ -32,7 +35,7 @@ assert.match(PurchaseOrderWorkspacePage.source, /onControllerReady=\{onInformati
 assert.match(PurchaseOrderWorkspacePage.source, /sourceController\.current\.validate\(\)/);
 assert.match(PurchaseOrderWorkspacePage.source, /informationController\.current\.validate\(\)/);
 assert.match(PurchaseOrderWorkspacePage.source, /submitHandler=\{values=>values\}/);
-assert.match(PurchaseOrderWorkspacePage.source, /<Block type="field:grid"/);
+assert.match(PurchaseOrderWorkspacePage.source, /<GridField columns=\{columns\}/);
 assert.match(PurchaseOrderWorkspacePage.source, /bom_shortage_create_purchase_order/);
 assert.match(PurchaseOrderWorkspacePage.source, /purchase_order_create/);
 assert.doesNotMatch(PurchaseOrderWorkspacePage.source, /adapter\?\.(create|update)|adapter\.(create|update)\(/);

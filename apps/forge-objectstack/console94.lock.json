@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "source": {
     "repository": "https://github.com/jinyitao123/objectui.git",
-    "revision": "3ccd338fc067c5530de780601c1e1b8465efa3c6",
+    "revision": "147879874aee5fb54cdb343a5e8e9ec3f341f741",
     "packageName": "@object-ui/console",
     "packageVersion": "17.6.0",
     "nodeVersion": "24.19.0",
@@ -22,11 +22,11 @@
     "basePath": "/_console/",
     "upstreamReferenceTreeSha256": "29d4daf2918777611ee53ae59add30630dc829e01f98492eb62eaa2b182e5303",
     "referenceNotes": "The upstreamReferenceTreeSha256 records the original 94f5a309 upstream baseline. The forked source revision and its runtime/packaged hashes below identify this Console build. stats.html embeds a temporary absolute build path and is excluded.",
-    "runtimeSourceTreeSha256": "0426ffdf886b37b25754ef17d91f133da56d16f309c6e11b5562533be03de052",
+    "runtimeSourceTreeSha256": "abe59a7286021ef2c9e69be75ca6f0cb4473bd8b0b24d7b96de454db7a321200",
     "excludedBuildOnlyFiles": [
       "stats.html"
     ],
-    "rawIndexSha256": "e992b936a69b97067031208d89a9a73243dd5bcf2e58c0b86fd963e78dfa94ef",
+    "rawIndexSha256": "58ee46e3dc839f28fc7f6fd0e780805bd53aa9f67113e4f021c6588c19fd34a3",
     "patches": [
       {
         "path": "index.html",
@@ -37,9 +37,9 @@
       {
         "path": "dist/.objectui-sha",
         "description": "Stamp the exact ObjectUI source revision consumed by ObjectStack CLI drift reporting.",
-        "content": "3ccd338fc067c5530de780601c1e1b8465efa3c6"
+        "content": "147879874aee5fb54cdb343a5e8e9ec3f341f741"
       }
     ],
-    "packagedTreeSha256": "50888022da0b830e3847ccc54f36a3103088ef3f456f23efb4c1dfdeeb0cc794"
+    "packagedTreeSha256": "5a13ac2ce45b4eb1c3986cd6f3b1845f80a31e66ac7d35c5a923ce70e7338c9f"
   }
 }

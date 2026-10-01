@@ -191,10 +191,18 @@ export const BomShortageCreatePurchaseOrder = defineAction({
   params: [
     { field: 'code', objectOverride: 'forge_purchase_order', required: true },
     { field: 'supplier_id', objectOverride: 'forge_purchase_order', required: true },
+    { field: 'supplier_order_number', objectOverride: 'forge_purchase_order' },
     { field: 'warehouse_id', objectOverride: 'forge_purchase_order' },
-    { field: 'expected_arrival_on', objectOverride: 'forge_purchase_order', required: true },
+    { field: 'expected_arrival_on', objectOverride: 'forge_purchase_order' },
+    { field: 'unified_delivery_date', objectOverride: 'forge_purchase_order' },
+    { field: 'supplier_confirmed_arrival_on', objectOverride: 'forge_purchase_order' },
+    { name: 'delivery_dates_json', label: '逐行交期覆盖', type: 'textarea' },
+    { field: 'order_on', objectOverride: 'forge_purchase_order' },
     { field: 'payment_term', objectOverride: 'forge_purchase_order', required: true },
     { field: 'payment_method', objectOverride: 'forge_purchase_order', required: true },
+    { field: 'currency', objectOverride: 'forge_purchase_order' },
+    { field: 'exchange_rate', objectOverride: 'forge_purchase_order' },
+    { field: 'payable_trigger', objectOverride: 'forge_purchase_order' },
     { field: 'settlement_on', objectOverride: 'forge_purchase_order' },
     { field: 'arrival_address', objectOverride: 'forge_purchase_order' },
     { field: 'remarks', objectOverride: 'forge_purchase_order' },
@@ -213,20 +221,59 @@ const existing=await ctx.api.object('forge_purchase_order').findOne({where:{shor
 if(existing&&!['cancelled','rejected'].includes(existing.status)) throw new Error('该缺料快照已生成有效采购订单');
 const lines=(await ctx.api.object('forge_bom_shortage_line').find({where:{analysis_id:analysisId}})).filter(line=>Number(line.shortage_quantity||0)>0&&line.source_type==='purchased');
 if(!lines.length) throw new Error('该缺料快照没有可采购的缺口项');
-const code=String(ctx.input.code||'').trim(), expected=ctx.input.expected_arrival_on, paymentTerm=String(ctx.input.payment_term||'').trim();
-if(!code||!expected||!paymentTerm||!ctx.input.payment_method) throw new Error('采购订单号、供应商、付款条件、付款方式和期望到货日期不能为空');
+const code=String(ctx.input.code||'').trim(), paymentTerm=String(ctx.input.payment_term||'').trim();
+if(!code||!paymentTerm||!ctx.input.payment_method) throw new Error('采购订单号、供应商、付款条件和付款方式不能为空');
+const validDate=value=>{if(typeof value!=='string'||!/^\\d{4}-\\d{2}-\\d{2}$/.test(value))return false;const parsed=new Date(value+'T00:00:00.000Z');return Number.isFinite(parsed.getTime())&&parsed.toISOString().slice(0,10)===value;};
+const rawUnifiedDeliveryDate=ctx.input.unified_delivery_date,unifiedDeliveryDate=rawUnifiedDeliveryDate==null?true:rawUnifiedDeliveryDate;
+if(typeof unifiedDeliveryDate!=='boolean')throw new Error('统一交货日期设置无效');
+const headerExpectedArrivalOn=unifiedDeliveryDate?String(ctx.input.expected_arrival_on||'').trim()||null:null;
+if(unifiedDeliveryDate&&!headerExpectedArrivalOn)throw new Error('期望到货日期不能为空');
+if(unifiedDeliveryDate&&!validDate(headerExpectedArrivalOn))throw new Error('期望到货日期格式无效');
+const currency=String(ctx.input.currency||'cny'),payableTrigger=String(ctx.input.payable_trigger||'inbound');
+if(!['cny','usd','eur'].includes(currency))throw new Error('币种无效');
+if(!['inbound','invoice'].includes(payableTrigger))throw new Error('应付产生方式无效');
+const rawExchangeRate=ctx.input.exchange_rate,exchangeRate=rawExchangeRate==null||(typeof rawExchangeRate==='string'&&rawExchangeRate.trim()==='')?1:typeof rawExchangeRate==='number'||typeof rawExchangeRate==='string'?Number(rawExchangeRate):Number.NaN,scaledExchangeRate=exchangeRate*1000000;
+if(!Number.isFinite(exchangeRate)||exchangeRate<0.000001||Math.abs(scaledExchangeRate-Math.round(scaledExchangeRate))>0.000001)throw new Error('汇率必须大于等于0.000001且最多六位小数');
+if(currency==='cny'&&exchangeRate!==1)throw new Error('人民币汇率固定为1');
+const settlementOn=String(ctx.input.settlement_on||'').trim()||null,arrivalAddress=String(ctx.input.arrival_address||'').trim()||null,supplierOrderNumber=String(ctx.input.supplier_order_number||'').trim()||null;
+if(settlementOn&&!validDate(settlementOn))throw new Error('结算日期格式无效');
+const headerSupplierConfirmedArrivalOn=unifiedDeliveryDate?String(ctx.input.supplier_confirmed_arrival_on||'').trim()||null:null;
+if(unifiedDeliveryDate&&headerSupplierConfirmedArrivalOn&&!validDate(headerSupplierConfirmedArrivalOn))throw new Error('供应商反馈交货日期格式无效');
+const deliveryDatesBySourceLine=new Map();
+if(!unifiedDeliveryDate){
+  let deliveryOverrides=[];
+  try{deliveryOverrides=JSON.parse(String(ctx.input.delivery_dates_json||''));}catch{throw new Error('BOM采购逐行交期格式不正确');}
+  if(!Array.isArray(deliveryOverrides)||deliveryOverrides.length!==lines.length)throw new Error('BOM采购逐行交期需完整覆盖当前缺料明细');
+  const sourceAnalysisLineIds=new Set(lines.map(line=>String(line.id)));
+  for(const override of deliveryOverrides){
+    if(!override||typeof override!=='object'||Array.isArray(override)||Object.keys(override).some(key=>!['source_analysis_line_id','expected_arrival_on','supplier_confirmed_arrival_on'].includes(key)))throw new Error('BOM逐行交期只能包含来源明细和交期字段');
+    const sourceAnalysisLineId=String(override.source_analysis_line_id||'').trim();
+    if(!sourceAnalysisLineId||!sourceAnalysisLineIds.has(sourceAnalysisLineId))throw new Error('BOM逐行交期包含不属于当前缺料快照的来源明细');
+    if(deliveryDatesBySourceLine.has(sourceAnalysisLineId))throw new Error('BOM逐行交期包含重复来源明细');
+    const lineExpectedArrivalOn=String(override.expected_arrival_on||'').trim(),lineSupplierConfirmedArrivalOn=String(override.supplier_confirmed_arrival_on||'').trim()||null;
+    if(!validDate(lineExpectedArrivalOn))throw new Error('BOM采购明细期望到货日期不能为空或格式无效');
+    if(lineSupplierConfirmedArrivalOn&&!validDate(lineSupplierConfirmedArrivalOn))throw new Error('BOM采购明细供应商反馈交货日期格式无效');
+    deliveryDatesBySourceLine.set(sourceAnalysisLineId,{expectedArrivalOn:lineExpectedArrivalOn,supplierConfirmedArrivalOn:lineSupplierConfirmedArrivalOn});
+  }
+  if(deliveryDatesBySourceLine.size!==lines.length)throw new Error('BOM采购逐行交期缺少缺料明细来源');
+}
+const today=new Date(Date.now()+8*60*60*1000).toISOString().slice(0,10),orderOn=String(ctx.input.order_on||today);
+if(!validDate(orderOn))throw new Error('下单日期格式无效');
 const round4=value=>Math.round((Number(value)+Number.EPSILON)*10000)/10000;
 const round2=value=>Math.round((Number(value)+Number.EPSILON)*100)/100;
 let totalQuantity=0,totalAmount=0; const prepared=[];
 for(const line of lines){
   const sku=await ctx.api.object('forge_material_sku').findOne({where:{id:line.sku_id}}); if(!sku||sku.enabled===false) throw new Error('缺料明细包含不可用物料规格');
   const quantity=Number(line.shortage_quantity||0), taxRate=Number(bom.tax_rate||13), untaxed=round2(Number(line.untaxed_unit_price||0)), taxed=round4(untaxed*(1+taxRate/100)), subtotal=round2(quantity*taxed);
-  totalQuantity+=quantity; totalAmount+=subtotal; prepared.push({line,sku,quantity,taxRate,untaxed,taxed,subtotal});
+  const delivery=unifiedDeliveryDate?{expectedArrivalOn:headerExpectedArrivalOn,supplierConfirmedArrivalOn:headerSupplierConfirmedArrivalOn}:deliveryDatesBySourceLine.get(String(line.id));
+  totalQuantity+=quantity; totalAmount+=subtotal; prepared.push({line,sku,quantity,taxRate,untaxed,taxed,subtotal,expectedArrivalOn:delivery.expectedArrivalOn,supplierConfirmedArrivalOn:delivery.supplierConfirmedArrivalOn});
 }
-const now=new Date().toISOString(), today=new Date(Date.now()+8*60*60*1000).toISOString().slice(0,10); totalQuantity=round4(totalQuantity); totalAmount=round4(totalAmount);
-const created=await ctx.api.object('forge_purchase_order').insert({name:supplier.name+' - 采购订单',code,owner_id:actor,supplier_id:supplier.id,source_type:'bom_shortage',bom_id:bom.id,shortage_analysis_id:analysisId,project_id:analysis.project_id||bom.project_id||null,warehouse_id:ctx.input.warehouse_id||null,expected_arrival_on:expected,order_on:today,payment_term:paymentTerm,payment_method:ctx.input.payment_method,currency:'cny',exchange_rate:1,payable_trigger:'inbound',settlement_on:ctx.input.settlement_on||null,arrival_address:ctx.input.arrival_address||null,responsible_id:actor,line_count:prepared.length,total_quantity:totalQuantity,total_amount:totalAmount,arrived_quantity:0,inbound_quantity:0,status:'pending_approval',submitted_at:now,submitted_by:actor,remarks:ctx.input.remarks||('由BOM '+bom.code+' 缺料分析生成')});
+const expectedArrivalOn=unifiedDeliveryDate?headerExpectedArrivalOn:prepared.reduce((earliest,item)=>item.expectedArrivalOn<earliest?item.expectedArrivalOn:earliest,prepared[0].expectedArrivalOn);
+const supplierConfirmedArrivalOn=unifiedDeliveryDate?headerSupplierConfirmedArrivalOn:null;
+const now=new Date().toISOString(); totalQuantity=round4(totalQuantity); totalAmount=round4(totalAmount);
+const created=await ctx.api.object('forge_purchase_order').insert({name:supplier.name+' - 采购订单',code,owner_id:actor,supplier_id:supplier.id,supplier_order_number:supplierOrderNumber,source_type:'bom_shortage',bom_id:bom.id,shortage_analysis_id:analysisId,project_id:analysis.project_id||bom.project_id||null,warehouse_id:ctx.input.warehouse_id||null,expected_arrival_on:expectedArrivalOn,unified_delivery_date:unifiedDeliveryDate,supplier_confirmed_arrival_on:supplierConfirmedArrivalOn,order_on:orderOn,payment_term:paymentTerm,payment_method:ctx.input.payment_method,currency,exchange_rate:exchangeRate,payable_trigger:payableTrigger,settlement_on:settlementOn,arrival_address:arrivalAddress,responsible_id:actor,line_count:prepared.length,total_quantity:totalQuantity,total_amount:totalAmount,arrived_quantity:0,inbound_quantity:0,status:'pending_approval',submitted_at:now,submitted_by:actor,remarks:ctx.input.remarks||('由BOM '+bom.code+' 缺料分析生成')});
 const orderId=typeof created==='string'?created:created&&(created.id||(created.record&&created.record.id)); if(!orderId) throw new Error('采购订单创建后未返回记录ID');
-for(const item of prepared) await ctx.api.object('forge_purchase_order_line').insert({name:item.line.name,order_id:orderId,owner_id:actor,sku_id:item.line.sku_id,item_code:item.line.item_code,model:item.line.model,specification:item.line.specification,unit_name:item.line.unit_name,quantity:item.quantity,arrived_quantity:0,inspected_quantity:0,accepted_quantity:0,inbound_quantity:0,taxed_unit_price:item.taxed,untaxed_unit_price:item.untaxed,tax_rate:item.taxRate,taxed_subtotal:item.subtotal,source_bom_id:bom.id,source_analysis_line_id:item.line.id,expected_arrival_on:expected});
+for(const item of prepared)await ctx.api.object('forge_purchase_order_line').insert({name:item.line.name,order_id:orderId,owner_id:actor,sku_id:item.line.sku_id,item_code:item.line.item_code,model:item.line.model,specification:item.line.specification,unit_name:item.line.unit_name,quantity:item.quantity,arrived_quantity:0,inspected_quantity:0,accepted_quantity:0,inbound_quantity:0,taxed_unit_price:item.taxed,untaxed_unit_price:item.untaxed,tax_rate:item.taxRate,taxed_subtotal:item.subtotal,source_bom_id:bom.id,source_analysis_line_id:item.line.id,expected_arrival_on:item.expectedArrivalOn,supplier_confirmed_arrival_on:item.supplierConfirmedArrivalOn});
 await ctx.api.object('forge_purchase_order_approval_log').insert({name:code+' 提交审核',order_id:orderId,action:'submitted',from_status:'draft',to_status:'pending_approval',comment:ctx.input.remarks||'提交审核',occurred_at:now,operator_id:actor});
 return {id:orderId,status:'pending_approval',line_count:prepared.length,total_quantity:totalQuantity,total_amount:totalAmount,bom_id:bom.id,shortage_analysis_id:analysisId};
 ` },
@@ -529,10 +576,19 @@ export const PurchaseOrderCreate = defineAction({
     ] },
     { name: 'code', label: '采购订单号' },
     { name: 'supplier_id', label: '供应商', type: 'text', required: true },
+    { field: 'supplier_order_number', objectOverride: 'forge_purchase_order' },
     { name: 'warehouse_id', label: '目标仓库', type: 'text' },
-    { name: 'expected_arrival_on', label: '期望到货日期', type: 'date', required: true },
+    { name: 'expected_arrival_on', label: '期望到货日期', type: 'date' },
+    { field: 'unified_delivery_date', objectOverride: 'forge_purchase_order' },
+    { field: 'supplier_confirmed_arrival_on', objectOverride: 'forge_purchase_order' },
+    { field: 'order_on', objectOverride: 'forge_purchase_order' },
     { name: 'payment_term', label: '付款条件', type: 'text', required: true },
     { name: 'payment_method', label: '付款方式', type: 'text', required: true },
+    { field: 'currency', objectOverride: 'forge_purchase_order' },
+    { field: 'exchange_rate', objectOverride: 'forge_purchase_order' },
+    { field: 'payable_trigger', objectOverride: 'forge_purchase_order' },
+    { field: 'settlement_on', objectOverride: 'forge_purchase_order' },
+    { field: 'arrival_address', objectOverride: 'forge_purchase_order' },
     { name: 'project_id', label: '关联项目', type: 'text' },
     { name: 'purchase_request_id', label: '关联采购申请', type: 'text' },
     { name: 'remarks', label: '备注', type: 'textarea' },
@@ -547,11 +603,36 @@ const sourceType = String(ctx.input.source_type || '');
 if (!['inventory_replenishment', 'project', 'sales_driven', 'bom_shortage', 'purchase_request'].includes(sourceType)) throw new Error('请选择采购来源');
 const supplier = ctx.input.supplier_id ? await ctx.api.object('forge_supplier').findOne({ where: { id: ctx.input.supplier_id } }) : null;
 if (!supplier || supplier.status !== 'active' || supplier.approval_status !== 'approved') throw new Error('供应商必须启用且已审批');
-if (!ctx.input.expected_arrival_on) throw new Error('期望到货日期不能为空');
+const validDate = value => { if (typeof value !== 'string' || !/^\\d{4}-\\d{2}-\\d{2}$/.test(value)) return false; const parsed = new Date(value + 'T00:00:00.000Z'); return Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value; };
+const rawUnifiedDeliveryDate = ctx.input.unified_delivery_date;
+const unifiedDeliveryDate = rawUnifiedDeliveryDate == null ? true : rawUnifiedDeliveryDate;
+if (typeof unifiedDeliveryDate !== 'boolean') throw new Error('统一交货日期设置无效');
+const headerExpectedArrivalOn = unifiedDeliveryDate ? String(ctx.input.expected_arrival_on || '').trim() || null : null;
+if (unifiedDeliveryDate && !headerExpectedArrivalOn) throw new Error('期望到货日期不能为空');
+if (unifiedDeliveryDate && !validDate(headerExpectedArrivalOn)) throw new Error('期望到货日期格式无效');
+const headerSupplierConfirmedArrivalOn = unifiedDeliveryDate ? String(ctx.input.supplier_confirmed_arrival_on || '').trim() || null : null;
+if (unifiedDeliveryDate && headerSupplierConfirmedArrivalOn && !validDate(headerSupplierConfirmedArrivalOn)) throw new Error('供应商反馈交货日期格式无效');
 const paymentTerm = String(ctx.input.payment_term || '').trim();
 if (!paymentTerm) throw new Error('付款条件不能为空');
 const paymentMethod = String(ctx.input.payment_method || '').trim();
 if (!paymentMethod) throw new Error('付款方式不能为空');
+const currency = String(ctx.input.currency || 'cny');
+if (!['cny', 'usd', 'eur'].includes(currency)) throw new Error('币种无效');
+const payableTrigger = String(ctx.input.payable_trigger || 'inbound');
+if (!['inbound', 'invoice'].includes(payableTrigger)) throw new Error('应付产生方式无效');
+const rawExchangeRate = ctx.input.exchange_rate;
+const exchangeRate = rawExchangeRate == null || (typeof rawExchangeRate === 'string' && rawExchangeRate.trim() === '')
+  ? 1
+  : typeof rawExchangeRate === 'number' || typeof rawExchangeRate === 'string'
+    ? Number(rawExchangeRate)
+    : Number.NaN;
+const scaledExchangeRate = exchangeRate * 1000000;
+if (!Number.isFinite(exchangeRate) || exchangeRate < 0.000001 || Math.abs(scaledExchangeRate - Math.round(scaledExchangeRate)) > 0.000001) throw new Error('汇率必须大于等于0.000001且最多六位小数');
+if (currency === 'cny' && exchangeRate !== 1) throw new Error('人民币汇率固定为1');
+const settlementOn = String(ctx.input.settlement_on || '').trim() || null;
+if (settlementOn && !validDate(settlementOn)) throw new Error('结算日期格式无效');
+const arrivalAddress = String(ctx.input.arrival_address || '').trim() || null;
+const supplierOrderNumber = String(ctx.input.supplier_order_number || '').trim() || null;
 let rawLines = [];
 try { rawLines = JSON.parse(String(ctx.input.lines_json || '[]')); } catch (error) { throw new Error('采购明细格式不正确'); }
 if (!Array.isArray(rawLines) || !rawLines.length) throw new Error('采购订单至少需要一条物料明细');
@@ -563,15 +644,23 @@ for (const item of rawLines) {
   const material = sku.material_id ? await ctx.api.object('forge_material').findOne({ where: { id: sku.material_id } }) : null;
   const quantity = Number(item.quantity || 0);
   if (!(quantity > 0)) throw new Error('采购数量必须大于0');
+  const lineExpectedArrivalOn = unifiedDeliveryDate ? headerExpectedArrivalOn : String(item.expected_arrival_on || '').trim();
+  const lineSupplierConfirmedArrivalOn = unifiedDeliveryDate ? headerSupplierConfirmedArrivalOn : String(item.supplier_confirmed_arrival_on || '').trim() || null;
+  if (!validDate(lineExpectedArrivalOn)) throw new Error('采购明细期望到货日期不能为空或格式无效');
+  if (lineSupplierConfirmedArrivalOn && !validDate(lineSupplierConfirmedArrivalOn)) throw new Error('采购明细供应商反馈交货日期格式无效');
   const taxed = round4(Number(item.taxed_unit_price || 0));
   const rate = Number(item.tax_rate == null ? 13 : item.tax_rate);
   const untaxed = round4(taxed / (1 + rate / 100));
-  prepared.push({ sku, material, quantity, taxed, untaxed, rate, subtotal: round4(quantity * taxed) });
+  prepared.push({ sku, material, quantity, taxed, untaxed, rate, subtotal: round4(quantity * taxed), expectedArrivalOn: lineExpectedArrivalOn, supplierConfirmedArrivalOn: lineSupplierConfirmedArrivalOn });
 }
 const totalQuantity = round4(prepared.reduce((sum, item) => sum + item.quantity, 0));
 const totalAmount = round4(prepared.reduce((sum, item) => sum + item.subtotal, 0));
+const expectedArrivalOn = unifiedDeliveryDate ? headerExpectedArrivalOn : prepared.reduce((earliest, item) => item.expectedArrivalOn < earliest ? item.expectedArrivalOn : earliest, prepared[0].expectedArrivalOn);
+const supplierConfirmedArrivalOn = unifiedDeliveryDate ? headerSupplierConfirmedArrivalOn : null;
 const today = new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString().slice(0, 10);
-const year = String(ctx.input.expected_arrival_on || today).slice(0, 4) || today.slice(0, 4);
+const orderOn = String(ctx.input.order_on || today);
+if (!validDate(orderOn)) throw new Error('下单日期格式无效');
+const year = String(expectedArrivalOn || today).slice(0, 4) || today.slice(0, 4);
 let code = String(ctx.input.code || '').trim();
 if (!code) {
   const all = await ctx.api.object('forge_purchase_order').find({ where: {} });
@@ -586,9 +675,12 @@ const status = mode === 'submit' ? 'pending_approval' : 'draft';
 const now = new Date().toISOString();
 const created = await ctx.api.object('forge_purchase_order').insert({
   name: supplier.name + ' - 采购订单', code, owner_id: actor, supplier_id: supplier.id,
+  supplier_order_number: supplierOrderNumber,
   source_type: sourceType, purchase_request_id: ctx.input.purchase_request_id || null, project_id: ctx.input.project_id || null,
-  warehouse_id: ctx.input.warehouse_id || null, expected_arrival_on: ctx.input.expected_arrival_on, order_on: today,
-  payment_term: paymentTerm, payment_method: paymentMethod, currency: 'cny', exchange_rate: 1, payable_trigger: 'inbound',
+  unified_delivery_date: unifiedDeliveryDate, supplier_confirmed_arrival_on: supplierConfirmedArrivalOn,
+  warehouse_id: ctx.input.warehouse_id || null, expected_arrival_on: expectedArrivalOn, order_on: orderOn,
+  payment_term: paymentTerm, payment_method: paymentMethod, currency, exchange_rate: exchangeRate, payable_trigger: payableTrigger,
+  settlement_on: settlementOn, arrival_address: arrivalAddress,
   responsible_id: actor, line_count: prepared.length, total_quantity: totalQuantity, total_amount: totalAmount,
   arrived_quantity: 0, inbound_quantity: 0, returned_quantity: 0, replenished_quantity: 0,
   status, submitted_at: mode === 'submit' ? now : null, submitted_by: mode === 'submit' ? actor : null,
@@ -603,7 +695,7 @@ for (const item of prepared) {
     specification: item.sku.name || null, unit_name: (item.material && item.material.unit_name) || null,
     quantity: item.quantity, arrived_quantity: 0, inspected_quantity: 0, accepted_quantity: 0, inbound_quantity: 0,
     taxed_unit_price: item.taxed, untaxed_unit_price: item.untaxed, tax_rate: item.rate, taxed_subtotal: item.subtotal,
-    expected_arrival_on: ctx.input.expected_arrival_on,
+    expected_arrival_on: item.expectedArrivalOn, supplier_confirmed_arrival_on: item.supplierConfirmedArrivalOn,
   });
 }
 if (mode === 'submit') {

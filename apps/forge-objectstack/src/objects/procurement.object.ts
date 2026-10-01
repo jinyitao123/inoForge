@@ -1,4 +1,5 @@
 import { Field } from '@objectstack/spec/data';
+import { P } from '@objectstack/spec';
 import { master, text, code, reference, owner, remarks, required } from '../model.js';
 
 const select = (label: string, options: Array<[string, string]>, defaultValue?: string) => Field.select(
@@ -198,20 +199,34 @@ export const PurchasePendingItem = master('forge_purchase_pending_item', '采购
 // RM-021 / DR-0048 to DR-0050. The order is the commercial source for later arrival, inspection and inbound work.
 export const PurchaseOrder = master('forge_purchase_order', '采购订单', 'shopping-cart', {
   name: text('订单名称', true), code: code('采购订单号'), supplier_id: reference('forge_supplier', '供应商', true),
-  supplier_order_number: text('供应商单号'), source_type: select('采购来源', [
-    ['inventory_replenishment', '库存补充'], ['project', '项目采购'], ['sales_driven', '以销定采'],
-    ['bom_shortage', 'BOM缺料'], ['purchase_request', '采购申请'],
-  ], 'inventory_replenishment'),
+  supplier_order_number: text('供应商单号'), source_type: Field.select({
+    label: '采购来源', defaultValue: 'inventory_replenishment',
+    options: [
+      { value: 'inventory_replenishment', label: '库存补充', description: '常规备库、安全库存、临时补货' },
+      { value: 'project', label: '项目采购', description: '面向项目任务或交付需求采购' },
+      { value: 'sales_driven', label: '以销定采', description: '按明确销售需求组织采购' },
+      { value: 'bom_shortage', label: 'BOM缺料', description: '生产或装配缺料采购' },
+      { value: 'purchase_request', label: '采购申请', description: '承接已审批的采购申请' },
+    ],
+  }),
   bom_id: reference('forge_bom', '关联BOM'), shortage_analysis_id: reference('forge_bom_shortage_analysis', '缺料分析快照'),
   purchase_request_id: reference('forge_purchase_request', '来源采购申请'),
-  project_id: reference('forge_project', '关联项目'), warehouse_id: reference('forge_warehouse', '目标仓库'),
-  expected_arrival_on: Field.date({ label: '期望到货日期', ...required }), order_on: Field.date({ label: '下单日期' }),
+  project_id: { ...reference('forge_project', '关联项目'),
+    visibleWhen: P`record.source_type == 'project' || record.source_type == 'sales_driven'` },
+  warehouse_id: reference('forge_warehouse', '目标仓库'),
+  unified_delivery_date: Field.boolean({ label: '统一交货日期', defaultValue: true }),
+  expected_arrival_on: Field.date({ label: '期望到货日期', ...required,
+    visibleWhen: P`record.unified_delivery_date != false` }),
+  supplier_confirmed_arrival_on: Field.date({ label: '供应商反馈交货日期',
+    visibleWhen: P`record.unified_delivery_date != false` }),
+  order_on: Field.date({ label: '下单日期' }),
   payment_condition_id: reference('forge_payment_condition', '付款条件配置'), payment_term: text('付款条件', true), payment_method: select('付款方式', [
     ['bank_transfer', '银行转账'], ['wire_transfer', '电汇'], ['bank_acceptance', '承兑汇票'],
     ['online_payment', '在线支付'], ['cash', '现金'], ['other', '其他'],
   ], 'bank_transfer'),
   currency: select('币种', [['cny', '人民币'], ['usd', '美元'], ['eur', '欧元']], 'cny'),
-  exchange_rate: Field.number({ label: '汇率', min: 0.000001, scale: 6, defaultValue: 1 }),
+  exchange_rate: Field.number({ label: '汇率', min: 0.000001, scale: 6, defaultValue: 1,
+    readonlyWhen: P`record.currency == 'cny'` }),
   payable_trigger: select('应付产生方式', [['inbound', '按入库'], ['invoice', '按发票']], 'inbound'),
   settlement_on: Field.date({ label: '结算日期' }), arrival_address: text('到货地址'),
   responsible_id: owner(true), line_count: Field.number({ label: '物料数', min: 0, scale: 0, defaultValue: 0, readonly: true }),
@@ -237,7 +252,8 @@ export const PurchaseOrderLine = master('forge_purchase_order_line', '采购订�
   tax_rate: percentage('税率'), taxed_subtotal: nonNegativeMoney('含税小计'),
   source_bom_id: reference('forge_bom', '来源BOM'), source_analysis_line_id: reference('forge_bom_shortage_line', '来源缺料明细'),
   purchase_request_line_id: reference('forge_purchase_request_line', '来源采购申请明细'),
-  expected_arrival_on: Field.date({ label: '期望到货日期' }), remarks: remarks(),
+  expected_arrival_on: Field.date({ label: '期望到货日期' }),
+  supplier_confirmed_arrival_on: Field.date({ label: '供应商反馈交货日期' }), remarks: remarks(),
 }, null);
 
 // Live RISEMAP evidence: approval produces one order-level notice with multiple material lines; it does not record physical receipt.

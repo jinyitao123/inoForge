@@ -6,21 +6,33 @@ export const PurchaseOrderViews = defineView({
   form: {
     type: 'simple',
     data: { provider: 'object', object: 'forge_purchase_order' },
-    columns: 3,
+    columns: 2,
     sections: [
       {
         name: 'source',
         label: '采购来源',
-        columns: 3,
-        fields: ['source_type'],
+        columns: 2,
+        fields: [
+          { field: 'source_type', widget: 'choice-cards', span: 'full' },
+          'project_id',
+        ],
       },
       {
         name: 'purchase_information',
         label: '采购信息',
-        columns: 3,
+        columns: 2,
         fields: [
-          'code', 'supplier_id', 'warehouse_id', 'expected_arrival_on',
-          'payment_term', 'payment_method', 'remarks',
+          { field: 'code', span: 'full' }, 'supplier_id', 'warehouse_id',
+          'supplier_order_number', 'payment_term', 'currency', 'exchange_rate',
+          'payment_method', 'payable_trigger', 'settlement_on', 'arrival_address',
+          'order_on', { field: 'remarks', span: 'full' },
+        ],
+      },
+      {
+        name: 'arrival', label: '交货日期设置', columns: 2,
+        fields: [
+          { field: 'unified_delivery_date', widget: 'checkbox', span: 'full' },
+          'expected_arrival_on', 'supplier_confirmed_arrival_on',
         ],
       },
     ],
@@ -62,6 +74,8 @@ export const PurchaseOrderLineViews = defineView({
       { field: 'taxed_unit_price', label: '含税单价', width: 135 },
       { field: 'tax_rate', label: '税率', width: 95 },
       { field: 'taxed_subtotal', label: '含税小计', width: 145 },
+      { field: 'expected_arrival_on', label: '期望到货日期', width: 150 },
+      { field: 'supplier_confirmed_arrival_on', label: '反馈交货日期', width: 150 },
     ],
     searchableFields: ['name', 'item_code', 'model'],
     pagination: { pageSize: 20 },
