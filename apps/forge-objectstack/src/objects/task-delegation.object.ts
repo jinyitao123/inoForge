@@ -25,6 +25,7 @@ export const TaskDelegation = ObjectSchema.create({
     issued_at: { type: 'datetime', required: true },
     expires_at: { type: 'datetime', required: true },
     revoked_at: { type: 'datetime' },
+    revocation_reason: { type: 'text', maxLength: 32 },
   },
   indexes: [
     { fields: ['request_hash'], unique: 'global' },

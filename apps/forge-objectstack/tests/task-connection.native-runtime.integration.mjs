@@ -55,6 +55,15 @@ stack.plugins.push({ name:'test.task-connection-bootstrap', init(ctx) { ctx.hook
     await engine.update('${OBJECT}',{id:row.id,counter:Number(row.counter??0)+1},{context});
     return {ok:true,counter:Number(row.counter??0)+1};
   });
+  server.post('/api/v1/__test/task-member',async(req,res)=>{
+    if(req.headers.authorization!=='Bearer ${launcher}')return res.status(403).json({error:'test launcher refused'});
+    const {userId,organizationId,sessionId}=req.body;
+    const context={isSystem:true,positions:[],permissions:[]};
+    if(!await engine.findOne('sys_member',{where:{user_id:userId,organization_id:organizationId}},{context}))
+      await engine.insert('sys_member',{user_id:userId,organization_id:organizationId,role:'member'},{context});
+    await engine.update('sys_session',{id:sessionId,active_organization_id:organizationId},{context});
+    return res.status(200).json({ok:true});
+  });
   server.post('/api/v1/__test/task-connection',async(req,res)=>{
     if(req.headers.authorization!=='Bearer ${launcher}')return res.status(403).json({error:'test launcher refused'});
     const {userId,organizationId}=req.body;
@@ -77,7 +86,7 @@ export default stack;
       '--auth-secret', authSecret, '--log-level', 'error'], { cwd: temporary, env: { ...process.env,
       OS_HOME: path.join(temporary, '.os-home'), OS_DATABASE_URL: `postgres://${admin.connectionParameters.user}@127.0.0.1:${admin.connectionParameters.port}/${database}`,
       OS_SECRET_KEY: secretKey, OS_BASE_URL: origin, OS_TRUSTED_ORIGINS: origin,
-      OS_ENVIRONMENT_ID: `task-connection-${suffix}` }, stdio: ['ignore', 'pipe', 'pipe'] });
+      FORGE_IDENTITY_ISSUER: `forge:task-test-${suffix}`, OS_ENVIRONMENT_ID: `task-connection-${suffix}` }, stdio: ['ignore', 'pipe', 'pipe'] });
     child.stdout.on('data', (part) => { output = (output + part).slice(-16_000); });
     child.stderr.on('data', (part) => { output = (output + part).slice(-16_000); });
     const deadline = Date.now() + 120_000;
@@ -100,6 +109,8 @@ export default stack;
       const payload=lines.length?lines.at(-1):text;
       return {status:response.status,value:payload?JSON.parse(payload):null};
     }
+    const identitySource=await request('/api/v1/workbench/identity-source');
+    assert.equal(identitySource.status,200);assert.equal(identitySource.value.issuer,'forge:task-test-'+suffix);
     const session=(await request('/api/v1/auth/get-session')).value;
     assert.ok(session.user.id && session.session.activeOrganizationId);
     const setup=await request('/api/v1/__test/task-connection','POST',{userId:session.user.id,organizationId:session.session.activeOrganizationId},launcher);
@@ -126,6 +137,8 @@ export default stack;
     for(const response of firstRacing){assert.equal(response.status,200,response.value?.error?.code);assert.equal(response.value.grant_id,first.value.grant_id);assert.equal(response.value.generation,1);secrets.push(response.value.access_token);}
     assert.equal(first.status,200,first.value?.error?.code ?? 'native issuance rejected'); secrets.push(first.value.access_token);
     const token=first.value.access_token; assert.equal(first.value.generation,1);
+    assert.equal(first.value.identity_issuer,identitySource.value.issuer);
+    assert.equal(Date.parse(first.value.expires_at)-Date.parse(first.value.issued_at),24*60*60*1000);
     const checked=await request(ROOT+'/current','GET',undefined,token); assert.equal(checked.status,200,'initial current:'+String(checked.value?.error?.code));
     for(const resource of resources){
       const original=await fetch(origin+ROOT+'/files/'+resource.id+'/original',{headers:{Authorization:'Bearer '+token}});
@@ -196,15 +209,56 @@ export default stack;
     const parent=(await db.query('SELECT expires_at FROM sys_session WHERE id=$1',[session.session.id])).rows[0];
     await db.query('UPDATE sys_session SET expires_at=$2 WHERE id=$1',[session.session.id,new Date(Date.now()-60000)]);
     const expiredParent=await request(ROOT+'/current','GET',undefined,renewed.value.access_token);
-    assert.equal(expiredParent.status,401);assert.equal(expiredParent.value.error.code,'FORGE_TASK_PARENT_REVOKED');
+    assert.equal(expiredParent.status,200,'desktop session expiry must not interrupt a handed-off task');
     await db.query('UPDATE sys_session SET expires_at=$2 WHERE id=$1',[session.session.id,parent.expires_at]);
     assert.equal((await request(ROOT+'/current','GET',undefined,renewed.value.access_token)).status,200);
     await db.query('DELETE FROM sys_member WHERE user_id=$1 AND organization_id=$2',[session.user.id,session.session.activeOrganizationId]);
     await deniedWithoutMembership();
     for(const row of memberRows){const columns=Object.keys(row);await db.query('INSERT INTO sys_member ('+columns.map(name=>'"'+name+'"').join(',')+') VALUES ('+columns.map((_,index)=>'$'+(index+1)).join(',')+')',columns.map(name=>row[name]));}
     assert.equal((await request(ROOT+'/current','GET',undefined,renewed.value.access_token)).status,200);
+    const targetEmail='ban-'+suffix+'@example.test',targetPassword='Ban-'+randomBytes(16).toString('hex')+'!';
+    secrets.push(targetEmail,targetPassword);
+    const created=await request('/api/v1/auth/admin/create-user','POST',{email:targetEmail,password:targetPassword,name:'停用验证员工'});
+    assert.equal(created.status,200,'native target employee creation');
+    const targetData=created.value.data??created.value;
+    const targetId=targetData.user?.id??targetData.id;assert.ok(targetId,'target user envelope keys: '+Object.keys(created.value).join(','));
+    const targetLogin=await request('/api/v1/auth/sign-in/email','POST',{email:targetEmail,password:targetPassword});
+    assert.equal(targetLogin.status,200);const targetToken=targetLogin.value.token;assert.ok(targetToken);secrets.push(targetToken);
+    const changedPassword='Changed-'+randomBytes(16).toString('hex')+'!';secrets.push(changedPassword);
+    const passwordChanged=await request('/api/v1/auth/change-password','POST',{currentPassword:targetPassword,newPassword:changedPassword,revokeOtherSessions:false},targetToken);
+    assert.equal(passwordChanged.status,200,'native first-login password change');
+    const targetSession=(await request('/api/v1/auth/get-session','GET',undefined,targetToken)).value;
+    assert.equal((await request('/api/v1/__test/task-member','POST',{userId:targetId,organizationId:session.session.activeOrganizationId,sessionId:targetSession.session.id},launcher)).status,200);
+    const targetScope={...scope,input_revision_id:randomUUID(),allowed_actions:[],resources:[]};delete targetScope.business_record;
+    const targetGrant=await request(ROOT,'POST',{request_id:randomUUID(),scope:targetScope},targetToken);
+    assert.equal(targetGrant.status,200,'native employee empty-scope grant: '+String(targetGrant.value?.error?.code));secrets.push(targetGrant.value.access_token);
+    assert.equal((await request('/api/v1/auth/admin/ban-user','POST',{userId:targetId,banReason:'独立任务撤销验证'})).status,200);
+    const banned=(await request(ROOT+'/current','GET',undefined,targetGrant.value.access_token));
+    assert.equal(banned.status,401);assert.equal(banned.value.error.code,'FORGE_TASK_SUBJECT_INACTIVE');
+    assert.equal((await request('/api/v1/auth/admin/unban-user','POST',{userId:targetId})).status,200);
+    const stillRevoked=await request(ROOT+'/current','GET',undefined,targetGrant.value.access_token);
+    assert.equal(stillRevoked.status,401);assert.equal(stillRevoked.value.error.code,'FORGE_TASK_SUBJECT_INACTIVE','unban cannot revive the original grant');
+    const cleanup=await request(ROOT+'/'+targetGrant.value.grant_id,'DELETE',{reason:'run_terminal'},targetGrant.value.access_token);
+    assert.equal(cleanup.status,200);assert.equal(cleanup.value.reason,'subject_inactive');
+    const cancelGrant=await request(ROOT,'POST',{request_id:randomUUID(),scope:{...scope,input_revision_id:randomUUID()}});
+    assert.equal(cancelGrant.status,200);secrets.push(cancelGrant.value.access_token);
+    const cancellations=await Promise.all([
+      request(ROOT+'/'+cancelGrant.value.grant_id,'DELETE',{reason:'employee_cancel'}),
+      request(ROOT+'/'+cancelGrant.value.grant_id,'DELETE',{reason:'run_terminal'},cancelGrant.value.access_token),
+    ]);
+    for(const reply of cancellations){assert.equal(reply.status,200);assert.equal(reply.value.reason,cancellations[0].value.reason);}
+    const cancelled=(await request(ROOT+'/current','GET',undefined,cancelGrant.value.access_token));
+    assert.equal(cancelled.status,cancellations[0].value.reason==='employee_cancel'?403:401);
+    assert.equal((await request(ROOT+'/'+renewed.value.grant_id,'DELETE',{reason:'employee_cancel'},renewed.value.access_token)).status,403);
+    assert.equal((await request(ROOT+'/'+'f'.repeat(64),'DELETE',{reason:'run_terminal'},renewed.value.access_token)).status,403);
     const logout=await request('/api/v1/auth/sign-out','POST',{});assert.equal(logout.status,200);
+    assert.equal((await request(ROOT+'/current','GET',undefined,renewed.value.access_token)).status,200,'logout must not revoke handed-off work');
+    const revoked=await request(ROOT+'/'+renewed.value.grant_id,'DELETE',{reason:'run_terminal'},renewed.value.access_token);
+    assert.equal(revoked.status,200);assert.equal(revoked.value.revoked,true);assert.equal(revoked.value.reason,'run_terminal');
+    const repeatedRevocation=await request(ROOT+'/'+renewed.value.grant_id,'DELETE',{reason:'run_terminal'},renewed.value.access_token);
+    assert.equal(repeatedRevocation.status,200);assert.equal(repeatedRevocation.value.reason,'run_terminal');
     assert.equal((await request(ROOT+'/current','GET',undefined,renewed.value.access_token)).status,401);
+
     const affected=await db.query(`SELECT counter FROM ${OBJECT} WHERE id=$1`,[scope.business_record.record_id]);assert.equal(Number(affected.rows[0].counter),1);
   } catch (error) {
     for(const secret of secrets)output=output.replaceAll(secret,'[secret omitted]');

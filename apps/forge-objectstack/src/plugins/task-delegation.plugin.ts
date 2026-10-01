@@ -1,7 +1,8 @@
 import type { Plugin, PluginContext } from '@objectstack/core';
 import type { IObjectQLEngine, IHttpRequest, IHttpResponse, IHttpServer } from '@objectstack/spec/contracts';
+import type { ExecutionContext } from '@objectstack/spec/kernel';
 import { SYSTEM_READ, TaskConnectionFailure, canonicalJSON, currentNativeActor, digest, headersFor,
-  nativeEmployee, nonempty, service, verifyNativeConnection, type NativeAuthService } from './native-task-auth.js';
+  nativeEmployee, nonempty, service, taskAudience, taskIdentityIssuer, taskLifetimeMs, verifyNativeConnection, type NativeAuthService } from './native-task-auth.js';
 import { TaskMcpAdapter } from './task-mcp-bridge.js';
 import { actionKey, parseTaskScope, readTaskResource, type TaskScope } from './task-delegation-scope.js';
 
@@ -34,13 +35,14 @@ export class TaskDelegationService {
     if (!Number.isSafeInteger(generation) || generation < 1 || !Number.isFinite(issued) || !Number.isFinite(expires)) {
       throw new TaskConnectionFailure(503, 'FORGE_TASK_GRANT_INVALID', '任务授权记录不可核对');
     }
-    const payload = { kind: 'forge_task_v1', iss: auth.getAuthIssuer(), aud: new URL(ROOT, issuer).toString(),
+    const identityIssuer = taskIdentityIssuer();
+    const payload = { kind: 'forge_task_v1', iss: identityIssuer, aud: taskAudience(identityIssuer),
       sub: String(row.user_id), organization_id: String(row.organization_id), parent_session_id: String(row.source_session_id),
       jti: String(row.id), grant_id: String(row.grant_key), generation, scope_sha256: String(row.scope_sha256), iat: issued, exp: expires };
     const signed = await api.signJWT({ body: { payload } });
     return { version: '1', token_type: 'forge_task', access_token: signed.token, grant_id: String(row.grant_key), generation,
       issued_at: new Date(issued * 1000).toISOString(), expires_at: new Date(expires * 1000).toISOString(),
-      scope_sha256: String(row.scope_sha256), scope, subject: { id: String(row.user_id), organization_id: String(row.organization_id) }, issuer };
+      scope_sha256: String(row.scope_sha256), scope, subject: { id: String(row.user_id), organization_id: String(row.organization_id) }, issuer, identity_issuer: identityIssuer };
   }
 
   async issue(request: IHttpRequest) {
@@ -53,9 +55,9 @@ export class TaskDelegationService {
     if (new TextEncoder().encode(scopeJSON).length > 64 * 1024) throw new TaskConnectionFailure(400, 'FORGE_TASK_SCOPE_INVALID', '任务授权范围超限');
     const scopeHash = await digest(scopeJSON);
     const key = await digest(canonicalJSON([caller.userId, caller.organizationId, scope.input_revision_id]));
-    // A native login's new parent is a new issuance, even if the persistent
-    // desktop intent reuses its nonce; logout must revoke the current parent.
-    const requestHash = await digest(canonicalJSON([caller.userId, caller.organizationId, caller.sessionId, requestId]));
+    // A handed-off task survives the desktop login. A retried original issuance
+    // reuses the grant even when the employee has since logged in again.
+    const requestHash = await digest(canonicalJSON([caller.userId, caller.organizationId, requestId]));
     const actor = caller.actor;
     const available = await this.mcp.actions(actor);
     if (scope.allowed_actions.some((action) => !available.some((definition) => actionKey(definition) === action))) {
@@ -81,8 +83,8 @@ export class TaskDelegationService {
       throw new TaskConnectionFailure(409, 'FORGE_TASK_GENERATION_CONFLICT', '任务授权已有更新，请重新核对');
     }
     const issuedAt = Math.floor(Date.now() / 1000) * 1000;
-    const expiresAt = Math.floor(Math.min(issuedAt + 30 * 60_000, caller.expiresAt) / 1000) * 1000;
-    if (expiresAt <= issuedAt) throw new TaskConnectionFailure(401, 'FORGE_TASK_PARENT_EXPIRED', '员工会话已失效');
+    const expiresAt = issuedAt + taskLifetimeMs();
+    if (expiresAt <= issuedAt) throw new TaskConnectionFailure(503, 'FORGE_TASK_LIFETIME_INVALID', '任务有效期配置无效');
     let row: Row;
     try {
       row = await this.engine().insert(OBJECT, { name: '任务授权', request_hash: requestHash, grant_key: key, scope_sha256: scopeHash,
@@ -105,25 +107,24 @@ export class TaskDelegationService {
     const auth = this.auth(), api = await auth.getApi();
     const authorization = headersFor(request).get('authorization') ?? '';
     const token = authorization.startsWith('Bearer ') ? authorization.slice(7) : '';
-    const audience = new URL(ROOT, new URL(auth.getAuthIssuer()).origin).toString();
-    const claim = token ? await verifyNativeConnection(api, token, auth.getAuthIssuer(), audience) : null;
+    const identityIssuer = taskIdentityIssuer(), audience = taskAudience(identityIssuer);
+    const claim = token ? await verifyNativeConnection(api, token, identityIssuer, audience) : null;
     if (!claim || claim.kind !== 'forge_task_v1' || claim.aud !== audience || !nonempty(claim.jti) || !nonempty(claim.sub) || !nonempty(claim.organization_id)) {
       throw new TaskConnectionFailure(401, 'FORGE_TASK_DELEGATION_INVALID', '本次任务授权已失效，请重新授权');
     }
     const row = await this.engine().findOne(OBJECT, { where: { id: claim.jti } }, { context: SYSTEM_READ });
-    if (!row || row.revoked_at || row.user_id !== claim.sub || row.organization_id !== claim.organization_id ||
+    if (!row || row.user_id !== claim.sub || row.organization_id !== claim.organization_id ||
         row.grant_key !== claim.grant_id || Number(row.generation) !== claim.generation || row.scope_sha256 !== claim.scope_sha256 ||
         row.source_session_id !== claim.parent_session_id || Date.parse(String(row.expires_at)) <= Date.now()) {
       throw new TaskConnectionFailure(401, 'FORGE_TASK_DELEGATION_REVOKED', '本次任务授权已失效，请重新授权');
     }
+    if (row.revoked_at) {
+      if (row.revocation_reason === 'subject_inactive') throw new TaskConnectionFailure(401, 'FORGE_TASK_SUBJECT_INACTIVE', '原任务因员工停用已失效');
+      if (row.revocation_reason === 'employee_cancel') throw new TaskConnectionFailure(403, 'FORGE_TASK_CANCELLED', '原工作已由员工取消');
+      throw new TaskConnectionFailure(401, 'FORGE_TASK_DELEGATION_REVOKED', '本次任务授权已撤销');
+    }
     const latest = await this.latest(String(row.grant_key));
     if (!latest || latest.id !== row.id) throw new TaskConnectionFailure(401, 'FORGE_TASK_DELEGATION_REPLACED', '本次任务授权已有更新');
-    const parent = await this.engine().findOne('sys_session', { where: { id: row.source_session_id },
-      fields: ['id', 'user_id', 'active_organization_id', 'expires_at', 'revoked_at'] }, { context: SYSTEM_READ });
-    if (!parent || parent.user_id !== row.user_id || parent.active_organization_id !== row.organization_id || parent.revoked_at ||
-        !Number.isFinite(Date.parse(String(parent.expires_at))) || Date.parse(String(parent.expires_at)) <= Date.now()) {
-      throw new TaskConnectionFailure(401, 'FORGE_TASK_PARENT_REVOKED', '员工会话已失效，请重新登录后授权');
-    }
     const scope = this.scope(row);
     if (await digest(canonicalJSON(scope)) !== row.scope_sha256) throw new TaskConnectionFailure(503, 'FORGE_TASK_GRANT_INVALID', '任务授权记录不可核对');
     const actor = await currentNativeActor(this.context, String(row.user_id), String(row.organization_id));
@@ -131,7 +132,38 @@ export class TaskDelegationService {
     actor.onBehalfOf = { userId: String(row.user_id), principalKind: 'human' };
     actor.oauthScopes = ['data:read', 'actions:execute'];
     actor.traceId = `forge-task:${String(row.grant_key)}`;
-    return { row, scope, actor, issuer: new URL(auth.getAuthIssuer()).origin };
+    return { row, scope, actor, issuer: new URL(auth.getAuthIssuer()).origin, identityIssuer };
+  }
+
+  async revoke(request: IHttpRequest) {
+    const grantID = nonempty(request.params?.grantId, 64);
+    if (!grantID || !/^[a-f0-9]{64}$/.test(grantID)) throw new TaskConnectionFailure(404, 'FORGE_TASK_GRANT_NOT_FOUND', '任务授权不存在');
+    const auth = this.auth(), api = await auth.getApi(), identityIssuer = taskIdentityIssuer();
+    const authorization = headersFor(request).get('authorization') ?? '';
+    const token = authorization.startsWith('Bearer ') ? authorization.slice(7) : '';
+    const claim = token ? await verifyNativeConnection(api, token, identityIssuer, taskAudience(identityIssuer)) : null;
+    const row = await this.latest(grantID);
+    let reason: string;
+    if (claim?.kind === 'forge_task_v1') {
+      if (claim.grant_id !== grantID || !row || row.id !== claim.jti || Number(row.generation) !== claim.generation ||
+          row.user_id !== claim.sub || row.organization_id !== claim.organization_id || row.scope_sha256 !== claim.scope_sha256) {
+        throw new TaskConnectionFailure(403, 'FORGE_TASK_SCOPE_FORBIDDEN', '任务只能撤销自身授权');
+      }
+      reason = 'run_terminal';
+    } else {
+      const employee = await nativeEmployee(this.context, request);
+      if (!row || row.user_id !== employee.userId || row.organization_id !== employee.organizationId) {
+        throw new TaskConnectionFailure(404, 'FORGE_TASK_GRANT_NOT_FOUND', '任务授权不存在');
+      }
+      reason = 'employee_cancel';
+    }
+    const body = request.body as { reason?: unknown } | undefined;
+    if (body?.reason !== undefined && body.reason !== reason) throw new TaskConnectionFailure(403, 'FORGE_TASK_SCOPE_FORBIDDEN', '撤销原因与调用者不符');
+    if (!row!.revoked_at) await this.engine().update(OBJECT, { revoked_at: new Date().toISOString(), revocation_reason: reason },
+      { multi: true, where: { id: row!.id, revoked_at: { $null: true } }, context: SYSTEM_READ });
+    const revoked = await this.engine().findOne(OBJECT, { where: { id: row!.id } }, { context: SYSTEM_READ });
+    if (!revoked?.revoked_at) throw new TaskConnectionFailure(503, 'FORGE_TASK_REVOCATION_UNCONFIRMED', '任务授权撤销尚未确认');
+    return { version: '1', grant_id: grantID, revoked: true, reason: String(revoked.revocation_reason ?? reason) };
   }
 }
 
@@ -150,6 +182,26 @@ export class TaskDelegationPlugin implements Plugin {
   init(context: PluginContext): void {
     context.hook('kernel:ready', () => {
       const server = service<IHttpServer>(context, 'http.server'), tasks = new TaskDelegationService(context);
+      const engine = service<IObjectQLEngine>(context, 'objectql');
+      // Native Auth ban-user updates sys_user through these same public hooks.
+      // Unbanning must not revive authority issued before the account was banned.
+      engine.registerHook('afterUpdate', async (hook: {
+        input?: { id?: string; data?: Row }; previous?: Row; result?: Row; transaction?: ExecutionContext['transaction'];
+      }) => {
+        if (hook.previous?.banned === true || hook.input?.data?.banned !== true && hook.result?.banned !== true) return;
+        const id = nonempty(hook.input?.id ?? hook.previous?.id ?? hook.result?.id);
+        if (!id) throw new TaskConnectionFailure(503, 'FORGE_TASK_REVOCATION_UNCONFIRMED', '员工任务授权撤销尚未确认');
+        const auditContext = { ...SYSTEM_READ, ...(hook.transaction ? { transaction: hook.transaction } : {}) };
+        const user = await engine.findOne('sys_user', { where: { id }, fields: ['id', 'banned'] }, { context: auditContext });
+        if (user?.banned !== true) return;
+        await engine.update(OBJECT, { revoked_at: new Date().toISOString(), revocation_reason: 'subject_inactive' },
+          { multi: true, where: { user_id: id, revoked_at: { $null: true } }, context: auditContext });
+      }, { object: 'sys_user', packageId: this.name });
+      server.get('/api/v1/workbench/identity-source', async (_request, response) => {
+        response.header('Cache-Control', 'no-store');
+        try { await response.status(200).json({ version: '1', issuer: taskIdentityIssuer() }); }
+        catch (error) { await fail(response, error, true); }
+      });
       server.post(ROOT, async (request, response) => {
         response.header('Cache-Control', 'private, no-store');
         try { await response.status(200).json(await tasks.issue(request)); }
@@ -158,11 +210,16 @@ export class TaskDelegationPlugin implements Plugin {
       server.get(`${ROOT}/current`, async (request, response) => {
         response.header('Cache-Control', 'private, no-store');
         try {
-          const { row, scope, issuer } = await tasks.current(request);
+          const { row, scope, issuer, identityIssuer } = await tasks.current(request);
           await response.status(200).json({ version: '1', active: true, token_type: 'forge_task', grant_id: row.grant_key,
-            generation: Number(row.generation), issuer, scope_sha256: row.scope_sha256, scope,
+            generation: Number(row.generation), issuer, identity_issuer: identityIssuer, scope_sha256: row.scope_sha256, scope,
             subject: { id: row.user_id, organization_id: row.organization_id }, issued_at: row.issued_at, expires_at: row.expires_at });
         } catch (error) { await fail(response, error, true); }
+      });
+      server.delete(`${ROOT}/:grantId`, async (request, response) => {
+        response.header('Cache-Control', 'private, no-store');
+        try { await response.status(200).json(await tasks.revoke(request)); }
+        catch (error) { await fail(response, error, false); }
       });
       server.get(`${ROOT}/objects/:objectName`, async (request, response) => {
         response.header('Cache-Control', 'private, no-store');
