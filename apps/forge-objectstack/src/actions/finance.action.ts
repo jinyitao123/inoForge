@@ -85,7 +85,7 @@ const projectId=ctx.recordId||(ctx.record&&ctx.record.id),project=ctx.record;if(
 export const ReceivableRegisterCollection = defineAction({
   name: 'receivable_register_collection', label: '登记收款', objectName: 'forge_accounts_receivable', icon: 'badge-dollar-sign',
   requiredPermissions: ['forge_finance_receivables_operator'],
-  locations: [...locations], order: 20, visible: `record.status == 'unpaid' || record.status == 'partially_collected'`, refreshAfter: true,
+  locations: [...locations], order: 20, visible: `record.status == 'unpaid' || record.status == 'partially_collected' || record.status == 'overdue'`, refreshAfter: true,
   description: '登记实际到账流水。到账先进入待分配余额，核销审核后才回写应收和订单。',
   successMessage: '收款流水已登记，等待分配核销',
   params: [
@@ -102,7 +102,7 @@ export const ReceivableRegisterCollection = defineAction({
 const id = ctx.recordId || (ctx.record && ctx.record.id); const receivable = ctx.record;
 if (ctx.recordLoadDenied === true || !id || !receivable) throw new Error('当前应收账款不存在或不可访问');
 const actor=ctx.session&&ctx.session.userId;if(!actor)throw new Error('无法识别当前收款登记人');
-if (!['unpaid', 'partially_collected'].includes(receivable.status)) throw new Error('仅未收款或部分收款应收可以登记收款');
+if (!['unpaid', 'partially_collected', 'overdue'].includes(receivable.status)) throw new Error('仅未收款、部分收款或逾期应收可以登记收款');
 const amount = Number(ctx.input.amount || 0); if (!(amount > 0)) throw new Error('收款金额必须大于0');
 if (amount > Number(receivable.outstanding_amount || 0)) throw new Error('收款金额不得超过当前应收余额');
 const account = await ctx.api.object('forge_fund_account').findOne({ where: { id: ctx.input.account_id } });

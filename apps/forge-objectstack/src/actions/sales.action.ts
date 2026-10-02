@@ -1,5 +1,13 @@
 import { defineAction } from '@objectstack/spec';
 import { hasExactQuotationLineSet } from './sales-contract-source-set.js';
+import { SalesOpportunity } from '../objects/sales.object.js';
+
+const opportunityStageSchema = SalesOpportunity.fields.stage as unknown as {
+  options?: Array<{ value: string; label: string }>;
+  defaultValue?: string;
+};
+const opportunityStageValues = opportunityStageSchema.options?.map(option => option.value) ?? [];
+const defaultOpportunityStage = opportunityStageSchema.defaultValue ?? opportunityStageValues[0] ?? '';
 
 const locations = ['record_header', 'record_more'] as const;
 
@@ -104,6 +112,7 @@ export const SalesQuotationDraftCreate = defineAction({
     { name: 'name', label: '报价名称', type: 'text', required: true },
     { name: 'customer_id', label: '客户', type: 'text', required: true },
     { name: 'contact_id', label: '联系人', type: 'text' },
+    { field: 'opportunity_id', objectOverride: 'forge_quotation' },
     { name: 'quotation_type_id', label: '报价类型', type: 'text', required: true },
     { name: 'issuer_id', label: '报价主体', type: 'text', required: true },
     { name: 'quotation_date', label: '报价日期', type: 'text', required: true },
@@ -130,6 +139,7 @@ const code = getText('code', '报价单号', true, 100);
 const name = getText('name', '报价名称', true, 255);
 const customerId = getText('customer_id', '客户', true, 128);
 const contactId = getText('contact_id', '联系人', false, 128);
+const opportunityId = getText('opportunity_id', '关联商机', false, 128);
 const quotationTypeId = getText('quotation_type_id', '报价类型', true, 128);
 const issuerId = getText('issuer_id', '报价主体', true, 128);
 const quotationDate = getText('quotation_date', '报价日期', true, 10);
@@ -154,6 +164,7 @@ const quotationObject = ctx.api.object('forge_quotation');
 const lineObject = ctx.api.object('forge_quotation_line');
 const customerObject = ctx.api.object('forge_customer');
 const contactObject = ctx.api.object('forge_contact');
+const opportunityObject = ctx.api.object('forge_sales_opportunity');
 const typeObject = ctx.api.object('forge_quotation_type');
 const issuerObject = ctx.api.object('forge_quotation_issuer');
 const skuObject = ctx.api.object('forge_material_sku');
@@ -164,6 +175,12 @@ return await ctx.api.transaction(async () => {
   if (duplicate) throw new Error('报价单号已存在，请刷新报价列表后重试');
   const customer = await customerObject.findOne({ where: { id: customerId } });
   if (!orgRecord(customer) || !ownedByActor(customer)) throw new Error('只能为本人拥有的客户创建报价');
+  let opportunity = null;
+  if (opportunityId) {
+    opportunity = await opportunityObject.findOne({ where: { id: opportunityId }, fields: ['id', 'organization_id', 'owner_id', 'responsible_id', 'customer_id', 'name'] });
+    if (!orgRecord(opportunity) || !ownedByActor(opportunity) || String(opportunity.responsible_id || '') !== actor) throw new Error('只能关联本人负责且可访问的商机');
+    if (String(opportunity.customer_id || '') !== customerId) throw new Error('关联商机必须属于所选客户');
+  }
   const quotationType = await typeObject.findOne({ where: { id: quotationTypeId } });
   if (!orgRecord(quotationType) || quotationType.status === 'inactive') throw new Error('所选报价类型不存在、已停用或不属于当前组织');
   const issuer = await issuerObject.findOne({ where: { id: issuerId } });
@@ -230,7 +247,9 @@ return await ctx.api.transaction(async () => {
     cost_total: null,
   };
   const created = await quotationObject.insert({
-    code, name, customer_id: customerId, contact_id: contactId,
+    code, name, customer_id: customerId, customer_name: customer.name, contact_id: contactId,
+    opportunity_id: opportunityId,
+    opportunity_name: opportunity ? String(opportunity.name || '').trim() || null : null,
     quotation_type_id: quotationTypeId, issuer_id: issuerId,
     quotation_date: quotationDate, valid_until: validUntil,
     payment_method: null, payment_method_confirmed: false, payment_term: getText('payment_term', '付款条件', false, 255),
@@ -1500,47 +1519,97 @@ export const SalesLeadConvertToOpportunity = defineAction({
     category: 'action',
     requiresConfirmation: false,
   },
-  params: [{ field: 'amount', objectOverride: 'forge_sales_opportunity' }, { field: 'expected_close_on', objectOverride: 'forge_sales_opportunity' }],
+  params: [
+    { field: 'name', objectOverride: 'forge_sales_opportunity' },
+    { field: 'amount', objectOverride: 'forge_sales_opportunity' },
+    { field: 'expected_close_on', objectOverride: 'forge_sales_opportunity' },
+    { field: 'stage', objectOverride: 'forge_sales_opportunity' },
+    { field: 'remarks', objectOverride: 'forge_sales_opportunity' },
+  ],
   body: { language: 'js', capabilities: ['api.read', 'api.write', 'api.transaction'], source: `
+const allowedStages = ${JSON.stringify(opportunityStageValues)};
+const defaultStage = ${JSON.stringify(defaultOpportunityStage)};
 const id = String(ctx.recordId || (ctx.record && ctx.record.id) || '').trim();
 if (ctx.recordLoadDenied === true || !id || !ctx.record) throw new Error('当前线索不存在或不可访问');
+const actor = String(ctx.session && ctx.session.userId || '').trim();
+const organizationId = String(ctx.session && ctx.session.organizationId || '').trim();
+if (!actor || !organizationId) throw new Error('无法确认当前销售员工和组织，请重新登录');
+const owns = row => row && String(row.organization_id || '') === organizationId && String(row.owner_id || '') === actor;
 const params = ctx.input || {};
 const amount = params.amount === undefined || params.amount === null || params.amount === '' ? 0 : Number(params.amount);
 if (!Number.isFinite(amount) || amount < 0) throw new Error('商机金额必须是大于或等于零的数字');
-const expectedCloseOn = params.expected_close_on || null;
-const requestSignature = JSON.stringify({ amount, expected_close_on: expectedCloseOn });
+const expectedCloseOn = params.expected_close_on === undefined || params.expected_close_on === null || params.expected_close_on === '' ? null : String(params.expected_close_on).trim();
+if (expectedCloseOn !== null) {
+  const dateMatch = /^(\\d{4})-(\\d{2})-(\\d{2})$/.exec(expectedCloseOn);
+  const parsedDate = dateMatch ? new Date(expectedCloseOn + 'T00:00:00.000Z') : null;
+  if (!dateMatch || !parsedDate || Number.isNaN(parsedDate.getTime()) || parsedDate.toISOString().slice(0, 10) !== expectedCloseOn) {
+    throw new Error('预计关闭日期必须是有效的 YYYY-MM-DD 日期');
+  }
+}
+const nameWasProvided = Object.prototype.hasOwnProperty.call(params, 'name');
+const requestedName = nameWasProvided ? String(params.name ?? '').trim() : null;
+if (nameWasProvided && !requestedName) throw new Error('请填写商机名称');
+const stage = params.stage === undefined ? defaultStage : String(params.stage ?? '').trim();
+if (!allowedStages.includes(stage)) throw new Error('请选择有效商机阶段');
+const remarksWasProvided = Object.prototype.hasOwnProperty.call(params, 'remarks');
+const requestedRemarks = params.remarks === undefined || params.remarks === null || String(params.remarks).trim() === ''
+  ? null
+  : String(params.remarks).trim();
+const hasExtendedInputs = nameWasProvided || Object.prototype.hasOwnProperty.call(params, 'stage') || remarksWasProvided;
+const legacyRequestSignature = JSON.stringify({ amount, expected_close_on: expectedCloseOn });
+let requestSignature = legacyRequestSignature;
 const leadObject = ctx.api.object('forge_sales_lead');
 const opportunityObject = ctx.api.object('forge_sales_opportunity');
 const customerObject = ctx.api.object('forge_customer');
+const contactObject = ctx.api.object('forge_contact');
+const channelObject = ctx.api.object('forge_contact_channel');
+const insertedId = value => typeof value === 'string' ? value : value && (value.id || value.record && value.record.id);
 
 const existingResult = async lead => {
-  if (!lead || lead.status !== 'converted') throw new Error('当前线索状态已变化，不能继续转化，请刷新后核对');
+  if (!owns(lead) || lead.status !== 'converted') throw new Error('当前线索状态已变化，不能继续转化，请刷新后核对');
   if (!lead.conversion_request_signature) throw new Error('该线索已转化，但缺少原转化输入记录；请先核对已关联商机，不能再次创建');
-  if (lead.conversion_request_signature !== requestSignature) throw new Error('该线索已按不同金额或预计成交日期转化；请刷新并核对现有商机');
+  const isLegacyDefaultReplay = lead.conversion_request_signature === legacyRequestSignature
+    && normalizedName === String(lead.company_name || '') + ' 项目商机'
+    && stage === defaultStage
+    && requestedRemarks === null;
+  if (lead.conversion_request_signature !== requestSignature && !isLegacyDefaultReplay) {
+    throw new Error('该线索已按不同商机名称、阶段、备注、金额或预计成交日期转化；请刷新并核对现有商机');
+  }
   const customerId = lead.converted_customer_id;
   const opportunityId = lead.converted_opportunity_id;
   if (!customerId || !opportunityId) throw new Error('该线索的转化关系不完整；请先核对客户和商机记录');
   const opportunity = await opportunityObject.findOne({ where: { id: opportunityId } });
-  if (!opportunity || opportunity.lead_id !== id || opportunity.customer_id !== customerId) {
+  if (!owns(opportunity) || opportunity.lead_id !== id || opportunity.customer_id !== customerId) {
     throw new Error('该线索的客户与商机关联已变化；请先核对现有业务记录');
+  }
+  if (opportunity.contact_id) {
+    const contact = await contactObject.findOne({ where: { id: opportunity.contact_id } });
+    if (!owns(contact) || contact.customer_id !== customerId) throw new Error('原商机的联系人关系已变化，请先核对业务记录');
   }
   return { id, status: 'converted', customer_id: customerId, opportunity_id: opportunityId };
 };
 
+let normalizedName = '';
 try {
   return await ctx.api.transaction(async () => {
     const lead = await leadObject.findOne({ where: { id } });
-    if (!lead) throw new Error('当前线索不存在或不可访问');
+    if (!owns(lead)) throw new Error('当前线索不存在或不属于本人和当前组织');
+    normalizedName = requestedName ?? String(lead.company_name || '').trim() + ' 项目商机';
+    if (!normalizedName) throw new Error('请填写商机名称');
+    requestSignature = hasExtendedInputs
+      ? JSON.stringify({ amount, expected_close_on: expectedCloseOn, name: normalizedName, stage, remarks: requestedRemarks })
+      : legacyRequestSignature;
     if (lead.status === 'converted') return existingResult(lead);
     if (!['new', 'following', 'public_pool'].includes(lead.status)) throw new Error('当前线索状态已变化，不能转化，请刷新后核对');
     if (!lead.responsible_id) throw new Error('请先为线索指定负责人，再转化为商机');
+    if (String(lead.responsible_id) !== actor) throw new Error('只有线索本人负责人可以转化');
 
     const linkedOpportunities = await opportunityObject.find({ where: { lead_id: id } });
     if (linkedOpportunities.length) throw new Error('该线索已存在关联商机，但转化关系不完整；请先核对记录，不会重复创建');
 
     const now = new Date().toISOString();
-    const existingCustomers = await customerObject.find({ where: { name: lead.company_name }, fields: ['id', 'owner_id'] });
-    if (existingCustomers.some(customer => String(customer.owner_id || '') !== String(lead.responsible_id))) {
+    const existingCustomers = await customerObject.find({ where: { name: lead.company_name }, fields: ['id', 'owner_id', 'organization_id'] });
+    if (existingCustomers.some(customer => !owns(customer))) {
       throw new Error('同名客户已归属其他销售，不能自动关联；请先核对客户归属');
     }
     if (existingCustomers.length > 1) throw new Error('存在多个同名客户，不能自动关联；请先核对客户记录');
@@ -1550,18 +1619,57 @@ try {
       const categoryId = categories[0]?.id || null;
       if (!categoryId) throw new Error('销售业务设置缺少项目客户分类；请先由管理员维护分类后再转化线索');
       const createdCustomer = await customerObject.insert({
-        name: lead.company_name, customer_type: 'company', category_id: categoryId,
+        name: lead.company_name, customer_type: 'company', category_id: categoryId, organization_id: organizationId,
         owner_id: lead.responsible_id, responsible_id: lead.responsible_id, remarks: '由销售线索转入客户档案',
       });
       customerId = typeof createdCustomer === 'string' ? createdCustomer : createdCustomer && (createdCustomer.id || (createdCustomer.record && createdCustomer.record.id));
       if (!customerId) throw new Error('客户创建后未返回记录标识');
     }
 
+    // Contacts keep their own lifecycle; the opportunity references the formal record.
+    let contactId = null;
+    const contactName = String(lead.contact_name || '').trim();
+    const phone = String(lead.phone || '').trim();
+    if (phone && !contactName) throw new Error('线索有联系电话但缺少联系人姓名，请补全后转化');
+    if (contactName) {
+      const allContacts = await contactObject.find({ where: { customer_id: customerId } });
+      if (allContacts.some(contact => !owns(contact) || String(contact.responsible_id || '') !== actor)) throw new Error('客户现有联系人归属不一致，请先核对');
+      const contacts = allContacts.filter(contact => String(contact.name || '').trim() === contactName);
+      if (contacts.length > 1) throw new Error('客户存在多个同名联系人，请先核对联系人后转化');
+      const contact = contacts[0];
+      if (contact && (!owns(contact) || contact.employment_status !== 'active')) throw new Error('同名联系人不属于本人或已不在职，请先核对');
+      contactId = contact && contact.id || null;
+      if (!contactId) {
+        contactId = insertedId(await contactObject.insert({
+          name: contactName, customer_id: customerId, employment_status: 'active',
+          is_primary: allContacts.length === 0, owner_id: actor, responsible_id: actor,
+          organization_id: organizationId, remarks: '由销售线索转入联系人档案',
+        }));
+        if (!contactId) throw new Error('联系人创建后未返回记录标识');
+      }
+      if (phone) {
+        const channels = await channelObject.find({ where: { contact_id: contactId } });
+        if (channels.some(channel => !owns(channel))) throw new Error('联系人联系方式归属不一致，请先核对');
+        const matching = channels.filter(channel => ['mobile', 'telephone', 'other'].includes(channel.channel_type) && String(channel.value || '').trim() === phone);
+        if (matching.length > 1) throw new Error('联系人存在重复电话，请先核对');
+        if (!matching.length) {
+          if (channels.some(channel => ['mobile', 'telephone'].includes(channel.channel_type))) throw new Error('线索电话与现有联系人电话不同，请先核对联系方式');
+          // The lead does not distinguish mobile from landline: preserve it as other.
+          const channelId = insertedId(await channelObject.insert({
+            name: '线索联系电话', contact_id: contactId, channel_type: 'other', value: phone,
+            is_primary: channels.length === 0, owner_id: actor, organization_id: organizationId,
+          }));
+          if (!channelId) throw new Error('联系方式创建后未返回记录标识');
+        }
+      }
+    }
+
     const createdOpportunity = await opportunityObject.insert({
-      name: lead.company_name + ' 项目商机', customer_id: customerId, lead_id: id,
+      name: normalizedName, customer_id: customerId, contact_id: contactId, lead_id: id, organization_id: organizationId,
       contact_name: lead.contact_name || null, phone: lead.phone || null,
-      stage: 'needs_confirmed', source: lead.source || '线索转化', description: lead.remarks || null,
-      priority: 'medium', amount, win_rate: 30, expected_close_on: expectedCloseOn,
+      stage, source: lead.source || '线索转化', description: lead.remarks || null,
+      priority: 'medium', amount, win_rate: stage === 'won' ? 100 : stage === 'lost' ? 0 : 30, expected_close_on: expectedCloseOn,
+      remarks: requestedRemarks,
       owner_id: lead.responsible_id, responsible_id: lead.responsible_id,
     });
     const opportunityId = typeof createdOpportunity === 'string'

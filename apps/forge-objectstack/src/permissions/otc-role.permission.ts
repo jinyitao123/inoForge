@@ -351,6 +351,7 @@ export const financeReceivablesOperatorPermission = definePermissionSet({
   description: '登记本人负责的发票、应收和实际到账；不审核本人核销。',
   systemPermissions: ['forge_finance_receivables_operator'],
   objects: {
+    forge_sales_invoice_request: orgRead,
     forge_sales_invoice: orgRead,
     forge_sales_invoice_line: orgRead,
     forge_accounts_receivable: orgRead,
@@ -373,6 +374,7 @@ export const financeReviewerPermission = definePermissionSet({
   description: '读取待复核的收款分配与应收记录；核销决定须由受控业务动作校验且不得自审。',
   systemPermissions: ['forge_finance_reviewer'],
   objects: {
+    forge_sales_invoice_request: orgRead,
     forge_sales_invoice: orgRead,
     forge_accounts_receivable: orgRead,
     forge_cash_receipt: orgRead,

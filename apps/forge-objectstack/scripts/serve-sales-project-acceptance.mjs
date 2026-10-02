@@ -1,0 +1,18 @@
+/** Persistent, local-only Forge acceptance runtime; never prints key material. */
+import { spawn } from 'node:child_process';
+import { createHash } from 'node:crypto';
+import { readFile, mkdir, open } from 'node:fs/promises';
+import { userInfo } from 'node:os';
+const database=process.env.FORGE_ACCEPTANCE_DATABASE_URL||`postgresql://${encodeURIComponent(userInfo().username)}@127.0.0.1:5432/forge_sales_project_acceptance`;
+const target=new URL(database);
+if(!['localhost','127.0.0.1'].includes(target.hostname)||target.pathname!=='/forge_sales_project_acceptance')throw new Error('Only the isolated local acceptance database is permitted');
+await mkdir('.objectstack/acceptance/sales-project',{recursive:true});
+const log=await open('.objectstack/acceptance/sales-project/server.log','w',0o600);
+const authSecret=(await readFile('.objectstack/auth-secret','utf8')).trim();
+const eventSecret=createHash('sha256').update(authSecret).update(':sales-project-acceptance').digest('hex');
+const env={...process.env,NODE_ENV:'production',OS_DATABASE_URL:database,OS_BASE_URL:'http://localhost:4635',OS_TRUSTED_ORIGINS:'http://localhost:4635,http://127.0.0.1:4635',OS_TENANCY_POSTURE:'single',OS_SEED_ADMIN:'false',FORGE_WEAVE_EVENT_SECRET:eventSecret,OS_AUTH_SECRET:authSecret,OS_SECRET_KEY:(await readFile('.objectstack/dev-crypto-key','utf8')).trim()};
+const child=spawn('pnpm',['exec','objectstack','serve','objectstack.config.ts','--port','4635','--log-level','error'],{env,stdio:['ignore',log.fd,log.fd]});
+for(const signal of ['SIGINT','SIGTERM'])process.on(signal,()=>child.kill(signal));
+child.on('error',()=>{console.error('Local Forge could not start; see the private acceptance log.');process.exitCode=1});
+child.on('exit',code=>{process.exitCode=code||0});
+console.log('Local Forge acceptance runtime uses the persistent isolated database on port 4635; details are in the private acceptance log.');

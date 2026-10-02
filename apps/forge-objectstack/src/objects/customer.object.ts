@@ -70,9 +70,11 @@ export const CustomerTeamMember = master('forge_customer_team_member', '客户�
   active: Field.boolean({ label: '有效成员', defaultValue: true }), remarks: remarks(),
 }, ['customer_id', 'user_id', 'member_duty', 'active']);
 
-export const Contact = master('forge_contact', '联系人管理', 'contact', {
+export const Contact = ObjectSchema.create({ ...master('forge_contact', '联系人管理', 'contact', {
   name: text('姓名', true), customer_id: { ...reference('forge_customer', '客户', true), relatedList: true, relatedListTitle: '联系人', relatedListColumns: ["name", "is_primary", "job_title", "department", "employment_status"] },
-  is_primary: Field.boolean({ label: '主要联系人', defaultValue: false }), job_title: text('职位'), department: text('部门'),
+  is_primary: Field.boolean({ label: '主要联系人', defaultValue: false }),
+  primary_customer_id: { ...reference('forge_customer', '主要联系人归属'), readonly: true, relatedList: false, hidden: true },
+  job_title: text('职位'), department: text('部门'),
   // Retain stored text values while declaring the choices for the shared widget.
   gender: { ...text('性别'), widget: 'declared-label-select', options: [
     { value: 'male', label: '男' }, { value: 'female', label: '女' },
@@ -87,11 +89,14 @@ export const Contact = master('forge_contact', '联系人管理', 'contact', {
     { value: 'resigned', label: '已离职' }, { value: 'retired', label: '已退休' },
     { value: 'inactive', label: '停用' },
   ], { label: '任职状态', defaultValue: 'active' }),
-  responsible_id: owner(), remarks: remarks(),
-}, ['name', 'customer_id', 'is_primary', 'job_title', 'department', 'employment_status', 'responsible_id']);
+  responsible_id: Field.user({ label: '负责人', defaultValue: 'current_user' }), remarks: remarks(),
+}, ['name', 'customer_id', 'is_primary', 'job_title', 'department', 'employment_status', 'responsible_id']),
+  indexes: [{ fields: ['primary_customer_id'], unique: 'organization' }],
+});
 
-export const ContactChannel = master('forge_contact_channel', '联系人联系方式', 'phone', {
-  name: text('标签', true), contact_id: reference('forge_contact', '联系人', true),
+export const ContactChannel = ObjectSchema.create({ ...master('forge_contact_channel', '联系人联系方式', 'phone', {
+  name: text('标签', true), contact_id: { ...reference('forge_contact', '联系人', true), relatedList: 'primary', relatedListTitle: '联系方式', relatedListColumns: ['name','channel_type','value','is_primary'] },
+  primary_contact_id: { ...reference('forge_contact', '主要联系方式归属'), readonly: true, hidden: true, relatedList: false },
   channel_type: Field.select([
     { value: 'mobile', label: '手机' }, { value: 'telephone', label: '座机' },
     { value: 'email', label: '邮箱' }, { value: 'wechat', label: '微信' },
@@ -99,4 +104,6 @@ export const ContactChannel = master('forge_contact_channel', '联系人联系�
     { value: 'linkedin', label: 'LinkedIn' }, { value: 'other', label: '其他' },
   ], { label: '类型', defaultValue: 'mobile' }),
   value: text('联系方式', true), is_primary: Field.boolean({ label: '主要联系方式', defaultValue: false }),
-}, ['contact_id', 'channel_type', 'name', 'value', 'is_primary']);
+}, ['contact_id', 'channel_type', 'name', 'value', 'is_primary']),
+  indexes: [{ fields: ['primary_contact_id'], unique: 'organization' }],
+});

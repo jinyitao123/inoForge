@@ -35,3 +35,6 @@ export * from './subcontract-return.action.js';
 export * from './inventory-operations.action.js';
 export * from './inventory-damage.action.js';
 export * from './other-outbound.action.js';
+
+export * from './sales-crm-maintenance.action.js';
+export * from './sales-quotation-draft-edit.action.js';

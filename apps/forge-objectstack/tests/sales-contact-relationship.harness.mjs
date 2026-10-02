@@ -1,0 +1,13 @@
+import assert from 'node:assert/strict';
+import { SalesContactRelationshipGuard, SalesContactChannelRelationshipGuard } from '../src/hooks/sales-contact.hook.ts';
+const run=(hook,ctx)=>new Function('ctx',`return (async()=>{${hook.body.source}})()`)(ctx);
+const base={session:{userId:'sales-a',organizationId:'org-a'},api:{object:()=>({findOne:async({where})=>where.id==='owned'?{id:'owned',organization_id:'org-a',owner_id:'sales-a',responsible_id:'sales-a'}:null})}};
+const own={...base,input:{customer_id:'owned',is_primary:true}};
+await run(SalesContactRelationshipGuard,own);assert.equal(own.input.primary_customer_id,'owned');
+await assert.rejects(run(SalesContactRelationshipGuard,{...base,input:{customer_id:'foreign'}}),/不可访问/);
+await assert.rejects(run(SalesContactChannelRelationshipGuard,{...base,input:{contact_id:'foreign'}}),/不可访问/);
+const update={...base,previous:{customer_id:'owned',is_primary:true},input:{name:'更新联系人'}};
+await run(SalesContactRelationshipGuard,update);assert.equal(update.input.primary_customer_id,'owned');
+const unprimary={...base,previous:{customer_id:'owned',is_primary:true},input:{is_primary:false}};
+await run(SalesContactRelationshipGuard,unprimary);assert.equal(unprimary.input.primary_customer_id,null);
+console.log('PASS generic contact/channel parent visibility guards and primary-customer unique-key derivation');

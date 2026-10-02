@@ -1247,7 +1247,7 @@
       "acceptance": "docs/evidence/sales-page-acceptance-20260920/page_sales_opportunities.json"
     },
     {
-      "file": "sales-crm-service-pages.page.ts",
+      "file": "sales-leads.page.ts",
       "pages": [
         "page_sales_leads"
       ],

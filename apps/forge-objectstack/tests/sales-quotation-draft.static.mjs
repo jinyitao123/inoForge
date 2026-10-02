@@ -28,11 +28,12 @@ assert.match(permission, /name: 'sales_quotation_draft_operator'/);
 assert.match(permission, /forge_quotation: \{ allowRead: true, readScope: 'own' \}/);
 assert.match(permission, /forge_customer: ownRead/);
 assert.match(permission, /forge_contact: ownRead/);
+assert.match(permission, /forge_sales_opportunity: ownRead/, 'quote operators may read only their own opportunities to link a draft quote');
 assert.match(permission, /'forge_material_sku\.cost_price': \{ readable: false \}/);
 assert.match(permission, /'forge_quotation\.cost_total': \{ readable: false \}/);
 assert.match(permission, /'forge_quotation_line\.cost_price': \{ readable: false \}/);
 assert.match(permission, /'forge_quotation_price_adjustment_receipt\.cost_total': \{ readable: false \}/);
-assert.equal((permission.match(/fields: salesQuotationCostFieldMask/g) || []).length, 2, 'Both sales quotation capabilities must keep costs masked');
+assert.equal((permission.match(/fields: salesQuotationCostFieldMask/g) || []).length, 3, 'Quotation draft, review, and adjustment capabilities must keep costs masked');
 assert.doesNotMatch(permission, /viewAllRecords|modifyAllRecords|allowCreate|allowEdit/);
 assert.doesNotMatch(contractPermission, /viewAllRecords|modifyAllRecords/);
 assert.match(contractPermission, /forge_quotation: readOwnRecords/);
@@ -46,4 +47,5 @@ for (const [label, source] of [['recalculation', recalculationAction], ['price a
   assert.doesNotMatch(source, /cost_price|cost_analysis_available: true|cost_total: totals/, label+' action must not read or return cost values');
 }
 assert.match(object, /quotation_id: \{ \.\.\.reference\('forge_quotation', '报价单', true\), inlineEdit: true/);
+assert.match(object, /opportunity_id: \{ \.\.\.reference\('forge_sales_opportunity', '关联商机'\), relatedList: true/, 'quotation must store the opportunity as a real lookup, not only the legacy text label');
 console.log('PASS sales quote page, owned-draft capability, atomic draft action, and native relationship metadata are wired');

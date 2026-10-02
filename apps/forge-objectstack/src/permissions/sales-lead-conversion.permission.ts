@@ -39,6 +39,8 @@ export const salesLeadConversionPermission = definePermissionSet({
       allowRead: true,
       readScope: 'org',
     },
+    forge_contact: { allowRead: true, readScope: 'own' },
+    forge_contact_channel: { allowRead: true, readScope: 'own' },
     forge_sales_opportunity: {
       allowCreate: true,
       allowRead: true,

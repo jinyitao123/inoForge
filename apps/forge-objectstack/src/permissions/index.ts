@@ -29,3 +29,5 @@ export {
   supplyChainReferenceReaderPermission,
   supplyChainSettingsManagerPermission,
 } from './application-settings.permission.js';
+
+export { salesCrmMaintenancePermission } from './sales-crm.permission.js';

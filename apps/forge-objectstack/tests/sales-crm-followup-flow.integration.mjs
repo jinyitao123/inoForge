@@ -25,7 +25,7 @@ await test('sales lead can be created and converted to customer plus opportunity
   assert.equal(lead.converted_opportunity_id, ids.opportunity);
   const opportunity = await read('forge_sales_opportunity', ids.opportunity);
   assert.equal(opportunity.lead_id, ids.lead);
-  assert.equal(opportunity.stage, 'needs_confirmed');
+  assert.equal(opportunity.stage, 'initial_contact', 'lead conversion uses the SalesOpportunity model default unless the dialog selects another stage');
   assert.equal(opportunity.amount, 320000);
 });
 

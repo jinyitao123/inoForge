@@ -1,9 +1,10 @@
+import { F } from '@objectstack/spec';
 import { Field, ObjectSchema } from '@objectstack/spec/data';
 import { master, dictionary, text, code, reference, choice, owner, remarks, required, money } from '../model.js';
 
 const positiveQuantity = (label = '数量') => Field.number({ label, min: 0.0001, scale: 4, ...required });
 const percentage = (label: string, defaultValue = 0) => Field.number({ label, min: 0, max: 100, scale: 4, defaultValue });
-const nonNegativeMoney = (label: string, scale = 4) => Field.currency({ label, precision: 18, scale, min: 0 });
+const nonNegativeMoney = (label: string, scale = 4) => Field.currency({ label, scale, min: 0, currencyConfig: { currencyMode: 'fixed', defaultCurrency: 'CNY', precision: 2 } });
 const paymentMethod = () => choice('付款方式', ['银行转账', '支付宝', '微信支付', '现金', '支票', '其他', '电汇', '承兑汇票', '在线支付', '信用证']);
 const revenueTrigger = () => choice('收入确认方式', ['按发货出库', '按开票', '按里程碑', '按验收', '按周期', '手动确认'], '按发货出库');
 
@@ -18,9 +19,12 @@ export const QuotationIssuer = master('forge_quotation_issuer', '报价主体', 
 export const ContractType = dictionary('forge_contract_type', '合同类型');
 
 // RM-059 / DR-0279 to DR-0311. The header and lines stay separate so pricing snapshots remain auditable.
-export const Quotation = master('forge_quotation', '销售报价', 'file-text', {
+export const Quotation = ObjectSchema.create({ ...master('forge_quotation', '销售报价', 'file-text', {
   name: text('报价名称', true), code: code('报价单号'), customer_id: { ...reference('forge_customer', '客户', true), relatedList: true, relatedListTitle: '报价', relatedListColumns: ["code", "name", "item_count", "total_amount", "status", "valid_until"] },
-  contact_id: reference('forge_contact', '联系人'), opportunity_name: text('关联商机'),
+  customer_name: Field.text({ label: '客户名称', readonly: true, hidden: true }),
+  contact_id: reference('forge_contact', '联系人'),
+  opportunity_id: { ...reference('forge_sales_opportunity', '关联商机'), relatedList: true, relatedListTitle: '销售报价', relatedListColumns: ['code', 'name', 'customer_id', 'total_amount', 'status', 'valid_until'] },
+  opportunity_name: text('关联商机'),
   quotation_type_id: reference('forge_quotation_type', '报价类型', true), issuer_id: reference('forge_quotation_issuer', '报价主体', true),
   quotation_date: Field.date({ label: '报价日期', ...required }), valid_until: Field.date({ label: '有效期至', ...required }),
   payment_method: paymentMethod(), payment_method_confirmed: Field.boolean({ label: '付款方式已核实', defaultValue: false, readonly: true }), payment_term: text('付款条件'), responsible_id: owner(true),
@@ -38,9 +42,12 @@ export const Quotation = master('forge_quotation', '销售报价', 'file-text', 
   item_count: Field.number({ label: '物料/服务数', min: 0, scale: 0, defaultValue: 0 }),
   subtotal: nonNegativeMoney('折前含税金额'), discount_amount: nonNegativeMoney('折扣金额'),
   tax_amount: nonNegativeMoney('税额'), total_amount: nonNegativeMoney('报价含税总额'), cost_total: nonNegativeMoney('总成本'),
+  overall_discount_label: { type: 'formula', label: '整体折扣', returnType: 'text', expression: F`record.subtotal != null && record.subtotal > 0 && record.discount_amount != null ? string(double(round(record.discount_amount / record.subtotal * 10000.0)) / 100.0) + '%' : '0%'` },
   business_terms: Field.textarea({ label: '商务条款' }), quotation_terms: Field.textarea({ label: '报价条款' }),
   attachment_note: text('附件说明'), remarks: remarks(),
-}, ['code', 'name', 'customer_id', 'responsible_id', 'item_count', 'total_amount', 'status', 'valid_until']);
+}, ['code', 'name', 'customer_id', 'responsible_id', 'item_count', 'total_amount', 'status', 'valid_until']),
+  searchableFields: ['code', 'name', 'customer_name', 'opportunity_name'],
+});
 
 export const QuotationLine = master('forge_quotation_line', '报价明细', 'list', {
   name: text('物料/服务名称', true), quotation_id: { ...reference('forge_quotation', '报价单', true), inlineEdit: true, inlineTitle: '报价明细' },

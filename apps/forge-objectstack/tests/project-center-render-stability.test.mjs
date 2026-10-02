@@ -56,6 +56,7 @@ function createHarness() {
     module,
     exports: module.exports,
     React,
+    ListView: props => React.createElement('div', { ...props, 'data-test-list-view': true }),
     useAdapter: () => ({ baseUrl: 'http://forge.test', getAuthHeaders: () => ({}), fetchImpl: async () => { throw new Error('Unexpected API request'); } }),
     URLSearchParams,
     window: {
