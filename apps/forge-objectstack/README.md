@@ -6,6 +6,12 @@
 
 ## 本地开发
 
+本轮重构分支采用包含正式数值存储修复的 ObjectStack 17.5；准确依赖与镜像摘要由包锁和 `console94.lock.json` 固定。货币显示小数位由币种定义，已移除被新协议拒绝的 `currency.scale` 与 `currencyConfig.precision`；既有业务计算规则继续由领域动作执行。
+
+旧版 PostgreSQL 浮点列通过 `scripts/numeric-value-preflight.mjs` 执行一次事务迁移，目标来自升级前冻结的 Forge 数值字段清单，采用平台的 `numeric(65,30)`。已丢失的旧精度无法由迁移重建；迁移仅保全当前存值，并拒绝非有限值、超范围或转换会进一步丢值的列。失败会回滚整个事务，不启动应用。新字段继续由官方驱动建表。部署启动脚本与本地销售项目验证入口均执行此前置步骤；迁移前备份数据库。
+
+可在本机 PostgreSQL 上运行 `FORGE_NUMERIC_TEST_DATABASE_URL=<本机测试数据库URL> node --test tests/numeric-storage.integration.mjs`；测试只在新建的独立 schema 中验证旧值保全、重复执行、整笔回滚和新金额精确往返，并清理该 schema。此检查不能替代普通岗位的实际页面办理、持久化读回或生产发布验收。
+
 在本目录执行：
 
 ```sh
@@ -49,7 +55,7 @@ pnpm build
 
 ### 固定构建 ObjectUI Console
 
-Forge CLI 17.3.0 会通过自身的 `resolveConsolePath` 解析 Console 包。pnpm 锁文件将 `@objectstack/console` 留在 CLI 的虚拟依赖树里，应用顶层通常没有 `node_modules/@objectstack/console`。打包脚本调用 CLI 同一解析器定位真实包目录后再注入，不假设顶层路径；注入前复制旧 `dist` 作为回滚备份，目录替换遇到 overlay 文件系统的跨设备错误时改用复制，摘要验证失败则从备份恢复。注入路径及产物摘要会写入构建期布局标记。最终镜像再用 runtime 内的 CLI 重解析该包，并逐文件校验摘要与构建期路径标记一致。Forge API、`/api/v1/mcp` 和事件流仍由原 Nginx `location /` 转发到同一个 Forge 服务。
+应用锁定的 Forge CLI 会通过自身的 `resolveConsolePath` 解析 Console 包。pnpm 锁文件将 `@objectstack/console` 留在 CLI 的虚拟依赖树里，应用顶层通常没有 `node_modules/@objectstack/console`。打包脚本调用 CLI 同一解析器定位真实包目录后再注入，不假设顶层路径；注入前复制旧 `dist` 作为回滚备份，目录替换遇到 overlay 文件系统的跨设备错误时改用复制，摘要验证失败则从备份恢复。注入路径及产物摘要会写入构建期布局标记。最终镜像再用 runtime 内的 CLI 重解析该包，并逐文件校验摘要与构建期路径标记一致。Forge API、`/api/v1/mcp` 和事件流仍由原 Nginx `location /` 转发到同一个 Forge 服务。
 
 Forge 项目支持 Node 24 及以上。产物来源与完整摘要由 [`console94.lock.json`](console94.lock.json) 锁定；复现这份 Console 产物时使用 Node 24.19.0 和 pnpm 10.31.0。先让 `OBJECTUI_SOURCE_DIR` 指向含锁定提交的 ObjectUI Git checkout，再执行：
 

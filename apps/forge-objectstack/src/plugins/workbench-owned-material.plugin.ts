@@ -111,7 +111,7 @@ export class WorkbenchOwnedMaterialPlugin implements Plugin {
               file.owner_id !== actor.userId || file.ref_object || file.ref_id) {
             return sendError(response, 404, 'MATERIAL_NOT_FOUND');
           }
-          if (file.organization_id && actor.organizationId && file.organization_id !== actor.organizationId) {
+          if (file.organization_id && actor.tenantId && file.organization_id !== actor.tenantId) {
             return sendError(response, 404, 'MATERIAL_NOT_FOUND');
           }
           const key = nonempty(file.key, 2048), name = nonempty(file.name, 255);
@@ -143,7 +143,7 @@ export class WorkbenchOwnedMaterialPlugin implements Plugin {
         response.header('X-Content-Type-Options', 'nosniff');
         const actor = await resolveContext({ req: { raw: { headers: sessionHeaders(request.headers) } } });
         if (!actor?.userId) return sendError(response, 401, 'UNAUTHENTICATED');
-        const actorOrganizationId = actor.tenantId || actor.organizationId;
+        const actorOrganizationId = actor.tenantId;
         const fileId = nonempty(request.params?.fileId, 128);
         if (!fileId || !UUID.test(fileId)) return sendError(response, 404, 'MATERIAL_NOT_FOUND');
         const expected = expectedSha256(request.headers);

@@ -1,4 +1,5 @@
 import { defineAction } from '@objectstack/spec';
+import { contactEmploymentSnapshotSource } from './contact-employment-source.js';
 
 export const SalesContactSave = defineAction({
   name: 'sales_contact_save', label: '保存联系人', objectName: 'forge_contact',
@@ -7,7 +8,7 @@ export const SalesContactSave = defineAction({
     { name: 'header_json', label: '联系人资料', type: 'textarea', required: true },
     { name: 'channels_json', label: '联系方式', type: 'textarea', required: true },
   ],
-  body: { language: 'js', capabilities: ['api.read', 'api.write', 'api.transaction'], source: `
+  body: { language: 'js', capabilities: ['api.read', 'api.write', 'api.transaction'], source: `${contactEmploymentSnapshotSource}
 const actor = String(ctx.session && ctx.session.userId || '');
 const organizationId = String(ctx.session && ctx.session.organizationId || '');
 if (!actor || !organizationId) throw new Error('登录已失效，请重新登录');
@@ -53,6 +54,13 @@ return await ctx.api.transaction(async () => {
   if (new Set(suppliedIds).size !== suppliedIds.length || suppliedIds.some(channelId => !oldChannels.some(row => row.id === channelId))) throw new Error('联系方式不存在或不属于当前联系人');
   const values = { name, customer_id: customerId, responsible_id: actor, employment_status: status, gender, decision_weight: weight,
     job_title: text(header.job_title), department: text(header.department), is_primary: header.is_primary === true, remarks: text(header.remarks, 20000) };
+  if (values.is_primary && status !== 'active') throw new Error('非在职联系人不能设为主要联系人');
+  if (existing && ['employment_status','job_title','department'].some(field=>(existing[field]??null)!==(values[field]??null))) {
+    await appendEmploymentSnapshot(existing);
+    values.employment_revision=Number(existing.employment_revision||0)+1;
+    values.employment_changed_on=new Date().toISOString().slice(0,10);
+    values.employment_note='编辑任职资料';
+  }
   if (values.is_primary) {
     const others = await contacts.find({ where: { customer_id: customerId, is_primary: true } });
     for (const other of others) if (other.id !== id) {
@@ -172,4 +180,24 @@ return await ctx.api.transaction(async () => {
   return { primary_flags_preserved: true, updated_helpers: updated };
 });
 ` },
+});
+
+/** Rebuild search projections only; no employment events are invented for old records. */
+export const SalesCrmDirectoryReconcile = defineAction({
+  name: 'sales_crm_directory_reconcile', label: '重建联系人搜索索引', objectName: 'forge_contact',
+  locations: [], requiredPermissions: ['manage_metadata'], ai: { exposed: false },
+  body: { language: 'js', capabilities: ['api.read','api.write','api.transaction'], source: String.raw`
+const organizationId=String(ctx.session&&ctx.session.organizationId||'');
+if(!organizationId)throw new Error('无法确认当前组织');
+return await ctx.api.transaction(async()=>{
+  const contacts=ctx.api.object('forge_contact'),customers=ctx.api.object('forge_customer'),channels=ctx.api.object('forge_contact_channel');let updated=0;
+  for(const contact of await contacts.find({where:{organization_id:organizationId}})){
+    const customer=await customers.findOne({where:{id:contact.customer_id,organization_id:organizationId}});
+    if(!customer)throw new Error('联系人所属客户不可读，请先核对');
+    const rows=await channels.find({where:{contact_id:contact.id,organization_id:organizationId,owner_id:contact.owner_id}});
+    const summary=rows.sort((a,b)=>Number(b.is_primary===true)-Number(a.is_primary===true)||String(a.id).localeCompare(String(b.id))).map(row=>String(row.value||'')).filter(Boolean).join('\n');
+    if(contact.customer_name!==customer.name||String(contact.channel_summary||'')!==summary){await contacts.update({id:contact.id,customer_name:customer.name,channel_summary:summary});updated++}
+  }
+  return{updated,employment_history_preserved:true};
+});` },
 });

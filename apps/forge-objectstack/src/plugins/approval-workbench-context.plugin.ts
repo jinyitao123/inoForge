@@ -494,7 +494,7 @@ export class ApprovalWorkbenchContextPlugin implements Plugin {
           // The native service resolves the authenticated participant flags;
           // caller-supplied identities never widen the snapshot.
           const { request, viewer, actions } = await authorizedApprovalRequest(approvals, requestId, executionContext);
-          const actorOrganizationId = executionContext.tenantId || executionContext.organizationId;
+          const actorOrganizationId = executionContext.tenantId;
           if (request.organization_id && request.organization_id !== actorOrganizationId) {
             throw new ContextFailure(404, 'APPROVAL_CONTEXT_NOT_FOUND', 'Approval context not found.');
           }
@@ -572,7 +572,7 @@ export class ApprovalWorkbenchContextPlugin implements Plugin {
 
         try {
           const { request } = await authorizedApprovalRequest(approvals, requestId, executionContext);
-          const actorOrganizationId = executionContext.tenantId || executionContext.organizationId;
+          const actorOrganizationId = executionContext.tenantId;
           if (!request.organization_id || !actorOrganizationId || request.organization_id !== actorOrganizationId) {
             throw new ContextFailure(404, 'APPROVAL_CONTEXT_NOT_FOUND', 'Approval context not found.');
           }

@@ -37,4 +37,5 @@ export * from './inventory-damage.action.js';
 export * from './other-outbound.action.js';
 
 export * from './sales-crm-maintenance.action.js';
+export * from './sales-contact-lifecycle.action.js';
 export * from './sales-quotation-draft-edit.action.js';

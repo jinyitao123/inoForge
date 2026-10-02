@@ -1,4 +1,5 @@
 import { defineHook } from '@objectstack/spec/data';
+import { contactEmploymentSnapshotSource } from '../actions/contact-employment-source.js';
 
 function parentGuard(parentObject: string, parentField: string) {
   return `
@@ -29,7 +30,38 @@ if (!(ctx.session && ctx.session.isSystem === true)) {
   if (!record.responsible_id) ctx.input.responsible_id = actor;
 }
 // A nullable unique lookup enforces one primary contact per customer in storage.
+if (record.is_primary === true && record.employment_status && record.employment_status !== 'active') throw new Error('非在职联系人不能设为主要联系人');
 ctx.input.primary_customer_id = record.is_primary === true ? record.customer_id : null;
+const directoryCustomer = await ctx.api.object('forge_customer').findOne({ where: { id: record.customer_id } });
+if (directoryCustomer) ctx.input.customer_name = directoryCustomer.name;
+` },
+});
+
+export const SalesContactEmploymentJournal = defineHook({
+  name: 'sales_contact_employment_journal', object: 'forge_contact', events: ['afterInsert','afterUpdate'],
+  priority: 150, runAs: 'system', async: false, onError: 'abort',
+  body: { language: 'js', capabilities: ['api.read','api.write'], source: `${contactEmploymentSnapshotSource}
+const id = String(typeof ctx.result === 'string' ? ctx.result : ctx.result && ctx.result.id || ctx.input && ctx.input.id || '');
+if (!id) throw new Error('联系人写入未返回记录');
+const record = await ctx.api.object('forge_contact').findOne({ where: { id } });
+if (!record) throw new Error('联系人写入后不可读');
+if (ctx.previous && Number(record.employment_revision || 0) === Number(ctx.previous.employment_revision || 0)) return;
+await appendEmploymentSnapshot(record);
+` },
+});
+
+export const SalesContactChannelDirectoryMirror = defineHook({
+  name: 'sales_contact_channel_directory_mirror', object: 'forge_contact_channel', events: ['afterInsert','afterUpdate','afterDelete'],
+  priority: 150, runAs: 'system', async: false, onError: 'abort',
+  body: { language: 'js', capabilities: ['api.read','api.write'], source: String.raw`
+const record = { ...(ctx.previous || {}), ...(ctx.input || {}), ...(ctx.result && typeof ctx.result === 'object' ? ctx.result : {}) };
+const contactId = String(record.contact_id || '');
+if (!contactId) return;
+const contact = await ctx.api.object('forge_contact').findOne({ where: { id: contactId } });
+if (!contact) return;
+const channels = await ctx.api.object('forge_contact_channel').find({ where: { contact_id: contactId, organization_id: contact.organization_id, owner_id: contact.owner_id } });
+const summary = channels.sort((a,b)=>Number(b.is_primary===true)-Number(a.is_primary===true)||String(a.id).localeCompare(String(b.id))).map(row=>String(row.value||'')).filter(Boolean).join('\n');
+if (String(contact.channel_summary || '') !== summary) await ctx.api.object('forge_contact').update({ id: contactId, channel_summary: summary });
 ` },
 });
 
@@ -71,5 +103,7 @@ if (!id || !organizationId) throw new Error('客户名称同步缺少有效组�
 const object = ctx.api.object('forge_quotation');
 const quotes = await object.find({ where: { customer_id: id, organization_id: organizationId }, fields: ['id'] });
 for (const quote of quotes) await object.update({ id: quote.id, customer_name: String(ctx.input.name) });
+const contacts = ctx.api.object('forge_contact');
+for (const contact of await contacts.find({ where: { customer_id: id, organization_id: organizationId }, fields: ['id'] })) await contacts.update({ id: contact.id, customer_name: String(ctx.input.name) });
 ` },
 });

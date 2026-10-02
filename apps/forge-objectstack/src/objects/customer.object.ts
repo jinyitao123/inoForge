@@ -1,4 +1,5 @@
 import { Field, ObjectSchema } from '@objectstack/spec/data';
+import { P } from '@objectstack/spec';
 import { master, text, reference, choice, owner, remarks, code } from '../model.js';
 
 // Source: DP008/2068 form and DP008/2069 saved list.
@@ -34,7 +35,7 @@ export const Customer = ObjectSchema.create({
     invoice_phone: { ...text('开票电话'), group: 'invoicing' },
     payment_term: { ...text('默认付款条件'), group: 'commercial' },
     revenue_recognition: { ...text('收入确认方式'), group: 'commercial' },
-    credit_limit: { ...Field.currency({ label: '信用额度', precision: 18, scale: 2, min: 0, defaultValue: 0 }), group: 'commercial' },
+    credit_limit: { ...Field.currency({ label: '信用额度', precision: 18, min: 0, defaultValue: 0 }), group: 'commercial' },
     payment_days: { ...Field.number({ label: '账期天数', defaultValue: 30 }), group: 'commercial' },
     credit_status: { ...Field.select([{ value: 'active', label: '正常' }, { value: 'frozen', label: '已冻结' }], { label: '授信状态', defaultValue: 'active' }), group: 'commercial' },
     address: { ...text('详细地址'), group: 'address' },
@@ -72,7 +73,14 @@ export const CustomerTeamMember = master('forge_customer_team_member', '客户�
 
 export const Contact = ObjectSchema.create({ ...master('forge_contact', '联系人管理', 'contact', {
   name: text('姓名', true), customer_id: { ...reference('forge_customer', '客户', true), relatedList: true, relatedListTitle: '联系人', relatedListColumns: ["name", "is_primary", "job_title", "department", "employment_status"] },
-  is_primary: Field.boolean({ label: '主要联系人', defaultValue: false }),
+  is_primary: Field.boolean({ label: '主要联系人', defaultValue: false, readonlyWhen: P`record.employment_status != null && record.employment_status != 'active'` }),
+  customer_name: Field.text({ label: '客户名称', readonly: true, hidden: true, maxLength: 255 }),
+  channel_summary: Field.textarea({ label: '联系方式', readonly: true, hidden: true, requiredPermissions: ['sales_crm_maintain'] }),
+  current_company_name: Field.text({ label: '当前任职公司', readonly: true, maxLength: 255 }),
+  current_customer_id: { ...reference('forge_customer', '当前任职客户'), readonly: true, relatedList: false },
+  employment_changed_on: Field.date({ label: '任职变更日期', readonly: true }),
+  employment_note: Field.textarea({ label: '任职变更说明', readonly: true }),
+  employment_revision: Field.number({ label: '任职记录版本', scale: 0, min: 0, defaultValue: 0, readonly: true, hidden: true }),
   primary_customer_id: { ...reference('forge_customer', '主要联系人归属'), readonly: true, relatedList: false, hidden: true },
   job_title: text('职位'), department: text('部门'),
   // Retain stored text values while declaring the choices for the shared widget.
@@ -92,6 +100,21 @@ export const Contact = ObjectSchema.create({ ...master('forge_contact', '联系�
   responsible_id: Field.user({ label: '负责人', defaultValue: 'current_user' }), remarks: remarks(),
 }, ['name', 'customer_id', 'is_primary', 'job_title', 'department', 'employment_status', 'responsible_id']),
   indexes: [{ fields: ['primary_customer_id'], unique: 'organization' }],
+  searchableFields: ['name', 'customer_name', 'current_company_name', 'job_title', 'department', 'channel_summary'],
+});
+
+export const ContactEmployment = ObjectSchema.create({
+  ...master('forge_contact_employment', '联系人任职轨迹', 'briefcase-business', {
+    name: text('任职记录', true),
+    contact_id: Field.masterDetail('forge_contact', { label: '联系人', required: true, deleteBehavior: 'cascade', relatedList: 'primary', relatedListTitle: '任职轨迹', relatedListColumns: ['company_name','job_title','employment_status','effective_on','note'] }),
+    change_key: Field.text({ label: '轨迹去重键', required: true, hidden: true }),
+    company_name: text('任职公司', true), customer_id: { ...reference('forge_customer', '任职客户'), relatedList: false },
+    employment_status: Field.select([{value:'active',label:'在职'},{value:'transferred',label:'已跳槽'},{value:'resigned',label:'已离职'},{value:'retired',label:'已退休'},{value:'inactive',label:'停用'}], {label:'任职状态',required:true}),
+    department: text('部门'), job_title: text('职位'), effective_on: Field.date({label:'异动日期',required:true}),
+    note: Field.textarea({label:'说明'}), recorded_by: Field.user({label:'记录人'}),
+  }, ['contact_id','company_name','job_title','employment_status','effective_on'], 'controlled_by_parent'),
+  indexes: [{fields:['change_key'],unique:'organization'}],
+  enable: {apiEnabled:true,apiMethods:['get','list'],searchable:false,trackHistory:true,files:false,feeds:false,activities:false},
 });
 
 export const ContactChannel = ObjectSchema.create({ ...master('forge_contact_channel', '联系人联系方式', 'phone', {

@@ -4,7 +4,7 @@ import { master, dictionary, text, code, reference, choice, owner, remarks, requ
 
 const positiveQuantity = (label = '数量') => Field.number({ label, min: 0.0001, scale: 4, ...required });
 const percentage = (label: string, defaultValue = 0) => Field.number({ label, min: 0, max: 100, scale: 4, defaultValue });
-const nonNegativeMoney = (label: string, scale = 4) => Field.currency({ label, scale, min: 0, currencyConfig: { currencyMode: 'fixed', defaultCurrency: 'CNY', precision: 2 } });
+const nonNegativeMoney = (label: string) => Field.currency({ label, min: 0, currencyConfig: { currencyMode: 'fixed', defaultCurrency: 'CNY' } });
 const paymentMethod = () => choice('付款方式', ['银行转账', '支付宝', '微信支付', '现金', '支票', '其他', '电汇', '承兑汇票', '在线支付', '信用证']);
 const revenueTrigger = () => choice('收入确认方式', ['按发货出库', '按开票', '按里程碑', '按验收', '按周期', '手动确认'], '按发货出库');
 
@@ -336,6 +336,8 @@ export const SalesLead = master('forge_sales_lead', '线索管理', 'funnel', {
 }, ['code', 'company_name', 'contact_name', 'phone', 'status', 'source', 'converted_customer_id', 'converted_opportunity_id', 'responsible_id']);
 
 export const SalesFollowUp = master('forge_sales_follow_up', '跟进记录', 'messages-square', {
+  request_key: Field.text({label:'跟进请求标识',hidden:true,readonly:true,unique:'organization'}),
+  contact_id: { ...reference('forge_contact', '联系人'), relatedList: 'primary', relatedListTitle: '跟进记录', relatedListColumns: ['name','follow_type','followed_at','content','responsible_id'] },
   name: text('跟进主题', true), customer_id: { ...reference('forge_customer', '客户'), relatedList: true, relatedListTitle: '跟进', relatedListColumns: ["name", "follow_type", "followed_at", "next_follow_on", "status"] }, opportunity_id: reference('forge_sales_opportunity', '商机'), follow_type: Field.select([{ value: 'phone', label: '电话沟通' }, { value: 'wechat', label: '微信沟通' }, { value: 'email', label: '邮件往来' }, { value: 'onsite_visit', label: '上门拜访' }, { value: 'customer_visit', label: '客户来访' }, { value: 'online_meeting', label: '线上会议' }, { value: 'demo', label: '产品演示' }, { value: 'proposal', label: '方案讲解' }, { value: 'negotiation', label: '商务谈判' }, { value: 'other', label: '其他' }], { label: '跟进类型', defaultValue: 'phone' }),
   content: Field.textarea({ label: '跟进内容' }), followed_at: Field.date({ label: '跟进日期' }), next_follow_on: Field.date({ label: '下次计划' }), status: Field.select([{ value: 'pending', label: '待跟进' }, { value: 'completed', label: '已完成' }, { value: 'overdue', label: '已过期' }], { label: '跟进状态', defaultValue: 'completed' }), responsible_id: owner(), remarks: remarks(),
 }, ['customer_id', 'opportunity_id', 'follow_type', 'followed_at', 'next_follow_on', 'status', 'responsible_id']);

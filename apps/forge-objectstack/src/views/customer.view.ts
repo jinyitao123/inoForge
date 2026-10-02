@@ -40,6 +40,21 @@ export const CustomerViews = defineView({
 /** Contact storage and lifecycle stay on Contact; this view selects its compact editor. */
 export const ContactViews = defineView({
   object: 'forge_contact',
+  list: {
+    type: 'grid', data: { provider: 'object', object: 'forge_contact' },
+    columns: [
+      { field: 'name', label: '联系人', width: 210, link: true },
+      { field: 'gender', label: '性别', width: 70 },
+      { field: 'job_title', label: '职位 / 部门', width: 170 },
+      { field: 'customer_id', label: '所属公司', width: 220 },
+      { field: 'employment_status', label: '任职状态', width: 110 },
+      { field: 'decision_weight', label: '决策权重', width: 110 },
+      { field: 'channel_summary', label: '联系方式', width: 190 },
+      { field: 'responsible_id', label: '维护人', width: 100 },
+    ],
+    searchableFields: ['name','customer_name','current_company_name','job_title','department','channel_summary'],
+    sort: [{ field: 'created_at', order: 'desc' }], pagination: { pageSize: 20 },
+  },
   formViews: {
     profile: {
       type: 'simple',

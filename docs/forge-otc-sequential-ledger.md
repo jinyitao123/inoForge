@@ -4,6 +4,58 @@
 
 更新于 2026-10-02。以下原有 OEM 控制柜各阶段记录保留其当时的材料、环境和验收口径，不追改历史结论。当前新增走查以 Forge 业务目标和正常页面实际办理为准；RISEMAP 仅作页面与流程参考，具体规则不自动推广为客户无关要求。当前阶段覆盖与缺口见本页最新的“销售到项目业务走查”表。
 
+## 销售与项目全量交付范围
+
+本轮完成范围包括下面全部销售与项目入口，以及每个入口下的详情、新建、编辑、弹窗、设置消费者和正常／异常操作。颜色后置。表中状态只表示交付进度，不以菜单存在、组件构建或历史通过代替当前版本的界面与业务验收。参考候选来自 `tests/risemap-correspondence.json`；逐项要求和证据更新对应原页面合同，公共组件的共性缺口归精修基线。
+
+| 范围 | 入口 | 对照线索 | 当前状态 | 原合同 |
+| --- | --- | --- | --- | --- |
+| 销售 | 框架销售合同 | RM-046 | 待逐项对照与验收 | [合同](contracts/sales/page_sales_contract_workspace.md) |
+| 销售 | 销售订单 | RM-047 | 待逐项对照与验收 | [合同](contracts/sales/page_sales_order_workspace.md) |
+| 销售 | 附加费用 | 待补页面对应 | 待逐项对照与验收 | [合同](forge-sales-additional-fee-page-contract-20260913.md) |
+| 销售 | 收款流水 | RM-048 | 待逐项对照与验收 | [合同](forge-sales-collection-flow-page-contract-20260913.md) |
+| 销售 | 销售发货单 | RM-049 | 待逐项对照与验收 | [合同](forge-sales-shipment-page-contract-20260913.md) |
+| 销售 | 销售退货 | RM-050 | 待逐项对照与验收 | [合同](forge-sales-return-page-contract-20260913.md) |
+| 销售 | 业绩银行 | RM-051 | 待逐项对照与验收 | [合同](forge-sales-management-page-contract-20260913.md) |
+| 销售 | 价格策略 | RM-052 | 待逐项对照与验收 | [合同](forge-sales-management-page-contract-20260913.md) |
+| 销售 | Goodwill订单 | RM-053 | 待逐项对照与验收 | [合同](forge-sales-management-page-contract-20260913.md) |
+| 销售 | 销售团队 | RM-054 | 待逐项对照与验收 | [合同](forge-sales-management-page-contract-20260913.md) |
+| 销售 | 销售目标 | RM-055 | 待逐项对照与验收 | [合同](forge-sales-management-page-contract-20260913.md) |
+| 销售 | 销售发票 | RM-056 | 待逐项对照与验收 | [合同](forge-sales-collection-flow-page-contract-20260913.md) |
+| 销售 | 客户管理 | RM-057 | 进行中；局部证据已在合同记录 | [合同](forge-sales-crm-page-contract-20260913.md) |
+| 销售 | 联系人管理 | RM-058 | 进行中；局部证据已在合同记录 | [合同](forge-sales-crm-page-contract-20260913.md) |
+| 销售 | 销售报价 | RM-059 | 进行中；局部证据已在合同记录 | [合同](forge-sales-crm-page-contract-20260913.md) |
+| 销售 | 客户物料对照 | RM-060 | 待逐项对照与验收 | [合同](forge-sales-crm-page-contract-20260913.md) |
+| 销售 | 商机管理 | RM-061 | 进行中；局部证据已在合同记录 | [合同](forge-sales-crm-page-contract-20260913.md) |
+| 销售 | 线索管理 | RM-062 | 进行中；局部证据已在合同记录 | [合同](forge-sales-crm-page-contract-20260913.md) |
+| 销售 | 跟进记录 | RM-063 | 待逐项对照与验收 | [合同](forge-sales-crm-page-contract-20260913.md) |
+| 销售 | 公海客户 | RM-064 | 待逐项对照与验收 | [合同](forge-sales-crm-page-contract-20260913.md) |
+| 销售 | 服务工单 | 待补页面对应 | 待逐项对照与验收 | [合同](forge-sales-service-page-contract-20260913.md) |
+| 销售 | 服务报价单 | 待补页面对应 | 待逐项对照与验收 | [合同](forge-sales-service-page-contract-20260913.md) |
+| 销售 | 服务结算单 | 待补页面对应 | 待逐项对照与验收 | [合同](forge-sales-service-page-contract-20260913.md) |
+| 销售 | 接单中心 | 待补页面对应 | 待逐项对照与验收 | [合同](forge-sales-service-page-contract-20260913.md) |
+| 销售 | 派工中心 | 待补页面对应 | 待逐项对照与验收 | [合同](forge-sales-service-page-contract-20260913.md) |
+| 销售 | 服务分析 | 待补页面对应 | 待逐项对照与验收 | [合同](forge-sales-service-page-contract-20260913.md) |
+| 销售 | 质保管理 | 待补页面对应 | 待逐项对照与验收 | [合同](forge-sales-service-page-contract-20260913.md) |
+| 销售 | 服务配置 | 待补页面对应 | 待逐项对照与验收 | [合同](forge-sales-service-page-contract-20260913.md) |
+| 销售 | 客户分类 | 待补页面对应 | 待逐项对照与验收 | 随本入口补入现有业务合同 |
+| 销售 | 客户级别 | 待补页面对应 | 待逐项对照与验收 | 随本入口补入现有业务合同 |
+| 销售 | 报价类型 | 待补页面对应 | 待逐项对照与验收 | 随本入口补入现有业务合同 |
+| 销售 | 报价主体 | 待补页面对应 | 待逐项对照与验收 | 随本入口补入现有业务合同 |
+| 销售 | 合同类型 | 待补页面对应 | 待逐项对照与验收 | 随本入口补入现有业务合同 |
+| 销售 | 单据打印 | 待补页面对应 | 待逐项对照与验收 | [合同](evidence/system-placeholders-20260921/page-print-business-config.md) |
+| 项目 | 项目中心 | RM-094 | 进行中；局部证据已在合同记录 | 随本入口补入现有业务合同 |
+| 项目 | 项目分析中心 | RM-095 | 待逐项对照与验收 | 随本入口补入现有业务合同 |
+| 项目 | 任务管理 | RM-096 | 待逐项对照与验收 | 随本入口补入现有业务合同 |
+| 项目 | 工时管理 | RM-097 | 待逐项对照与验收 | 随本入口补入现有业务合同 |
+| 项目 | 项目配置中心 | RM-098 | 待逐项对照与验收 | 随本入口补入现有业务合同 |
+| 项目 | 交付验收 | 待补页面对应 | 待逐项对照与验收 | 随本入口补入现有业务合同 |
+| 项目 | 项目费用与成本 | 待补页面对应 | 待逐项对照与验收 | 随本入口补入现有业务合同 |
+| 项目 | 项目管理配置 | 待补页面对应 | 待逐项对照与验收 | [合同](evidence/system-placeholders-20260921/page-project-business-config.md) |
+| 项目 | 单据打印 | 待补页面对应 | 待逐项对照与验收 | [合同](evidence/system-placeholders-20260921/page-print-business-config.md) |
+
+当前集中处理的阻塞：货币物理列精度与官方平台升级、客户／联系人完整列表及行操作、报价单据分区与主从编辑、项目详情无动作入口及固定指标。平台问题通过包含正式修复的依赖版本及数据库迁移处理，不在页面中遮掩。
+
 ## 当前销售到项目的连续岗位验证
 
 2026-10-02以普通岗位逐段闭合Forge独立销售与项目；公共组件按当前业务需求补齐，RISEMAP结构／密度／交互同步核对，颜色后置。当前使用持久PostgreSQL `forge_sales_project_acceptance`，临时 `forge_risemap` 目录已不可用，旧124、SQLite及此前管理账号样板证据保留原范围。保留重构分支和未提交现场，不合main、不更新总仓锁、不部署124，不扩大桌面／Weave联调。
