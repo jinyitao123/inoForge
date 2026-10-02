@@ -40,6 +40,16 @@ export const CustomerViews = defineView({
 /** Contact storage and lifecycle stay on Contact; this view selects its compact editor. */
 export const ContactViews = defineView({
   object: 'forge_contact',
+  formViews: {
+    profile: {
+      type: 'simple',
+      data: { provider: 'object', object: 'forge_contact' }, columns: 2,
+      sections: [
+        { columns: 2, fields: ['name', 'gender', 'customer_id', 'department', 'job_title', 'decision_weight', 'responsible_id', 'employment_status', { field: 'is_primary', widget: 'checkbox', span: 'full' }] },
+        { columns: 1, fields: ['remarks'] },
+      ],
+    },
+  },
   form: {
     type: 'simple',
     data: { provider: 'object', object: 'forge_contact' },
