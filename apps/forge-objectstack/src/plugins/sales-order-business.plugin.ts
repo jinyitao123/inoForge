@@ -20,6 +20,24 @@ export class SalesOrderBusinessPlugin implements Plugin {
   start(ctx: PluginContext): void {
     const native = ctx.getService<IApprovalService>('approvals');
     const engine = ctx.getService<IObjectQLEngine>('objectql');
+    const requireNonOrderRequest = async (id: string, context: Parameters<IApprovalService['getRequest']>[1]) => {
+      const request = await native.getRequest(id, context);
+      if (request?.object_name === 'forge_sales_order') {
+        throw new Error('VALIDATION_ERROR: 销售订单复核仅支持同意或拒绝，不支持转签或退回；请在原审批事项中办理');
+      }
+    };
+    const reassign: IApprovalService['reassign'] = async (id, input, context) => {
+      await requireNonOrderRequest(id, context);
+      return native.reassign(id, input, context);
+    };
+    const sendBack: IApprovalService['sendBack'] = async (id, input, context) => {
+      await requireNonOrderRequest(id, context);
+      return native.sendBack(id, input, context);
+    };
+    const requestInfo: IApprovalService['requestInfo'] = async (id, input, context) => {
+      await requireNonOrderRequest(id, context);
+      return native.requestInfo(id, input, context);
+    };
     const decide: IApprovalService['decide'] = async (id, input, context) => {
       const request = await native.getRequest(id, context);
       if (request?.object_name === 'forge_sales_order') {
@@ -35,6 +53,9 @@ export class SalesOrderBusinessPlugin implements Plugin {
     ctx.replaceService('approvals', new Proxy(native, {
       get(target, property, receiver) {
         if (property === 'decide') return decide;
+        if (property === 'reassign') return reassign;
+        if (property === 'sendBack') return sendBack;
+        if (property === 'requestInfo') return requestInfo;
         const value = Reflect.get(target, property, receiver);
         return typeof value === 'function' ? value.bind(target) : value;
       },
