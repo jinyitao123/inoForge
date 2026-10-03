@@ -37,6 +37,26 @@ test('empty results are valid and an explicit read ceiling never masquerades as 
   await assert.rejects(readAllWith(async () => ({ records: [], totalCount: 201 }))({}, 'forge_contact', { limit: 200 }), /超过可读取上限/);
 });
 
+test('a clamped page without a count continues until the actual end', async () => {
+  const rows = Array.from({ length: 105 }, (_, index) => ({ id: `clamped-${index}` }));
+  const offsets = [];
+  const readAll = readAllWith(async (_adapter, path) => {
+    const skip = Number(new URL(path, 'http://localhost').searchParams.get('$skip'));
+    offsets.push(skip);
+    return { records: rows.slice(skip, skip + 50) };
+  });
+  assert.deepEqual(await readAll({}, 'forge_contact'), rows);
+  assert.deepEqual(offsets, [0, 50, 100, 105]);
+});
+
+test('native HTTP refusal retains status so an unavailable reference does not hide the main work list', async () => {
+  const begin = forgeProductUiRuntime.indexOf('async function ForgeApiRequest(');
+  const end = forgeProductUiRuntime.indexOf('async function ForgeReadAllRecords(', begin);
+  const request = new Function(forgeProductUiRuntime.slice(begin, end) + ';return ForgeApiRequest;')();
+  await assert.rejects(request({ fetchImpl: async () => ({ ok: false, status: 403, json: async () => ({ error: '当前账号不可读取' }) }) }, '/data/forge_project'),
+    error => error.status === 403 && error.message === '当前账号不可读取');
+});
+
 test('full Console links use the basename-aware host bridge once and preserve opaque query values', () => {
   const begin = forgeProductUiRuntime.indexOf('function ForgeNavigate(');
   const end = forgeProductUiRuntime.indexOf('async function ForgeApiResponse(', begin);

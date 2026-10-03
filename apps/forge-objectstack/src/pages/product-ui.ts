@@ -222,7 +222,7 @@ function ForgeNavigate(href,options){
  else window.location.href=path;
 }
 async function ForgeApiResponse(adapter,path,options={}){const raw=String(adapter?.baseUrl||''),base=raw.endsWith('/')?raw.slice(0,-1):raw,transport=adapter?.fetchImpl||fetch,headers=new Headers(options.headers||{});for(const [name,value] of Object.entries(adapter?.getAuthHeaders?.()||{}))headers.set(name,value);return transport(base+'/api/v1'+path,{credentials:'include',...options,headers})}
-async function ForgeApiRequest(adapter,path,options={}){const headers={'Content-Type':'application/json',...(adapter?.getAuthHeaders?.()||{}),...(options.headers||{})},raw=String(adapter?.baseUrl||''),base=raw.endsWith('/')?raw.slice(0,-1):raw,transport=adapter?.fetchImpl||fetch,response=await transport(base+'/api/v1'+path,{credentials:'include',...options,headers}),payload=await response.json().catch(()=>({}));if(!response.ok)throw new Error((typeof payload.error==='string'?payload.error:payload.error?.message)||(Array.isArray(payload.fields)&&payload.fields.length?payload.fields.map(f=>f.message||f.label).filter(Boolean).join('；'):'')||payload.message||'请求失败');return payload}
+async function ForgeApiRequest(adapter,path,options={}){const headers={'Content-Type':'application/json',...(adapter?.getAuthHeaders?.()||{}),...(options.headers||{})},raw=String(adapter?.baseUrl||''),base=raw.endsWith('/')?raw.slice(0,-1):raw,transport=adapter?.fetchImpl||fetch,response=await transport(base+'/api/v1'+path,{credentials:'include',...options,headers}),payload=await response.json().catch(()=>({}));if(!response.ok){const error=new Error((typeof payload.error==='string'?payload.error:payload.error?.message)||(Array.isArray(payload.fields)&&payload.fields.length?payload.fields.map(f=>f.message||f.label).filter(Boolean).join('；'):'')||payload.message||'请求失败');error.status=response.status;throw error}return payload}
 async function ForgeReadAllRecords(adapter,objectName,options={}){
  const records=[],seen=new Set(),size=100,limit=Number.isSafeInteger(options.limit)&&options.limit>0?options.limit:20000,label=options.label||'列表';
  for(let skip=0;skip<=limit;){
@@ -237,7 +237,6 @@ async function ForgeReadAllRecords(adapter,objectName,options={}){
   if(records.length>limit||total!==null&&records.length>total)throw new Error(label+'分页结果不完整，请重新读取');
   if(total!==null&&records.length===total)return records;
   if(!batch.length){if(total!==null&&records.length<total)throw new Error(label+'未读取完整，请重试');return records}
-  if(total===null&&batch.length<size)return records;
   skip+=batch.length;
  }
  throw new Error(label+'超过可读取上限，请缩小范围');
