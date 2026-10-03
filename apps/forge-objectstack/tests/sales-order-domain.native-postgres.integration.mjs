@@ -142,4 +142,14 @@ test('sales order native actions and approval preserve role, payment and atomic 
   const replacement=await action(operator,'forge_sales_contract',rejectedContract,CONTRACT_ORDER_TARGET,{...orderInput,code:`REPLACE-${rejectedContract}`});
   assert.ok(replacement.id!==secondOrder.id);
 
+  await action(operator,'forge_sales_order',replacement.id,ORDER_SUBMIT_TARGET);
+  const recallRequest=await engine.findOne('sys_approval_request',{where:{record_id:replacement.id,organization_id:org}},{context:system});
+  assert.ok(recallRequest);
+  await approvals.recall(recallRequest.id,{actorId:operator,reason:'合成原生撤回验证'},{userId:operator,tenantId:org,permissions:[],positions:[]});
+  assert.equal((await read('sys_approval_request',recallRequest.id)).status,'recalled');
+  assert.equal((await read('forge_sales_order',replacement.id)).status,'cancelled');
+  assert.equal((await read('forge_sales_order',replacement.id)).approval_outcome,'recalled');
+  assert.equal((await read('forge_customer_prepayment',secondPrepay.id)).order_id,null);
+  await action(operator,'forge_sales_order',replacement.id,ORDER_APPLY_APPROVAL_TARGET);
+
 });

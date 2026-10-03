@@ -22,7 +22,7 @@ export const SalesOrderApprovalFlow = defineFlow({
       actionUrl: '/_console/apps/com.inoforge.forge.sales/forge_sales_order/record/{record.id}',
     } },
     { id: 'notify_rejected', type: 'notify', label: '通知订单未通过', position: { x: 830, y: 260 }, config: {
-      recipients: ['{record.responsible_id}'], title: '订单 {record.code} 未获复核通过', message: '请核对原生审批意见；本订单已取消，合同下单累计未增加。',
+      recipients: ['{record.responsible_id}'], title: '订单 {record.code} 已取消', message: '请核对原生审批处理原因；本订单已取消，合同下单累计未增加。',
       topic: 'sales.order.rejected', sourceObject: 'forge_sales_order', sourceId: '{record.id}', severity: 'warning',
       actionUrl: '/_console/apps/com.inoforge.forge.sales/forge_sales_order/record/{record.id}',
     } },

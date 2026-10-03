@@ -279,11 +279,11 @@ export async function applySalesOrderApproval(engine: IObjectQLEngine, recordId:
     if (initial.contract_id) await lockBusinessRow(engine, 'forge_sales_contract', String(initial.contract_id), organizationId, transaction);
     await lockBusinessRow(engine, 'forge_sales_order', recordId, organizationId, transaction);
     const order = await get(engine, 'forge_sales_order', recordId, organizationId, transaction);
-    if (order.status === 'active' && order.approval_outcome === 'approved' || order.status === 'cancelled' && order.approval_outcome === 'rejected') return;
+    if (order.status === 'active' && order.approval_outcome === 'approved' || order.status === 'cancelled' && ['rejected', 'recalled'].includes(String(order.approval_outcome))) return;
     if (order.status !== 'pending_approval' || !['approved', 'rejected'].includes(String(order.approval_outcome))) throw new Error('订单没有可应用的原生审批结论');
     const requests = await engine.find('sys_approval_request', { where: { object_name: 'forge_sales_order', record_id: recordId, organization_id: organizationId }, limit: 101 }, { context: transaction });
     if (requests.length > 100) throw new Error('原生审批记录不可完整核对');
-    const request = requests.find(r => r.status === order.approval_outcome && r.submitter_id === order.submitted_by);
+    const request = requests.find(r => (r.status === order.approval_outcome || order.approval_outcome === 'rejected' && r.status === 'recalled') && r.submitter_id === order.submitted_by);
     if (!request) throw new Error('订单原生审批结论尚不可核验');
     if (order.approval_outcome === 'rejected') {
       const prepayments = await engine.find('forge_customer_prepayment', { where: { order_id: recordId, organization_id: organizationId }, limit: 1001 }, { context: transaction });
@@ -292,7 +292,7 @@ export async function applySalesOrderApproval(engine: IObjectQLEngine, recordId:
         await lockBusinessRow(engine, 'forge_customer_prepayment', String(row.id), organizationId, transaction);
         await engine.update('forge_customer_prepayment', { id: row.id, order_id: null }, { context: transaction });
       }
-      await engine.update('forge_sales_order', { id: recordId, status: 'cancelled' }, { context: transaction });
+      await engine.update('forge_sales_order', { id: recordId, status: 'cancelled', approval_outcome: request.status }, { context: transaction });
       return;
     }
     if (order.submitted_order_digest !== await salesOrderDigest(engine, order, transaction)) throw new Error('订单内容与审批提交版本不同');
