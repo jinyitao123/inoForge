@@ -20,10 +20,20 @@ export class SalesOrderBusinessPlugin implements Plugin {
   start(ctx: PluginContext): void {
     const native = ctx.getService<IApprovalService>('approvals');
     const engine = ctx.getService<IObjectQLEngine>('objectql');
+    const scopedRequest = async (id: string, context: Parameters<IApprovalService['getRequest']>[1]) => {
+      if (!context.tenantId) throw new Error('FORBIDDEN: 审批事项必须限定当前组织');
+      // Visibility projections may omit a valid pending request. Read its
+      // immutable type from the authority, bounded to the authenticated tenant.
+      const request = await engine.findOne('sys_approval_request', {
+        where: { id, organization_id: context.tenantId },
+      }, { context: { ...context, isSystem: true } });
+      if (!request) throw new Error('NOT_FOUND: 当前组织的审批事项不存在');
+      return request;
+    };
     const requireNonOrderRequest = async (id: string, context: Parameters<IApprovalService['getRequest']>[1]) => {
-      const request = await native.getRequest(id, context);
+      const request = await scopedRequest(id, context);
       if (request?.object_name === 'forge_sales_order') {
-        throw new Error('VALIDATION_ERROR: 销售订单复核仅支持同意或拒绝，不支持转签或退回；请在原审批事项中办理');
+        throw new Error('VALIDATION_FAILED: 销售订单复核仅支持同意或拒绝，不支持转签或退回；请在原审批事项中办理');
       }
     };
     const reassign: IApprovalService['reassign'] = async (id, input, context) => {
@@ -39,7 +49,7 @@ export class SalesOrderBusinessPlugin implements Plugin {
       return native.requestInfo(id, input, context);
     };
     const decide: IApprovalService['decide'] = async (id, input, context) => {
-      const request = await native.getRequest(id, context);
+      const request = await scopedRequest(id, context);
       if (request?.object_name === 'forge_sales_order') {
         const organizationId = context.tenantId, actorId = context.userId;
         if (!organizationId || !actorId || request.organization_id !== organizationId || request.submitter_id === actorId) throw new Error('FORBIDDEN: 订单须由独立员工本人复核');
